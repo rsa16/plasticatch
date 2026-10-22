@@ -18,6 +18,7 @@ export default function RootLayout() {
         <Stack.Screen name="permissions" />
         <Stack.Screen name="terms" />
         <Stack.Screen name="all-set" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="(main)" options={{ gestureEnabled: false }} />
       </Stack>
     </ThemeProvider>
   );

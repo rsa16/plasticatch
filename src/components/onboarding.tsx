@@ -38,7 +38,8 @@ const BACKDROP_STOPS: readonly BackdropStop[] = [
   [1, 55, 135, 101, 0.53],
 ];
 
-const BACKDROP_GRADIENT = backdropGradient(BACKDROP_STOPS);
+/** The app's standard green-tinted backdrop, shared with the main screens. */
+export const BACKDROP_GRADIENT = backdropGradient(BACKDROP_STOPS);
 
 /**
  * The solid color the onboarding backdrop shows at `fraction` (0 = top, 1 = bottom of the

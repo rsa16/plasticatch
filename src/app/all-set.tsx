@@ -44,8 +44,8 @@ export default function AllSetScreen() {
           />
           <Pressable
             accessibilityRole="button"
-            // Onboarding is finished, so drop it from history and land on the main tabs.
-            onPress={() => router.replace('/')}
+            // Onboarding is finished, so drop it from history and land on the main app.
+            onPress={() => router.replace('/ranking')}
             style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
             <ThemedText style={styles.buttonLabel}>BEGIN CATCHING</ThemedText>
           </Pressable>

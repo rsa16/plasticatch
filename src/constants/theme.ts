@@ -33,6 +33,11 @@ export const Brand = {
   accent: '#378765',
   accentMuted: '#a2dfc5',
   field: '#d9e0d9',
+  catchTab: '#39936d',
+  icon: '#000000',
+  rowText: '#4f4f4f',
+  rowTextStrong: '#303030',
+  danger: '#873737',
 } as const;
 
 export type ThemeColor =keyof typeof Colors.light & keyof typeof Colors.dark;
