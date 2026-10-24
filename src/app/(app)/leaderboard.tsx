@@ -6,19 +6,22 @@ import { useBottomMenuHeight } from '@/components/bottom-menu';
 import { LeaderboardList } from '@/components/leaderboard';
 import { MenuScreen } from '@/components/menu-screen';
 import { Text } from '@/components/text';
-import { LEADERBOARDS } from '@/constants/leaderboards';
 import { Spacing } from '@/constants/theme';
+import { COHORTS, board as buildBoard, defaultSource, type Cohort } from '@/features/leaderboard';
 
 /** Space between the leaderboard and the raised Catch tab. */
 const LIST_BOTTOM_GAP = 18;
 
 export default function LeaderboardScreen() {
   const menuHeight = useBottomMenuHeight();
-  const [boardIndex, setBoardIndex] = useState(0);
-  const board = LEADERBOARDS[boardIndex];
+  const [cohort, setCohort] = useState<Cohort>('state');
+  const leaderboard = buildBoard(cohort, defaultSource);
 
   const step = (delta: number) =>
-    setBoardIndex((i) => (i + delta + LEADERBOARDS.length) % LEADERBOARDS.length);
+    setCohort((current) => {
+      const index = COHORTS.indexOf(current);
+      return COHORTS[(index + delta + COHORTS.length) % COHORTS.length] ?? current;
+    });
 
   return (
     <MenuScreen title="RANKING">
@@ -37,13 +40,16 @@ export default function LeaderboardScreen() {
             style={[styles.arrowHit, styles.arrowHitLeft]}
           />
           <Text variant="sectionTitle" style={styles.boardTitle}>
-            {board.title}
+            {leaderboard.title}
           </Text>
           <Image
             source={require('@/assets/images/ranking-divider.svg')}
             style={styles.divider}
             contentFit="fill"
           />
+          <Text variant="caption" color="accent" style={styles.metricLabel}>
+            {leaderboard.metricLabel}
+          </Text>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Next leaderboard"
@@ -53,7 +59,11 @@ export default function LeaderboardScreen() {
           />
         </View>
 
-        <LeaderboardList key={board.title} entries={board.entries} />
+        <LeaderboardList
+          key={leaderboard.cohort}
+          entries={leaderboard.entries}
+          ownRank={leaderboard.ownRank}
+        />
       </View>
     </MenuScreen>
   );
@@ -100,5 +110,8 @@ const styles = StyleSheet.create({
     width: 210,
     height: 5,
     marginTop: 4,
+  },
+  metricLabel: {
+    marginTop: 2,
   },
 });
