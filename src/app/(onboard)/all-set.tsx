@@ -1,67 +1,56 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { backdropGradient, ONBOARDING_STEPS, type BackdropStop } from '@/components/onboarding';
+import { ALL_SET_BACKDROP_STOPS } from '@/components/backdrop';
+import { ONBOARDING_STEPS } from '@/components/onboarding';
 import { OnboardingProgress } from '@/components/onboarding-progress';
+import { ScreenFrame } from '@/components/screen-frame';
 import { Text } from '@/components/text';
-import { Brand, Spacing } from '@/constants/theme';
-
-// This step's tint moves its light band higher than the other steps so the map shows through.
-const BACKDROP_STOPS: readonly BackdropStop[] = [
-  [0, 55, 135, 101, 0.61],
-  [0.27962, 245, 247, 246, 0.01],
-  [0.35832, 223, 234, 229, 0.44],
-  [1, 55, 135, 101, 0.53],
-];
+import { Brand } from '@/constants/theme';
 
 export default function AllSetScreen() {
-  const insets = useSafeAreaInsets();
-
   return (
-    <View style={styles.screen}>
-      <View style={styles.map} pointerEvents="none">
-        <Image
-          source={require('@/assets/images/all-set-map.png')}
-          style={styles.mapImage}
-          contentFit="fill"
-        />
-        <View style={styles.mapFade} />
-      </View>
-      <View style={styles.backdrop} pointerEvents="none" />
-
-      <View style={[styles.content, { paddingTop: insets.top + Spacing.two }]}>
-        <OnboardingProgress step={ONBOARDING_STEPS} total={ONBOARDING_STEPS} />
-
-        <View style={styles.message}>
-          <Text variant="pageTitle" style={styles.title}>
-            You’re all set!
-          </Text>
+    <ScreenFrame
+      top="step"
+      stops={ALL_SET_BACKDROP_STOPS}
+      backdropOverBackground
+      contentStyle={styles.content}
+      header={<OnboardingProgress step={ONBOARDING_STEPS} total={ONBOARDING_STEPS} />}
+      background={
+        <View style={styles.map} pointerEvents="none">
           <Image
-            source={require('@/assets/images/all-set-divider.svg')}
-            style={styles.divider}
+            source={require('@/assets/images/all-set-map.png')}
+            style={styles.mapImage}
             contentFit="fill"
           />
-          <Pressable
-            accessibilityRole="button"
-            // Onboarding is finished, so drop it from history and land in the app shell.
-            onPress={() => router.replace('/map')}
-            style={({ pressed }) => [styles.button, pressed && styles.pressed]}
-          >
-            <Text variant="buttonLabel">BEGIN CATCHING</Text>
-          </Pressable>
+          <View style={styles.mapFade} />
         </View>
+      }
+    >
+      <View style={styles.message}>
+        <Text variant="pageTitle" style={styles.title}>
+          You’re all set!
+        </Text>
+        <Image
+          source={require('@/assets/images/all-set-divider.svg')}
+          style={styles.divider}
+          contentFit="fill"
+        />
+        <Pressable
+          accessibilityRole="button"
+          // Onboarding is finished, so drop it from history and land in the app shell.
+          onPress={() => router.replace('/map')}
+          style={({ pressed }) => [styles.button, pressed && styles.pressed]}
+        >
+          <Text variant="buttonLabel">BEGIN CATCHING</Text>
+        </Pressable>
       </View>
-    </View>
+    </ScreenFrame>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: Brand.surface,
-  },
   // The map frame is 45pt wider than the screen on each side and pinned to the bottom.
   map: {
     position: 'absolute',
@@ -82,12 +71,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     experimental_backgroundImage: `linear-gradient(to bottom, ${Brand.surface} 2.07%, rgba(247, 248, 247, 0) 92.28%)`,
   },
-  backdrop: {
-    ...StyleSheet.absoluteFill,
-    experimental_backgroundImage: backdropGradient(BACKDROP_STOPS),
-  },
   content: {
-    flex: 1,
     paddingHorizontal: 28,
   },
   message: {

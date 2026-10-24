@@ -1,17 +1,10 @@
 import { Image } from 'expo-image';
 import type { ReactNode } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  TextInput,
-  View,
-  type TextInputProps,
-} from 'react-native';
+import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { OnboardingProgress } from '@/components/onboarding-progress';
+import { ScreenFrame } from '@/components/screen-frame';
 import { Text } from '@/components/text';
 import { Brand, Spacing, TextStyles } from '@/constants/theme';
 
@@ -19,44 +12,6 @@ export const ONBOARDING_STEPS = 5;
 
 /** Gap between the Back/Next buttons and the bottom safe-area edge. */
 const FOOTER_BOTTOM_GAP = 56;
-
-/** A backdrop gradient stop: [position 0–1, r, g, b, alpha], painted over Brand.surface. */
-export type BackdropStop = readonly [number, number, number, number, number];
-
-export function backdropGradient(stops: readonly BackdropStop[]) {
-  return `linear-gradient(180deg, ${stops
-    .map(([at, r, g, b, a]) => `rgba(${r}, ${g}, ${b}, ${a}) ${at * 100}%`)
-    .join(', ')})`;
-}
-
-const BACKDROP_STOPS: readonly BackdropStop[] = [
-  [0, 55, 135, 101, 0.61],
-  [0.3, 245, 247, 246, 0.01],
-  [0.6, 223, 234, 229, 0.44],
-  [1, 55, 135, 101, 0.53],
-];
-
-/** The app's standard green-tinted backdrop, shared with the main screens. */
-export const BACKDROP_GRADIENT = backdropGradient(BACKDROP_STOPS);
-
-/**
- * The solid color the onboarding backdrop shows at `fraction` (0 = top, 1 = bottom of the
- * screen). Lets overlays such as scroll fades blend into the backdrop behind them.
- */
-export function backdropColorAt(fraction: number) {
-  const f = Math.min(1, Math.max(0, fraction));
-  const i = BACKDROP_STOPS.findIndex(([at]) => at >= f);
-  const end = BACKDROP_STOPS[Math.max(1, i)];
-  const start = BACKDROP_STOPS[Math.max(0, i - 1)];
-  const t = end[0] === start[0] ? 0 : (f - start[0]) / (end[0] - start[0]);
-  const lerp = (k: 1 | 2 | 3 | 4) => start[k] + (end[k] - start[k]) * t;
-  const alpha = lerp(4);
-  const surface = [1, 3, 5].map((s) => parseInt(Brand.surface.slice(s, s + 2), 16));
-  const [r, g, b] = ([1, 2, 3] as const).map((k, j) =>
-    Math.round(lerp(k) * alpha + surface[j] * (1 - alpha)),
-  );
-  return { r, g, b };
-}
 
 type OnboardingScreenProps = {
   /** 1-based index of this step in the onboarding flow. */
@@ -69,7 +24,7 @@ type OnboardingScreenProps = {
   nextDisabled?: boolean;
 };
 
-/** Shared chrome for onboarding steps: gradient backdrop, progress bar, and Back/Next footer. */
+/** Shared chrome for onboarding steps: progress bar and a Back/Next footer on the screen frame. */
 export function OnboardingScreen({
   step,
   children,
@@ -80,27 +35,22 @@ export function OnboardingScreen({
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.backdrop} pointerEvents="none" />
-
-      <KeyboardAvoidingView
-        // KeyboardAvoidingView owns paddingBottom (it sets it to the keyboard height, 0 when
-        // hidden), so the footer's bottom gap lives on the footer itself.
-        style={[styles.frame, { paddingTop: insets.top + Spacing.two }]}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <OnboardingProgress step={step} total={ONBOARDING_STEPS} />
-
-        <View style={styles.body}>{children}</View>
-
+    <ScreenFrame
+      top="step"
+      keyboardAvoiding
+      header={<OnboardingProgress step={step} total={ONBOARDING_STEPS} />}
+      footer={
         <View style={[styles.footer, { marginBottom: insets.bottom + FOOTER_BOTTOM_GAP }]}>
           {onBack && <OnboardingButton label="Back" onPress={onBack} />}
           <View style={styles.footerNext}>
             <OnboardingButton label="Next" onPress={onNext} disabled={nextDisabled} />
           </View>
         </View>
-      </KeyboardAvoidingView>
-    </View>
+      }
+      contentStyle={styles.frame}
+    >
+      <View style={styles.body}>{children}</View>
+    </ScreenFrame>
   );
 }
 
@@ -156,16 +106,7 @@ function OnboardingButton({ label, onPress, disabled }: OnboardingButtonProps) {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: Brand.surface,
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFill,
-    experimental_backgroundImage: BACKDROP_GRADIENT,
-  },
   frame: {
-    flex: 1,
     paddingHorizontal: 28,
   },
   body: {
