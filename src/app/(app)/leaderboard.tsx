@@ -12,7 +12,7 @@ import { Brand, Spacing } from '@/constants/theme';
 /** Space between the leaderboard and the raised Catch tab. */
 const LIST_BOTTOM_GAP = 18;
 
-export default function RankingScreen() {
+export default function LeaderboardScreen() {
   const menuHeight = useBottomMenuHeight();
   const [boardIndex, setBoardIndex] = useState(0);
   const board = LEADERBOARDS[boardIndex];

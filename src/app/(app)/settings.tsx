@@ -19,7 +19,7 @@ function formatDate(date: Date) {
 
 // Placeholder until auth exists: leaving the account returns to sign-in.
 function signOut() {
-  router.replace('/catch');
+  router.replace('/sign-in');
 }
 
 function confirmDeleteAccount() {
