@@ -1,14 +1,9 @@
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import {
-  BACKDROP_GRADIENT,
-  ONBOARDING_STEPS,
-  OnboardingHeading,
-  OnboardingPrompt,
-} from '@/components/onboarding';
+import { ONBOARDING_STEPS, OnboardingHeading, OnboardingPrompt } from '@/components/onboarding';
 import { OnboardingProgress } from '@/components/onboarding-progress';
+import { ScreenFrame } from '@/components/screen-frame';
 import { Text } from '@/components/text';
 import { Brand, Spacing } from '@/constants/theme';
 import { MIN_AGE } from '@/features/onboarding/age';
@@ -18,46 +13,33 @@ import { MIN_AGE } from '@/features/onboarding/age';
  * back and correct the date of birth so the gate can re-evaluate it.
  */
 export default function BlockedScreen() {
-  const insets = useSafeAreaInsets();
-
   return (
-    <View style={styles.screen}>
-      <View style={styles.backdrop} pointerEvents="none" />
+    <ScreenFrame
+      top="step"
+      header={<OnboardingProgress step={1} total={ONBOARDING_STEPS} />}
+      contentStyle={styles.frame}
+    >
+      <View style={styles.body}>
+        <OnboardingHeading>Age Requirement</OnboardingHeading>
+        <OnboardingPrompt>
+          {`You must be at least ${MIN_AGE} years old to play PlastiCatch. Go back to change your date of birth.`}
+        </OnboardingPrompt>
 
-      <View style={[styles.frame, { paddingTop: insets.top + Spacing.two }]}>
-        <OnboardingProgress step={1} total={ONBOARDING_STEPS} />
-
-        <View style={styles.body}>
-          <OnboardingHeading>Age Requirement</OnboardingHeading>
-          <OnboardingPrompt>
-            {`You must be at least ${MIN_AGE} years old to play PlastiCatch. Go back to change your date of birth.`}
-          </OnboardingPrompt>
-
-          <Pressable
-            accessibilityRole="button"
-            // Replace the dead end so Back from the date wheel cannot return here.
-            onPress={() => router.replace('/date-of-birth')}
-            style={({ pressed }) => [styles.button, pressed && styles.pressed]}
-          >
-            <Text variant="buttonLabel">Change date of birth</Text>
-          </Pressable>
-        </View>
+        <Pressable
+          accessibilityRole="button"
+          // Replace the dead end so Back from the date wheel cannot return here.
+          onPress={() => router.replace('/date-of-birth')}
+          style={({ pressed }) => [styles.button, pressed && styles.pressed]}
+        >
+          <Text variant="buttonLabel">Change date of birth</Text>
+        </Pressable>
       </View>
-    </View>
+    </ScreenFrame>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: Brand.surface,
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFill,
-    experimental_backgroundImage: BACKDROP_GRADIENT,
-  },
   frame: {
-    flex: 1,
     paddingHorizontal: 28,
   },
   body: {
