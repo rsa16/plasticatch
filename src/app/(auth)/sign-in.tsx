@@ -2,8 +2,7 @@ import { Image, type ImageSource, type ImageStyle } from 'expo-image';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View, type StyleProp } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { Text } from '@/components/text';
 import { BottomTabInset, Brand, Spacing } from '@/constants/theme';
 
 // Placeholder until real auth exists: both providers go straight to onboarding.
@@ -14,7 +13,7 @@ function continueToOnboarding() {
 
 export default function CatchScreen() {
   return (
-    <ThemedView style={styles.screen}>
+    <View style={styles.screen}>
       <View style={styles.hero} pointerEvents="none">
         <View style={styles.heroImageFrame}>
           <Image
@@ -29,15 +28,17 @@ export default function CatchScreen() {
 
       <View style={styles.content}>
         <View style={styles.titleGroup}>
-          <ThemedText style={styles.title} numberOfLines={1} adjustsFontSizeToFit>
+          <Text variant="menuTitle" numberOfLines={1} adjustsFontSizeToFit>
             PlastiCatch
-          </ThemedText>
+          </Text>
           <Image
             source={require('@/assets/images/catch-divider.svg')}
             style={styles.divider}
             contentFit="fill"
           />
-          <ThemedText style={styles.welcome}>- WELCOME -</ThemedText>
+          <Text variant="menuTitle" style={styles.welcome}>
+            - WELCOME -
+          </Text>
         </View>
 
         <View style={styles.signIn}>
@@ -55,7 +56,7 @@ export default function CatchScreen() {
           />
         </View>
       </View>
-    </ThemedView>
+    </View>
   );
 }
 
@@ -74,7 +75,7 @@ function SignInButton({ label, icon, iconStyle, onPress }: SignInButtonProps) {
       style={({ pressed }) => [styles.button, pressed && styles.pressed]}
     >
       <Image source={icon} style={iconStyle} contentFit="cover" />
-      <ThemedText style={styles.buttonLabel}>{label}</ThemedText>
+      <Text variant="caption">{label}</Text>
     </Pressable>
   );
 }
@@ -127,12 +128,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 20,
   },
-  title: {
-    color: Brand.surface,
-    fontSize: 65,
-    lineHeight: 68,
-    fontWeight: 700,
-  },
   divider: {
     width: 324.002,
     height: 5,
@@ -142,10 +137,6 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '-0.18deg' }],
   },
   welcome: {
-    color: Brand.surface,
-    fontSize: 35,
-    lineHeight: 41,
-    fontWeight: 400,
     textAlign: 'center',
   },
   signIn: {
@@ -173,11 +164,5 @@ const styles = StyleSheet.create({
   appleIcon: {
     width: 36,
     height: 42,
-  },
-  buttonLabel: {
-    color: Brand.onSurface,
-    fontSize: 20,
-    lineHeight: 24,
-    fontWeight: 400,
   },
 });

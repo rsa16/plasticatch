@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 
 import { backdropColorAt, OnboardingHeading, OnboardingScreen } from '@/components/onboarding';
-import { ThemedText } from '@/components/themed-text';
+import { Text } from '@/components/text';
 import { Brand } from '@/constants/theme';
 import { TERMS_OF_SERVICE } from '@/constants/terms-of-service';
 
@@ -55,9 +55,9 @@ export default function TermsScreen() {
               />
             )}
           </View>
-          <ThemedText style={styles.agreeLabel}>
+          <Text variant="prompt" style={styles.agreeLabel}>
             I have read and agreed to the Terms of Service outlined above.
-          </ThemedText>
+          </Text>
         </Pressable>
       </View>
     </OnboardingScreen>
@@ -100,7 +100,7 @@ function TermsText() {
           onContentSizeChange={(_w, h) => setContentHeight(h)}
           contentContainerStyle={styles.termsContent}
         >
-          <ThemedText style={styles.termsText}>{TERMS_OF_SERVICE}</ThemedText>
+          <Text variant="prompt">{TERMS_OF_SERVICE}</Text>
         </ScrollView>
         {box.height > 0 && (
           <>
@@ -135,12 +135,6 @@ const styles = StyleSheet.create({
   },
   termsContent: {
     paddingVertical: FADE_HEIGHT / 2,
-  },
-  termsText: {
-    color: Brand.accent,
-    fontSize: 20,
-    lineHeight: 26,
-    fontWeight: 400,
   },
   fade: {
     position: 'absolute',
@@ -196,9 +190,5 @@ const styles = StyleSheet.create({
   },
   agreeLabel: {
     flex: 1,
-    color: Brand.accent,
-    fontSize: 20,
-    lineHeight: 24,
-    fontWeight: 400,
   },
 });

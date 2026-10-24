@@ -6,9 +6,9 @@ import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { CATCH_RISE, useBottomBarHeight } from '@/components/bottom-menu';
 import { DateWheel } from '@/components/date-wheel';
 import { MenuScreen } from '@/components/menu-screen';
-import { ThemedText } from '@/components/themed-text';
+import { Text } from '@/components/text';
 import { ThumbScrollView } from '@/components/thumb-scroll-view';
-import { Brand, Spacing } from '@/constants/theme';
+import { Brand, Spacing, TextStyles } from '@/constants/theme';
 
 // One row of arrows per avatar part, matching onboarding. What each row changes isn't defined yet.
 const AVATAR_ROWS = [0, 1, 2];
@@ -65,7 +65,7 @@ export default function SettingsScreen() {
                 ref={usernameInput}
                 value={username}
                 onChangeText={setUsername}
-                style={[styles.fieldText, styles.fieldInput]}
+                style={[TextStyles.fieldText, styles.fieldInput]}
                 accessibilityLabel="Username"
                 autoComplete="username"
                 textContentType="username"
@@ -98,7 +98,7 @@ export default function SettingsScreen() {
               onPress={() => setEditingDate((open) => !open)}
               style={({ pressed }) => [styles.field, pressed && styles.pressed]}
             >
-              <ThemedText style={styles.fieldText}>{formatDate(dateOfBirth)}</ThemedText>
+              <Text variant="fieldText">{formatDate(dateOfBirth)}</Text>
             </Pressable>
             {editingDate && <DateWheel value={dateOfBirth} onChange={setDateOfBirth} />}
           </Section>
@@ -108,7 +108,7 @@ export default function SettingsScreen() {
             onPress={signOut}
             style={({ pressed }) => [styles.button, styles.logOut, pressed && styles.pressed]}
           >
-            <ThemedText style={styles.buttonLabel}>LOG OUT</ThemedText>
+            <Text variant="buttonLabel">LOG OUT</Text>
           </Pressable>
 
           <Pressable
@@ -126,7 +126,7 @@ export default function SettingsScreen() {
               tintColor={Brand.surface}
               contentFit="contain"
             />
-            <ThemedText style={styles.buttonLabel}>DELETE ACCOUNT</ThemedText>
+            <Text variant="buttonLabel">DELETE ACCOUNT</Text>
           </Pressable>
         </ThumbScrollView>
       </View>
@@ -145,9 +145,9 @@ function Section({
 }) {
   return (
     <View style={[styles.section, { gap }]}>
-      <ThemedText style={styles.sectionTitle} accessibilityRole="header">
+      <Text variant="sectionTitle" accessibilityRole="header">
         {title}
-      </ThemedText>
+      </Text>
       <Image
         source={require('@/assets/images/onboarding-divider.svg')}
         style={styles.divider}
@@ -199,12 +199,6 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     alignItems: 'flex-start',
   },
-  sectionTitle: {
-    color: Brand.onSurface,
-    fontSize: 30,
-    lineHeight: 38,
-    fontWeight: 700,
-  },
   divider: {
     width: 324.002,
     height: 5,
@@ -241,12 +235,6 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     backgroundColor: Brand.field,
   },
-  fieldText: {
-    color: Brand.onSurface,
-    fontSize: 25,
-    lineHeight: 30,
-    fontWeight: 400,
-  },
   fieldInput: {
     flex: 1,
     padding: 0,
@@ -280,12 +268,6 @@ const styles = StyleSheet.create({
   warningIcon: {
     width: 32,
     height: 32,
-  },
-  buttonLabel: {
-    color: Brand.surface,
-    fontSize: 25,
-    lineHeight: 30,
-    fontWeight: 400,
   },
   pressed: {
     opacity: 0.7,

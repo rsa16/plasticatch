@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { MenuScreen } from '@/components/menu-screen';
-import { ThemedText } from '@/components/themed-text';
+import { Text } from '@/components/text';
 import { Brand, Spacing } from '@/constants/theme';
 
 /** Dismiss the Catch flow and return to the app shell's default screen. */
@@ -15,15 +15,15 @@ export default function FindScreen() {
   return (
     <MenuScreen title="FIND">
       <View style={styles.content}>
-        <ThemedText style={styles.prompt}>
+        <Text variant="fieldText" style={styles.prompt}>
           Photograph the litter you found to start a catch.
-        </ThemedText>
+        </Text>
         <Pressable
           accessibilityRole="button"
           onPress={backToMap}
           style={({ pressed }) => [styles.button, pressed && styles.pressed]}
         >
-          <ThemedText style={styles.buttonLabel}>BACK TO MAP</ThemedText>
+          <Text variant="buttonLabel">BACK TO MAP</Text>
         </Pressable>
       </View>
     </MenuScreen>
@@ -40,10 +40,6 @@ const styles = StyleSheet.create({
     gap: Spacing.four,
   },
   prompt: {
-    color: Brand.onSurface,
-    fontSize: 25,
-    lineHeight: 30,
-    fontWeight: 400,
     textAlign: 'center',
   },
   button: {
@@ -54,11 +50,5 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.7,
-  },
-  buttonLabel: {
-    color: Brand.surface,
-    fontSize: 25,
-    lineHeight: 30,
-    fontWeight: 400,
   },
 });
