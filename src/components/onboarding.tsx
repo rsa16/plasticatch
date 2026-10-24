@@ -89,7 +89,8 @@ export function OnboardingScreen({
         // KeyboardAvoidingView owns paddingBottom (it sets it to the keyboard height, 0 when
         // hidden), so the footer's bottom gap lives on the footer itself.
         style={[styles.frame, { paddingTop: insets.top + Spacing.two }]}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <OnboardingProgress step={step} total={ONBOARDING_STEPS} />
 
         <View style={styles.body}>{children}</View>
@@ -124,9 +125,7 @@ export function OnboardingPrompt({ children }: { children: string }) {
 
 export function OnboardingField(props: TextInputProps) {
   const theme = useTheme();
-  return (
-    <TextInput placeholderTextColor={theme.textSecondary} {...props} style={styles.field} />
-  );
+  return <TextInput placeholderTextColor={theme.textSecondary} {...props} style={styles.field} />;
 }
 
 type OnboardingButtonProps = {
@@ -146,7 +145,8 @@ function OnboardingButton({ label, onPress, disabled }: OnboardingButtonProps) {
         styles.button,
         pressed && styles.pressed,
         disabled && styles.disabled,
-      ]}>
+      ]}
+    >
       <ThemedText style={styles.buttonLabel}>{label}</ThemedText>
     </Pressable>
   );

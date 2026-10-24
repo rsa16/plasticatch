@@ -28,7 +28,8 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
     <View
       style={[styles.row, entry.isCurrentUser && styles.rowCurrent]}
       accessible
-      accessibilityLabel={`Rank ${entry.rank}, ${entry.username}, ${entry.xp} XP`}>
+      accessibilityLabel={`Rank ${entry.rank}, ${entry.username}, ${entry.xp} XP`}
+    >
       <ThemedText style={[styles.rowText, textStyle, styles.rank]}>{entry.rank}</ThemedText>
       <View style={styles.person}>
         <Image

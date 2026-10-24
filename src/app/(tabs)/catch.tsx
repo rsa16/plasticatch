@@ -71,7 +71,8 @@ function SignInButton({ label, icon, iconStyle, onPress }: SignInButtonProps) {
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
+      style={({ pressed }) => [styles.button, pressed && styles.pressed]}
+    >
       <Image source={icon} style={iconStyle} contentFit="cover" />
       <ThemedText style={styles.buttonLabel}>{label}</ThemedText>
     </Pressable>

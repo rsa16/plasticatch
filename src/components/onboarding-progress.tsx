@@ -13,7 +13,8 @@ export function OnboardingProgress({ step, total }: OnboardingProgressProps) {
     <View
       style={styles.row}
       accessibilityRole="progressbar"
-      accessibilityValue={{ min: 1, max: total, now: step }}>
+      accessibilityValue={{ min: 1, max: total, now: step }}
+    >
       {Array.from({ length: total }, (_, i) => (
         <View key={i} style={[styles.segment, i < step && styles.segmentDone]} />
       ))}

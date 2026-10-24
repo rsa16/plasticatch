@@ -40,7 +40,7 @@ export const Brand = {
   danger: '#873737',
 } as const;
 
-export type ThemeColor =keyof typeof Colors.light & keyof typeof Colors.dark;
+export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 export const Fonts = Platform.select({
   ios: {

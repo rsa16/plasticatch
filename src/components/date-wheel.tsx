@@ -131,12 +131,14 @@ function Wheel({ label, items, selectedIndex, onSelect, style }: WheelProps) {
         const step = event.nativeEvent.actionName === 'increment' ? 1 : -1;
         const next = Math.max(0, Math.min(items.length - 1, selectedIndex + step));
         if (next !== selectedIndex) onSelect(next);
-      }}>
+      }}
+    >
       {items.map((item, i) => (
         <View key={item} style={styles.item}>
           <ThemedText
             style={[styles.itemText, i === selectedIndex && styles.itemTextSelected]}
-            numberOfLines={1}>
+            numberOfLines={1}
+          >
             {item}
           </ThemedText>
         </View>

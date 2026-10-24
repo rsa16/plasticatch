@@ -44,7 +44,8 @@ export default function SettingsScreen() {
         <ThumbScrollView
           thumbHeight={104}
           contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled">
+          keyboardShouldPersistTaps="handled"
+        >
           <Section title="Edit Avatar" gap={19}>
             <View style={styles.avatarPicker}>
               <ChevronColumn direction="previous" />
@@ -76,7 +77,8 @@ export default function SettingsScreen() {
                 accessibilityLabel="Edit username"
                 hitSlop={Spacing.two}
                 onPress={() => usernameInput.current?.focus()}
-                style={({ pressed }) => pressed && styles.pressed}>
+                style={({ pressed }) => pressed && styles.pressed}
+              >
                 <Image
                   source={require('@/assets/images/settings-edit.png')}
                   style={styles.editIcon}
@@ -94,7 +96,8 @@ export default function SettingsScreen() {
               accessibilityHint="Shows the date picker"
               accessibilityState={{ expanded: editingDate }}
               onPress={() => setEditingDate((open) => !open)}
-              style={({ pressed }) => [styles.field, pressed && styles.pressed]}>
+              style={({ pressed }) => [styles.field, pressed && styles.pressed]}
+            >
               <ThemedText style={styles.fieldText}>{formatDate(dateOfBirth)}</ThemedText>
             </Pressable>
             {editingDate && <DateWheel value={dateOfBirth} onChange={setDateOfBirth} />}
@@ -103,14 +106,20 @@ export default function SettingsScreen() {
           <Pressable
             accessibilityRole="button"
             onPress={signOut}
-            style={({ pressed }) => [styles.button, styles.logOut, pressed && styles.pressed]}>
+            style={({ pressed }) => [styles.button, styles.logOut, pressed && styles.pressed]}
+          >
             <ThemedText style={styles.buttonLabel}>LOG OUT</ThemedText>
           </Pressable>
 
           <Pressable
             accessibilityRole="button"
             onPress={confirmDeleteAccount}
-            style={({ pressed }) => [styles.button, styles.deleteAccount, pressed && styles.pressed]}>
+            style={({ pressed }) => [
+              styles.button,
+              styles.deleteAccount,
+              pressed && styles.pressed,
+            ]}
+          >
             <Image
               source={require('@/assets/images/settings-warning.png')}
               style={styles.warningIcon}
@@ -125,7 +134,15 @@ export default function SettingsScreen() {
   );
 }
 
-function Section({ title, gap = 15, children }: { title: string; gap?: number; children: ReactNode }) {
+function Section({
+  title,
+  gap = 15,
+  children,
+}: {
+  title: string;
+  gap?: number;
+  children: ReactNode;
+}) {
   return (
     <View style={[styles.section, { gap }]}>
       <ThemedText style={styles.sectionTitle} accessibilityRole="header">
@@ -151,7 +168,8 @@ function ChevronColumn({ direction }: { direction: 'previous' | 'next' }) {
           accessibilityRole="button"
           accessibilityLabel={`${isPrevious ? 'Previous' : 'Next'} avatar option, row ${row + 1}`}
           hitSlop={Spacing.two}
-          style={({ pressed }) => pressed && styles.pressed}>
+          style={({ pressed }) => pressed && styles.pressed}
+        >
           <Image
             source={require('@/assets/images/settings-chevron.svg')}
             style={[styles.chevron, isPrevious && styles.mirrored]}
