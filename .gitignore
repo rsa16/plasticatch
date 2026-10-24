@@ -13,6 +13,8 @@ expo-env.d.ts
 # Remove these two lines if you decide to commit native code directly.
 /ios
 /android
+.kotlin/
+*.mobileprovision
 
 # ---------- Secrets & environment ----------
 .env

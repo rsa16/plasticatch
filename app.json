@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "my-new-app",
-    "slug": "my-new-app",
+    "name": "PlastiCatch",
+    "slug": "plasticatch",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mynewapp",
+    "scheme": "plasticatch",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"
