@@ -9,33 +9,42 @@ import { MenuScreen } from '@/components/menu-screen';
 import { Text } from '@/components/text';
 import { ThumbScrollView } from '@/components/thumb-scroll-view';
 import { Brand, Spacing, TextStyles } from '@/constants/theme';
+import { useOnboardingDraft } from '@/features/onboarding/draft';
 
 // One row of arrows per avatar part, matching onboarding. What each row changes isn't defined yet.
 const AVATAR_ROWS = [0, 1, 2];
+
+// Figma placeholders, shown when the onboarding draft has no answer from this session.
+const PLACEHOLDER_USERNAME = 'yourusername';
 
 function formatDate(date: Date) {
   return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-// Placeholder until auth exists: leaving the account returns to sign-in.
-function signOut() {
-  router.replace('/sign-in');
-}
-
-function confirmDeleteAccount() {
+function confirmDeleteAccount(onDelete: () => void) {
   Alert.alert('Delete account?', 'This permanently removes your catches and progress.', [
     { text: 'Cancel', style: 'cancel' },
-    { text: 'Delete', style: 'destructive', onPress: signOut },
+    { text: 'Delete', style: 'destructive', onPress: onDelete },
   ]);
 }
 
 export default function SettingsScreen() {
+  const draft = useOnboardingDraft();
   const barHeight = useBottomBarHeight();
   const usernameInput = useRef<TextInput>(null);
-  // Onboarding answers aren't stored yet, so these start from the Figma placeholders.
-  const [username, setUsername] = useState('yourusername');
-  const [dateOfBirth, setDateOfBirth] = useState(() => new Date(1971, 5, 14));
+  // Settings edits its own copy. They are not written back to the draft, which records what
+  // onboarding captured; saving profile changes belongs to the account backlog ticket.
+  const [username, setUsername] = useState(() =>
+    draft.username.length > 0 ? draft.username : PLACEHOLDER_USERNAME,
+  );
+  const [dateOfBirth, setDateOfBirth] = useState(() => draft.dateOfBirth ?? new Date(1971, 5, 14));
   const [editingDate, setEditingDate] = useState(false);
+
+  // Leaving the account ends the session, so the next player starts onboarding with a clean draft.
+  function signOut() {
+    draft.reset();
+    router.replace('/sign-in');
+  }
 
   return (
     <MenuScreen title="SETTINGS">
@@ -113,7 +122,7 @@ export default function SettingsScreen() {
 
           <Pressable
             accessibilityRole="button"
-            onPress={confirmDeleteAccount}
+            onPress={() => confirmDeleteAccount(signOut)}
             style={({ pressed }) => [
               styles.button,
               styles.deleteAccount,

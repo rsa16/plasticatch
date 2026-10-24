@@ -1,6 +1,5 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import {
@@ -10,19 +9,20 @@ import {
   OnboardingScreen,
 } from '@/components/onboarding';
 import { Spacing } from '@/constants/theme';
+import { useOnboardingDraft, usernameProblem } from '@/features/onboarding/draft';
 
 // One row of arrows per avatar part. What each row changes isn't defined yet.
 const AVATAR_ROWS = [0, 1, 2];
 
 export default function ProfileScreen() {
-  const [username, setUsername] = useState('');
+  const { username, setUsername } = useOnboardingDraft();
 
   return (
     <OnboardingScreen
       step={2}
       onBack={() => router.back()}
       onNext={() => router.push('/permissions')}
-      nextDisabled={username.trim().length === 0}
+      nextDisabled={usernameProblem(username) !== null}
     >
       <OnboardingHeading>Username</OnboardingHeading>
       <OnboardingPrompt>Enter in the field below:</OnboardingPrompt>
