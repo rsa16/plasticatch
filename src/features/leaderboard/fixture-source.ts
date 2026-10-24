@@ -25,13 +25,10 @@ const GLOBAL_ENTRIES: readonly LeaderboardEntry[] = [
  * RPC exists. The viewer's own rank is deliberately outside the visible rows so the screen has
  * to render it separately.
  *
- * Expo inlines `process.env.NODE_ENV` at build time, so a production bundle folds the data
- * branch away even though this module is statically imported.
+ * This module always returns its fixtures. The development/production choice lives in
+ * `index.ts`, which is the only place that selects an adapter.
  */
-export const fixtureSource: BoardSource =
-  process.env.NODE_ENV === 'production'
-    ? () => ({ entries: [], ownRank: null })
-    : (cohort) =>
-        cohort === 'state'
-          ? { entries: STATE_ENTRIES, ownRank: 56 }
-          : { entries: GLOBAL_ENTRIES, ownRank: 124 };
+export const fixtureSource: BoardSource = (cohort) =>
+  cohort === 'state'
+    ? { entries: STATE_ENTRIES, ownRank: 56 }
+    : { entries: GLOBAL_ENTRIES, ownRank: 124 };

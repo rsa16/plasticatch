@@ -25,8 +25,8 @@ export type BrandColor = keyof typeof Brand;
  *
  * The first six are the product roles. The others were approved by the human on 2026-10-24 to
  * keep every brand screen visually identical to the pre-migration design: `menuTitle` (four
- * menu screens), `prompt` (three onboarding steps) and `wheelItem` (Date of Birth and Settings)
- * serve more than one screen; `displayTitle`, `displayTagline`, `secondaryButtonLabel`
+ * menu screens), `prompt` (three onboarding steps) and `wheelItem` (Date of Birth, Settings and
+ * Permissions) serve more than one screen; `displayTitle`, `displayTagline`, `secondaryButtonLabel`
  * (Sign-in), `legalText`, `legalConsent` (Terms), `statusText`, `compactButtonLabel`
  * (Permissions) and `pageTitle` (All set) each restore a single screen's original style after
  * the two-screen rule was relaxed for this fix. Do not add another role without the same
@@ -71,4 +71,3 @@ export const Spacing = {
 } as const;
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
-export const MaxContentWidth = 800;

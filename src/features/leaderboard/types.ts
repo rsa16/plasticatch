@@ -13,8 +13,12 @@ export type LeaderboardEntry = {
 
 /** What a board source supplies for one cohort. */
 export type BoardStandings = {
+  /**
+   * Rows other than the viewer's own. A source must not put the viewer's row here: the screen
+   * renders `ownRank` separately, and `board()` drops any entry that repeats that rank.
+   */
   entries: readonly LeaderboardEntry[];
-  /** The viewer's rank even when they are not in `entries`; `null` when there is no ranking. */
+  /** The viewer's rank, kept outside `entries`; `null` when there is no ranking. */
   ownRank: number | null;
 };
 

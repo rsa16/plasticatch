@@ -11,7 +11,7 @@ function continueToOnboarding() {
   router.replace('/date-of-birth');
 }
 
-export default function CatchScreen() {
+export default function SignInScreen() {
   return (
     <View style={styles.screen}>
       <View style={styles.hero} pointerEvents="none">

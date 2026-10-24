@@ -1,3 +1,5 @@
+import type { OnboardingDraft } from './draft';
+
 /** The minimum age, in years, that the age gate admits. */
 export const MIN_AGE = 13;
 
@@ -28,4 +30,14 @@ export function admit(dob: Date, today: Date): boolean {
 
   // Same year difference as MIN_AGE: the birthday must already have happened this year.
   return bornMonth < todayMonth || (bornMonth === todayMonth && bornDay <= todayDay);
+}
+
+/**
+ * Whether the onboarding steps after the date wheel are reachable for `draft` on `today`.
+ *
+ * This is the route guard's whole policy: an unanswered draft stops at the date wheel, and an
+ * answered one reuses `admit` so there is only one age comparison in the app.
+ */
+export function canContinueOnboarding(draft: OnboardingDraft, today: Date): boolean {
+  return draft.dateOfBirth !== undefined && admit(draft.dateOfBirth, today);
 }

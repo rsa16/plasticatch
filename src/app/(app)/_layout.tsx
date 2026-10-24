@@ -1,7 +1,7 @@
 import { router, Tabs } from 'expo-router';
 
 import { BottomMenu } from '@/components/bottom-menu';
-import { TAB_ROUTES, tabItemForRoute } from '@/components/bottom-menu-routes';
+import { APP_TABS, TAB_ROUTES, tabItemForRoute } from '@/components/bottom-menu-routes';
 
 export default function AppLayout() {
   return (
@@ -26,10 +26,9 @@ export default function AppLayout() {
         );
       }}
     >
-      <Tabs.Screen name="gallery" />
-      <Tabs.Screen name="map" />
-      <Tabs.Screen name="leaderboard" />
-      <Tabs.Screen name="settings" />
+      {APP_TABS.map((name) => (
+        <Tabs.Screen key={name} name={name} />
+      ))}
     </Tabs>
   );
 }

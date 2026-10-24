@@ -11,6 +11,10 @@ const COHORT_LABELS: Record<Cohort, Pick<Board, 'title' | 'metricLabel'>> = {
 /** Builds a cohort's board from a source adapter. */
 export function board(cohort: Cohort, source: BoardSource): Board {
   const { entries, ownRank } = source(cohort);
+  // `entries` never contains the viewer: the list renders `ownRank` itself, so keep a source
+  // that leaks the viewer's row from showing the same rank twice.
+  const visibleEntries =
+    ownRank === null ? entries : entries.filter((entry) => entry.rank !== ownRank);
 
-  return { cohort, ...COHORT_LABELS[cohort], entries, ownRank };
+  return { cohort, ...COHORT_LABELS[cohort], entries: visibleEntries, ownRank };
 }
