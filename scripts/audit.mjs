@@ -3,7 +3,7 @@
  * Dependency audit gate.
  *
  * Runs `npm audit --json` and fails on `high` or `critical` advisories unless the
- * affected package is listed in security/audit-allowlist.json with an owner,
+ * affected package is listed in audit-allowlist.json with an owner,
  * reason, and review date. Lower severities are reported but do not block.
  */
 import { spawnSync } from 'node:child_process';
@@ -12,7 +12,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const allowlistPath = join(root, 'security/audit-allowlist.json');
+const allowlistPath = join(root, 'audit-allowlist.json');
 const BLOCKING = new Set(['high', 'critical']);
 
 function fail(message) {
