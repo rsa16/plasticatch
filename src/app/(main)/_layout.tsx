@@ -29,7 +29,8 @@ export default function MainLayout() {
             }}
           />
         );
-      }}>
+      }}
+    >
       <Tabs.Screen name="gallery" />
       <Tabs.Screen name="map" />
       <Tabs.Screen name="ranking" />

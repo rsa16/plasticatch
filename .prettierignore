@@ -1,0 +1,21 @@
+# Dependencies and generated output
+node_modules/
+.expo/
+dist/
+web-build/
+coverage/
+
+# Generated native projects (see CLAUDE.md)
+ios/
+android/
+Pods/
+build/
+
+# Binary assets and lockfile
+assets/
+package-lock.json
+
+# Prose and scratch notes are not code-formatted
+*.md
+.scratch/
+docs/

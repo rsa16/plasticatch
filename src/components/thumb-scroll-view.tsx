@@ -69,7 +69,8 @@ export function ThumbScrollView({
         scrollEventThrottle={16}
         onLayout={(e) => setViewportHeight(e.nativeEvent.layout.height)}
         onContentSizeChange={(_, height) => setContentHeight(height)}
-        onScroll={onScroll}>
+        onScroll={onScroll}
+      >
         {children}
       </Animated.ScrollView>
 

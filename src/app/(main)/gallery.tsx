@@ -20,7 +20,9 @@ const CATCH_DATES = [
 ];
 
 function pairs<T>(items: readonly T[]): T[][] {
-  return Array.from({ length: Math.ceil(items.length / 2) }, (_, i) => items.slice(i * 2, i * 2 + 2));
+  return Array.from({ length: Math.ceil(items.length / 2) }, (_, i) =>
+    items.slice(i * 2, i * 2 + 2),
+  );
 }
 
 export default function GalleryScreen() {

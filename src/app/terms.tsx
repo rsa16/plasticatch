@@ -28,7 +28,8 @@ export default function TermsScreen() {
       step={4}
       onBack={() => router.back()}
       onNext={() => router.push('/all-set')}
-      nextDisabled={!agreed}>
+      nextDisabled={!agreed}
+    >
       <OnboardingHeading>Terms of Service</OnboardingHeading>
       <TermsText />
 
@@ -42,7 +43,8 @@ export default function TermsScreen() {
           accessibilityRole="checkbox"
           accessibilityState={{ checked: agreed }}
           onPress={() => setAgreed((value) => !value)}
-          style={styles.agreeRow}>
+          style={styles.agreeRow}
+        >
           <View style={[styles.checkbox, agreed && styles.checkboxChecked]}>
             {agreed && (
               <SymbolView
@@ -96,12 +98,16 @@ function TermsText() {
             setScrollY(e.nativeEvent.contentOffset.y)
           }
           onContentSizeChange={(_w, h) => setContentHeight(h)}
-          contentContainerStyle={styles.termsContent}>
+          contentContainerStyle={styles.termsContent}
+        >
           <ThemedText style={styles.termsText}>{TERMS_OF_SERVICE}</ThemedText>
         </ScrollView>
         {box.height > 0 && (
           <>
-            <View style={[styles.fade, styles.fadeTop, fade(box.top, false)]} pointerEvents="none" />
+            <View
+              style={[styles.fade, styles.fadeTop, fade(box.top, false)]}
+              pointerEvents="none"
+            />
             <View
               style={[styles.fade, styles.fadeBottom, fade(box.top + box.height, true)]}
               pointerEvents="none"

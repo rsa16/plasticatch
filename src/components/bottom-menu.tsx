@@ -42,13 +42,39 @@ type MenuButton = {
 };
 
 const LEFT_BUTTONS: readonly MenuButton[] = [
-  { key: 'gallery', label: 'Gallery', icon: require('@/assets/images/menuIcons/gallery.png'), size: 44, labelGap: 12 },
-  { key: 'map', label: 'Map', icon: require('@/assets/images/menuIcons/map.png'), size: 42, labelGap: 16 },
+  {
+    key: 'gallery',
+    label: 'Gallery',
+    icon: require('@/assets/images/menuIcons/gallery.png'),
+    size: 44,
+    labelGap: 12,
+  },
+  {
+    key: 'map',
+    label: 'Map',
+    icon: require('@/assets/images/menuIcons/map.png'),
+    size: 42,
+    labelGap: 16,
+  },
 ];
 
 const RIGHT_BUTTONS: readonly MenuButton[] = [
-  { key: 'rank', label: 'Rank', icon: require('@/assets/images/menuIcons/rank.png'), size: 44, labelGap: 9, offset: 1.8 },
-  { key: 'settings', label: 'Settings', icon: require('@/assets/images/menuIcons/settings.png'), size: 44, labelGap: 9, offset: 1.8 },
+  {
+    key: 'rank',
+    label: 'Rank',
+    icon: require('@/assets/images/menuIcons/rank.png'),
+    size: 44,
+    labelGap: 9,
+    offset: 1.8,
+  },
+  {
+    key: 'settings',
+    label: 'Settings',
+    icon: require('@/assets/images/menuIcons/settings.png'),
+    size: 44,
+    labelGap: 9,
+    offset: 1.8,
+  },
 ];
 
 type BottomMenuProps = {
@@ -78,7 +104,8 @@ export function BottomMenu({ active, onSelect }: BottomMenuProps) {
         accessibilityLabel="Catch"
         accessibilityState={{ selected: active === 'catch' }}
         onPress={() => onSelect?.('catch')}
-        style={({ pressed }) => [styles.catchTab, pressed && styles.pressed]}>
+        style={({ pressed }) => [styles.catchTab, pressed && styles.pressed]}
+      >
         <View style={styles.catchButton}>
           <Image
             source={require('@/assets/images/menuIcons/catch-circle.svg')}
@@ -121,7 +148,8 @@ function MenuButtonView({
         styles.button,
         { marginTop: button.offset },
         pressed && styles.pressed,
-      ]}>
+      ]}
+    >
       <Image
         source={button.icon}
         style={{ width: button.size, height: button.size, marginBottom: button.labelGap }}

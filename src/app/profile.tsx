@@ -22,7 +22,8 @@ export default function ProfileScreen() {
       step={2}
       onBack={() => router.back()}
       onNext={() => router.push('/permissions')}
-      nextDisabled={username.trim().length === 0}>
+      nextDisabled={username.trim().length === 0}
+    >
       <OnboardingHeading>Username</OnboardingHeading>
       <OnboardingPrompt>Enter in the field below:</OnboardingPrompt>
       <OnboardingField
@@ -68,7 +69,8 @@ function Chevron({ direction, row }: { direction: 'previous' | 'next'; row: numb
         styles.chevron,
         { top: row * CHEVRON_ROW_PITCH, left: isPrevious ? -3 : 269 },
         pressed && styles.pressed,
-      ]}>
+      ]}
+    >
       <Image
         source={require('@/assets/images/onboarding-chevron.svg')}
         style={[styles.chevronIcon, isPrevious && styles.mirrored]}
