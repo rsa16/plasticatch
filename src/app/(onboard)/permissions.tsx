@@ -78,7 +78,7 @@ function PermissionRow({ label, permission, onRequest }: PermissionRowProps) {
       <View style={styles.rowText}>
         <Text variant="wheelItem">{label}</Text>
         <Text
-          variant="caption"
+          variant="statusText"
           color={permission?.granted ? 'accent' : undefined}
           style={[styles.rowStatus, permission?.granted && styles.rowStatusGranted]}
         >
@@ -92,7 +92,7 @@ function PermissionRow({ label, permission, onRequest }: PermissionRowProps) {
           onPress={action.onPress}
           style={({ pressed }) => [styles.action, pressed && styles.pressed]}
         >
-          <Text variant="buttonLabel">{action.label}</Text>
+          <Text variant="compactButtonLabel">{action.label}</Text>
         </Pressable>
       )}
     </View>

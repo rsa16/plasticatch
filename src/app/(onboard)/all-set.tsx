@@ -35,7 +35,7 @@ export default function AllSetScreen() {
         <OnboardingProgress step={ONBOARDING_STEPS} total={ONBOARDING_STEPS} />
 
         <View style={styles.message}>
-          <Text variant="heading" style={styles.title}>
+          <Text variant="pageTitle" style={styles.title}>
             You’re all set!
           </Text>
           <Image

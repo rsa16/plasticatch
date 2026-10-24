@@ -28,7 +28,7 @@ export default function CatchScreen() {
 
       <View style={styles.content}>
         <View style={styles.titleGroup}>
-          <Text variant="menuTitle" numberOfLines={1} adjustsFontSizeToFit>
+          <Text variant="displayTitle" numberOfLines={1} adjustsFontSizeToFit>
             PlastiCatch
           </Text>
           <Image
@@ -36,7 +36,7 @@ export default function CatchScreen() {
             style={styles.divider}
             contentFit="fill"
           />
-          <Text variant="menuTitle" style={styles.welcome}>
+          <Text variant="displayTagline" style={styles.welcome}>
             - WELCOME -
           </Text>
         </View>
@@ -75,7 +75,7 @@ function SignInButton({ label, icon, iconStyle, onPress }: SignInButtonProps) {
       style={({ pressed }) => [styles.button, pressed && styles.pressed]}
     >
       <Image source={icon} style={iconStyle} contentFit="cover" />
-      <Text variant="caption">{label}</Text>
+      <Text variant="secondaryButtonLabel">{label}</Text>
     </Pressable>
   );
 }
