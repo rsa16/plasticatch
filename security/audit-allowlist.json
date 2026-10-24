@@ -1,0 +1,36 @@
+{
+  "$comment": "Accepted npm audit advisories. Each entry needs package, reason, owner, and reviewBy. See docs/agents/verification.md.",
+  "reviewedAt": "2026-10-24",
+  "entries": [
+    {
+      "package": "expo",
+      "reason": "Transitive high advisory through @expo/cli build tooling. Not bundled into the mobile app. npm audit only offers a breaking downgrade to expo@44; re-check on each Expo SDK upgrade.",
+      "owner": "rsa16",
+      "reviewBy": "2027-04-30"
+    },
+    {
+      "package": "@expo/cli",
+      "reason": "Build-time Expo CLI dependency (node-forge, zod). Not shipped in the app bundle. No non-breaking fix available in SDK 57.",
+      "owner": "rsa16",
+      "reviewBy": "2027-04-30"
+    },
+    {
+      "package": "@expo/code-signing-certificates",
+      "reason": "Build-time code-signing helper pulled in by the Expo CLI (node-forge). Not shipped in the app bundle.",
+      "owner": "rsa16",
+      "reviewBy": "2027-04-30"
+    },
+    {
+      "package": "node-forge",
+      "reason": "Transitive build-time dependency of the Expo CLI code-signing path. Not part of the mobile runtime.",
+      "owner": "rsa16",
+      "reviewBy": "2027-04-30"
+    },
+    {
+      "package": "zod",
+      "reason": "Transitive build-time dependency of the Expo CLI. Not part of the mobile runtime; no non-breaking fix in SDK 57.",
+      "owner": "rsa16",
+      "reviewBy": "2027-04-30"
+    }
+  ]
+}
