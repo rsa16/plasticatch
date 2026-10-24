@@ -78,8 +78,9 @@ const RIGHT_BUTTONS: readonly MenuButton[] = [
 ];
 
 type BottomMenuProps = {
-  active: BottomMenuItem;
-  /** Called with the tapped item. Items without a screen yet can be ignored. */
+  /** The item to highlight, or `undefined` when the current route has no menu item. */
+  active?: BottomMenuItem;
+  /** Called with the tapped item. */
   onSelect?: (item: BottomMenuItem) => void;
 };
 
