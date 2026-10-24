@@ -2,7 +2,8 @@ import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 
 import { useBottomBarHeight } from '@/components/bottom-menu';
-import { MenuScreen, useMenuTitleTop } from '@/components/menu-screen';
+import { MenuScreen } from '@/components/menu-screen';
+import { useMenuTitleTop } from '@/components/screen-frame';
 
 /** The map starts this far below the top of the title pill. */
 const MAP_OFFSET = 20;

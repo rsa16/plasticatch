@@ -12,7 +12,8 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 
-import { backdropColorAt, OnboardingHeading, OnboardingScreen } from '@/components/onboarding';
+import { colorAt } from '@/components/backdrop';
+import { OnboardingHeading, OnboardingScreen } from '@/components/onboarding';
 import { Text } from '@/components/text';
 import { Brand } from '@/constants/theme';
 import { TERMS_OF_SERVICE } from '@/constants/terms-of-service';
@@ -77,7 +78,7 @@ function TermsText() {
     boxRef.current?.measureInWindow((_x, top, _w, height) => setBox({ top, height }));
 
   const fade = (y: number, toBottom: boolean) => {
-    const { r, g, b } = backdropColorAt(y / screenHeight);
+    const { r, g, b } = colorAt(y / screenHeight);
     const solid = `rgba(${r}, ${g}, ${b}, 1)`;
     const clear = `rgba(${r}, ${g}, ${b}, 0)`;
     return {
