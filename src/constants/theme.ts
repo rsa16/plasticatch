@@ -23,10 +23,14 @@ export type BrandColor = keyof typeof Brand;
  * The app's text roles. A role owns both its type treatment and its colour, so screens and
  * components never declare a raw font size, line height, weight, or text colour.
  *
- * The first six are the product roles. `menuTitle`, `prompt` and `wheelItem` are additions the
- * human approved on 2026-10-24 to keep the parity screens pixel-identical; each is used by at
- * least two screens (menu title: the four menu screens; prompt: the onboarding steps; wheel
- * item: Date of Birth and Settings). Do not add another one-off role without the same rule.
+ * The first six are the product roles. The others were approved by the human on 2026-10-24 to
+ * keep every brand screen visually identical to the pre-migration design: `menuTitle` (four
+ * menu screens), `prompt` (three onboarding steps) and `wheelItem` (Date of Birth and Settings)
+ * serve more than one screen; `displayTitle`, `displayTagline`, `secondaryButtonLabel`
+ * (Sign-in), `legalText`, `legalConsent` (Terms), `statusText`, `compactButtonLabel`
+ * (Permissions) and `pageTitle` (All set) each restore a single screen's original style after
+ * the two-screen rule was relaxed for this fix. Do not add another role without the same
+ * evidence: a screenshot comparison proving it is needed.
  */
 export const TextStyles = {
   heading: { color: Brand.onSurface, fontSize: 40, lineHeight: 44, fontWeight: 700 },
@@ -40,6 +44,18 @@ export const TextStyles = {
   menuTitle: { color: Brand.surface, fontSize: 40, lineHeight: 47, fontWeight: 400 },
   prompt: { color: Brand.accent, fontSize: 25, lineHeight: 30, fontWeight: 400 },
   wheelItem: { color: Brand.onSurface, fontSize: 22, lineHeight: 28, fontWeight: 400 },
+  // Sign-in: the brand hero, its tagline, and the labels on the light provider buttons.
+  displayTitle: { color: Brand.surface, fontSize: 65, lineHeight: 68, fontWeight: 700 },
+  displayTagline: { color: Brand.surface, fontSize: 35, lineHeight: 41, fontWeight: 400 },
+  secondaryButtonLabel: { color: Brand.onSurface, fontSize: 20, lineHeight: 24, fontWeight: 400 },
+  // Terms: long-form legal copy and the line beside the agreement checkbox.
+  legalText: { color: Brand.accent, fontSize: 20, lineHeight: 26, fontWeight: 400 },
+  legalConsent: { color: Brand.accent, fontSize: 20, lineHeight: 24, fontWeight: 400 },
+  // Permissions: the status line under a row label and the compact Allow action.
+  statusText: { color: Brand.onSurface, fontSize: 16, lineHeight: 20, fontWeight: 400 },
+  compactButtonLabel: { color: Brand.surface, fontSize: 18, lineHeight: 22, fontWeight: 400 },
+  // All set: a standalone page title, not the menu-title pill.
+  pageTitle: { color: Brand.onSurface, fontSize: 40, lineHeight: 47, fontWeight: 700 },
 } as const;
 
 export type TextRole = keyof typeof TextStyles;

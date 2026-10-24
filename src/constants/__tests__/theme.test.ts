@@ -1,8 +1,9 @@
 import { Brand, TextStyles } from '@/constants/theme';
 
 /**
- * The agreed role set: the six product roles plus the three additions the human approved on
- * 2026-10-24 to keep the parity screens pixel-identical. Changing this list is a product
+ * The agreed role set. The six product roles came from the ticket; the rest are the additions
+ * the human approved on 2026-10-24 to keep every brand screen pixel-identical (the "at least
+ * two screens" rule was relaxed for the second round). Changing this list is a product
  * decision, so the test asserts it explicitly.
  */
 const ROLES = [
@@ -15,11 +16,19 @@ const ROLES = [
   'menuTitle',
   'prompt',
   'wheelItem',
+  'displayTitle',
+  'displayTagline',
+  'secondaryButtonLabel',
+  'legalText',
+  'legalConsent',
+  'statusText',
+  'compactButtonLabel',
+  'pageTitle',
 ] as const;
 
 /**
- * Metrics the pre-migration screens used, transcribed from the component styles before the
- * theme change. These are the values the screenshot comparison depends on.
+ * Metrics the pre-migration screens used, transcribed from the component styles at `f6d1fdb`.
+ * These are the values the screenshot comparison depends on.
  */
 const SCREEN_METRICS = {
   heading: [40, 44, 700, Brand.onSurface],
@@ -31,6 +40,14 @@ const SCREEN_METRICS = {
   menuTitle: [40, 47, 400, Brand.surface],
   prompt: [25, 30, 400, Brand.accent],
   wheelItem: [22, 28, 400, Brand.onSurface],
+  displayTitle: [65, 68, 700, Brand.surface],
+  displayTagline: [35, 41, 400, Brand.surface],
+  secondaryButtonLabel: [20, 24, 400, Brand.onSurface],
+  legalText: [20, 26, 400, Brand.accent],
+  legalConsent: [20, 24, 400, Brand.accent],
+  statusText: [16, 20, 400, Brand.onSurface],
+  compactButtonLabel: [18, 22, 400, Brand.surface],
+  pageTitle: [40, 47, 700, Brand.onSurface],
 } as const;
 
 describe('text roles', () => {
@@ -48,7 +65,7 @@ describe('text roles', () => {
     }
   });
 
-  it('keeps the metrics the parity screens were designed with', () => {
+  it('keeps the metrics the pre-migration screens were designed with', () => {
     for (const role of ROLES) {
       const [fontSize, lineHeight, fontWeight, color] = SCREEN_METRICS[role];
       expect({

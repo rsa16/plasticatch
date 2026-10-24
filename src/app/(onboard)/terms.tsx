@@ -55,7 +55,7 @@ export default function TermsScreen() {
               />
             )}
           </View>
-          <Text variant="prompt" style={styles.agreeLabel}>
+          <Text variant="legalConsent" style={styles.agreeLabel}>
             I have read and agreed to the Terms of Service outlined above.
           </Text>
         </Pressable>
@@ -100,7 +100,7 @@ function TermsText() {
           onContentSizeChange={(_w, h) => setContentHeight(h)}
           contentContainerStyle={styles.termsContent}
         >
-          <Text variant="prompt">{TERMS_OF_SERVICE}</Text>
+          <Text variant="legalText">{TERMS_OF_SERVICE}</Text>
         </ScrollView>
         {box.height > 0 && (
           <>
