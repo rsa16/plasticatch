@@ -7,8 +7,9 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
+import { Text } from '@/components/text';
 import { Brand } from '@/constants/theme';
+import { clampDate, daysInMonth } from '@/features/onboarding/calendar';
 
 const ITEM_HEIGHT = 44;
 const VISIBLE_ITEMS = 5;
@@ -30,10 +31,6 @@ const MONTHS = [
 ];
 const MIN_YEAR = 1900;
 
-function daysInMonth(year: number, month: number) {
-  return new Date(year, month + 1, 0).getDate();
-}
-
 type DateWheelProps = {
   value: Date;
   onChange: (date: Date) => void;
@@ -49,8 +46,7 @@ export function DateWheel({ value, onChange }: DateWheelProps) {
 
   // Rebuild the date from its parts, clamping the day so e.g. Jan 31 -> Feb becomes Feb 28/29.
   const update = (year: number, month: number, day: number) => {
-    const clampedDay = Math.min(day, daysInMonth(year, month));
-    onChange(new Date(year, month, clampedDay));
+    onChange(clampDate(year, month, day));
   };
 
   return (
@@ -135,12 +131,14 @@ function Wheel({ label, items, selectedIndex, onSelect, style }: WheelProps) {
     >
       {items.map((item, i) => (
         <View key={item} style={styles.item}>
-          <ThemedText
+          <Text
+            variant="wheelItem"
+            color={i === selectedIndex ? undefined : 'accent'}
             style={[styles.itemText, i === selectedIndex && styles.itemTextSelected]}
             numberOfLines={1}
           >
             {item}
-          </ThemedText>
+          </Text>
         </View>
       ))}
     </ScrollView>
@@ -182,14 +180,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   itemText: {
-    color: Brand.accent,
     opacity: 0.6,
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: 400,
   },
   itemTextSelected: {
-    color: Brand.onSurface,
     opacity: 1,
   },
 });

@@ -1,25 +1,15 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { Stack } from 'expo-router';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-
-SplashScreen.preventAutoHideAsync();
+import { OnboardingDraftProvider } from '@/features/onboarding/draft';
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
+    <OnboardingDraftProvider>
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="date-of-birth" />
-        <Stack.Screen name="profile" />
-        <Stack.Screen name="permissions" />
-        <Stack.Screen name="terms" />
-        <Stack.Screen name="all-set" options={{ gestureEnabled: false }} />
-        <Stack.Screen name="(main)" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="(app)" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="(onboard)" />
+        <Stack.Screen name="catch" options={{ presentation: 'modal' }} />
       </Stack>
-    </ThemeProvider>
+    </OnboardingDraftProvider>
   );
 }

@@ -2,7 +2,7 @@ import { Image, type ImageSource } from 'expo-image';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ThemedText } from '@/components/themed-text';
+import { Text } from '@/components/text';
 import { Brand } from '@/constants/theme';
 
 /** Height of the menu bar above the bottom safe-area inset. */
@@ -78,8 +78,9 @@ const RIGHT_BUTTONS: readonly MenuButton[] = [
 ];
 
 type BottomMenuProps = {
-  active: BottomMenuItem;
-  /** Called with the tapped item. Items without a screen yet can be ignored. */
+  /** The item to highlight, or `undefined` when the current route has no menu item. */
+  active?: BottomMenuItem;
+  /** Called with the tapped item. */
   onSelect?: (item: BottomMenuItem) => void;
 };
 
@@ -119,7 +120,9 @@ export function BottomMenu({ active, onSelect }: BottomMenuProps) {
             contentFit="contain"
           />
         </View>
-        <ThemedText style={styles.catchLabel}>CATCH</ThemedText>
+        <Text variant="buttonLabel" style={styles.catchLabel}>
+          CATCH
+        </Text>
       </Pressable>
 
       <View style={styles.group}>{RIGHT_BUTTONS.map(renderButton)}</View>
@@ -156,9 +159,9 @@ function MenuButtonView({
         tintColor={color}
         contentFit="contain"
       />
-      <ThemedText style={[styles.label, { color: active ? Brand.accent : Brand.onSurface }]}>
+      <Text variant="caption" color={active ? 'accent' : undefined}>
         {button.label}
-      </ThemedText>
+      </Text>
     </Pressable>
   );
 }
@@ -191,11 +194,6 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.7,
   },
-  label: {
-    fontSize: 15,
-    lineHeight: 18,
-    fontWeight: 400,
-  },
   catchTab: {
     width: 125,
     // Rises above the bar and runs past the bottom edge of the screen.
@@ -221,9 +219,5 @@ const styles = StyleSheet.create({
   },
   catchLabel: {
     marginTop: 3,
-    color: Brand.surface,
-    fontSize: 25,
-    lineHeight: 30,
-    fontWeight: 400,
   },
 });

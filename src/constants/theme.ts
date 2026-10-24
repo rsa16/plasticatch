@@ -1,28 +1,4 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
-import '@/global.css';
-
 import { Platform } from 'react-native';
-
-export const Colors = {
-  light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
-  },
-  dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
-  },
-} as const;
 
 /** PlastiCatch brand palette. These screens use a fixed dark-green look in both color schemes. */
 export const Brand = {
@@ -40,32 +16,49 @@ export const Brand = {
   danger: '#873737',
 } as const;
 
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+/** A key into `Brand`; components may pass one to a text role that picks a colour by state. */
+export type BrandColor = keyof typeof Brand;
 
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
-  },
-});
+/**
+ * The app's text roles. A role owns both its type treatment and its colour, so screens and
+ * components never declare a raw font size, line height, weight, or text colour.
+ *
+ * The first six are the product roles. The others were approved by the human on 2026-10-24 to
+ * keep every brand screen visually identical to the pre-migration design: `menuTitle` (four
+ * menu screens), `prompt` (three onboarding steps) and `wheelItem` (Date of Birth, Settings and
+ * Permissions) serve more than one screen; `displayTitle`, `displayTagline`, `secondaryButtonLabel`
+ * (Sign-in), `legalText`, `legalConsent` (Terms), `statusText`, `compactButtonLabel`
+ * (Permissions) and `pageTitle` (All set) each restore a single screen's original style after
+ * the two-screen rule was relaxed for this fix. Do not add another role without the same
+ * evidence: a screenshot comparison proving it is needed.
+ */
+export const TextStyles = {
+  heading: { color: Brand.onSurface, fontSize: 40, lineHeight: 44, fontWeight: 700 },
+  sectionTitle: { color: Brand.onSurface, fontSize: 30, lineHeight: 38, fontWeight: 700 },
+  fieldText: { color: Brand.onSurface, fontSize: 25, lineHeight: 30, fontWeight: 400 },
+  buttonLabel: { color: Brand.surface, fontSize: 25, lineHeight: 30, fontWeight: 400 },
+  // Leaderboard rows: the app's densest body copy.
+  body: { color: Brand.rowText, fontSize: 14.4, lineHeight: 21.6, fontWeight: 400 },
+  // Bottom-menu labels and other small supporting text.
+  caption: { color: Brand.onSurface, fontSize: 15, lineHeight: 18, fontWeight: 400 },
+  menuTitle: { color: Brand.surface, fontSize: 40, lineHeight: 47, fontWeight: 400 },
+  prompt: { color: Brand.accent, fontSize: 25, lineHeight: 30, fontWeight: 400 },
+  wheelItem: { color: Brand.onSurface, fontSize: 22, lineHeight: 28, fontWeight: 400 },
+  // Sign-in: the brand hero, its tagline, and the labels on the light provider buttons.
+  displayTitle: { color: Brand.surface, fontSize: 65, lineHeight: 68, fontWeight: 700 },
+  displayTagline: { color: Brand.surface, fontSize: 35, lineHeight: 41, fontWeight: 400 },
+  secondaryButtonLabel: { color: Brand.onSurface, fontSize: 20, lineHeight: 24, fontWeight: 400 },
+  // Terms: long-form legal copy and the line beside the agreement checkbox.
+  legalText: { color: Brand.accent, fontSize: 20, lineHeight: 26, fontWeight: 400 },
+  legalConsent: { color: Brand.accent, fontSize: 20, lineHeight: 24, fontWeight: 400 },
+  // Permissions: the status line under a row label and the compact Allow action.
+  statusText: { color: Brand.onSurface, fontSize: 16, lineHeight: 20, fontWeight: 400 },
+  compactButtonLabel: { color: Brand.surface, fontSize: 18, lineHeight: 22, fontWeight: 400 },
+  // All set: a standalone page title, not the menu-title pill.
+  pageTitle: { color: Brand.onSurface, fontSize: 40, lineHeight: 47, fontWeight: 700 },
+} as const;
+
+export type TextRole = keyof typeof TextStyles;
 
 export const Spacing = {
   half: 2,
@@ -78,4 +71,3 @@ export const Spacing = {
 } as const;
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
-export const MaxContentWidth = 800;
