@@ -27,8 +27,8 @@ export default function BlockedScreen() {
 
         <Pressable
           accessibilityRole="button"
-          // Replace the dead end so Back from the date wheel cannot return here.
-          onPress={() => router.replace('/date-of-birth')}
+          // Return to the wheel already on the stack; a deep-linked dead end replaces itself.
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/date-of-birth'))}
           style={({ pressed }) => [styles.button, pressed && styles.pressed]}
         >
           <Text variant="buttonLabel">Change date of birth</Text>

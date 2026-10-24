@@ -1,4 +1,4 @@
-import { admit, MIN_AGE } from '@/features/onboarding/age';
+import { admit, canContinueOnboarding, MIN_AGE } from '@/features/onboarding/age';
 
 function on(year: number, month: number, day: number): Date {
   return new Date(year, month, day);
@@ -26,5 +26,23 @@ describe('age gate', () => {
     const dob = new Date(2013, 5, 15, 23, 59, 59);
     const today = new Date(2026, 5, 15, 0, 0, 0);
     expect(admit(dob, today)).toBe(true);
+  });
+});
+
+describe('onboarding gate', () => {
+  const today = on(2026, 5, 15);
+
+  it('does not let an unanswered draft continue', () => {
+    expect(canContinueOnboarding({ username: '' }, today)).toBe(false);
+  });
+
+  it('lets a draft that is exactly 13 continue', () => {
+    expect(canContinueOnboarding({ dateOfBirth: on(2013, 5, 15), username: '' }, today)).toBe(true);
+  });
+
+  it('does not let a draft one day short of 13 continue', () => {
+    expect(canContinueOnboarding({ dateOfBirth: on(2013, 5, 16), username: '' }, today)).toBe(
+      false,
+    );
   });
 });
