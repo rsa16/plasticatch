@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { CATCH_RISE, useBottomBarHeight } from '@/components/bottom-menu';
 import { MenuScreen } from '@/components/menu-screen';
 import { Text } from '@/components/text';
-import { ThumbScrollView } from '@/components/thumb-scroll-view';
+import { ScrollPane } from '@/components/scroll-pane';
 import { Spacing } from '@/constants/theme';
 
 // Placeholder catches from the Figma mock until photos are saved from the camera.
@@ -32,7 +32,7 @@ export default function GalleryScreen() {
     <MenuScreen title="GALLERY">
       {/* The photos scroll underneath the raised Catch tab, so the list stops at the bar. */}
       <View style={[styles.gallery, { marginBottom: barHeight }]}>
-        <ThumbScrollView thumbHeight={49} contentContainerStyle={styles.grid}>
+        <ScrollPane thumbHeight={49} contentContainerStyle={styles.grid}>
           {pairs(CATCH_DATES).map((row, r) => (
             <View key={r} style={styles.row}>
               {row.map((date, c) => (
@@ -40,7 +40,7 @@ export default function GalleryScreen() {
               ))}
             </View>
           ))}
-        </ThumbScrollView>
+        </ScrollPane>
       </View>
     </MenuScreen>
   );

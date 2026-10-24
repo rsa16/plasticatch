@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/text';
-import { ThumbScrollView } from '@/components/thumb-scroll-view';
+import { ScrollPane } from '@/components/scroll-pane';
 import { Brand } from '@/constants/theme';
 import type { LeaderboardEntry } from '@/features/leaderboard';
 
@@ -16,7 +16,7 @@ type LeaderboardListProps = {
 export function LeaderboardList({ entries, ownRank }: LeaderboardListProps) {
   return (
     <View style={styles.container}>
-      <ThumbScrollView thumbHeight={35} contentContainerStyle={styles.rows}>
+      <ScrollPane thumbHeight={35} contentContainerStyle={styles.rows}>
         {entries.length === 0 ? (
           <Text variant="body" style={styles.empty}>
             No rankings yet.
@@ -26,7 +26,7 @@ export function LeaderboardList({ entries, ownRank }: LeaderboardListProps) {
             <LeaderboardRow key={`${entry.rank}-${entry.username}`} entry={entry} />
           ))
         )}
-      </ThumbScrollView>
+      </ScrollPane>
 
       {ownRank !== null && <OwnRankRow ownRank={ownRank} />}
     </View>

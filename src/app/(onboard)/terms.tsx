@@ -1,24 +1,15 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useRef, useState } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  useWindowDimensions,
-  View,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-} from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { colorAt } from '@/components/backdrop';
 import { OnboardingHeading, OnboardingScreen } from '@/components/onboarding';
+import { FADE_HEIGHT, ScrollPane } from '@/components/scroll-pane';
 import { Text } from '@/components/text';
 import { Brand } from '@/constants/theme';
 import { TERMS_OF_SERVICE } from '@/constants/terms-of-service';
 
-const FADE_HEIGHT = 48;
 const THUMB_HEIGHT = 57;
 
 export default function TermsScreen() {
@@ -65,101 +56,18 @@ export default function TermsScreen() {
   );
 }
 
-/** Scrollable terms with faded edges and a custom scroll thumb, as in the design. */
+/** The terms, scrollable with the shared pane's faded edges and thumb. */
 function TermsText() {
-  const { height: screenHeight } = useWindowDimensions();
-  const boxRef = useRef<View>(null);
-  const [box, setBox] = useState({ top: 0, height: 0 });
-  const [contentHeight, setContentHeight] = useState(0);
-  const [scrollY, setScrollY] = useState(0);
-
-  // Window position is needed to match the fades to the full-screen backdrop behind them.
-  const measure = () =>
-    boxRef.current?.measureInWindow((_x, top, _w, height) => setBox({ top, height }));
-
-  const fade = (y: number, toBottom: boolean) => {
-    const { r, g, b } = colorAt(y / screenHeight);
-    const solid = `rgba(${r}, ${g}, ${b}, 1)`;
-    const clear = `rgba(${r}, ${g}, ${b}, 0)`;
-    return {
-      experimental_backgroundImage: `linear-gradient(to bottom, ${toBottom ? clear : solid}, ${toBottom ? solid : clear})`,
-    };
-  };
-
-  const scrollable = Math.max(0, contentHeight - box.height);
-  const thumbTop = scrollable > 0 ? (scrollY / scrollable) * (box.height - THUMB_HEIGHT) : 0;
-
   return (
-    <View style={styles.termsRow}>
-      <View ref={boxRef} style={styles.termsBox} onLayout={measure}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          scrollEventThrottle={16}
-          onScroll={(e: NativeSyntheticEvent<NativeScrollEvent>) =>
-            setScrollY(e.nativeEvent.contentOffset.y)
-          }
-          onContentSizeChange={(_w, h) => setContentHeight(h)}
-          contentContainerStyle={styles.termsContent}
-        >
-          <Text variant="legalText">{TERMS_OF_SERVICE}</Text>
-        </ScrollView>
-        {box.height > 0 && (
-          <>
-            <View
-              style={[styles.fade, styles.fadeTop, fade(box.top, false)]}
-              pointerEvents="none"
-            />
-            <View
-              style={[styles.fade, styles.fadeBottom, fade(box.top + box.height, true)]}
-              pointerEvents="none"
-            />
-          </>
-        )}
-      </View>
-      {scrollable > 0 && (
-        <View style={styles.track} pointerEvents="none">
-          <View style={[styles.thumb, { top: thumbTop }]} />
-        </View>
-      )}
-    </View>
+    <ScrollPane fade thumbHeight={THUMB_HEIGHT} contentContainerStyle={styles.termsContent}>
+      <Text variant="legalText">{TERMS_OF_SERVICE}</Text>
+    </ScrollPane>
   );
 }
 
 const styles = StyleSheet.create({
-  termsRow: {
-    flex: 1,
-    flexDirection: 'row',
-  },
-  termsBox: {
-    width: 324,
-    flexShrink: 1,
-  },
   termsContent: {
     paddingVertical: FADE_HEIGHT / 2,
-  },
-  fade: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: FADE_HEIGHT,
-  },
-  fadeTop: {
-    top: 0,
-  },
-  fadeBottom: {
-    bottom: 0,
-  },
-  track: {
-    width: 13,
-    marginLeft: 'auto',
-    marginRight: -5,
-  },
-  thumb: {
-    position: 'absolute',
-    width: 13,
-    height: THUMB_HEIGHT,
-    borderRadius: 15,
-    backgroundColor: Brand.accent,
   },
   agreeSection: {
     marginLeft: -9,

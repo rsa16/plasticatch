@@ -7,7 +7,7 @@ import { CATCH_RISE, useBottomBarHeight } from '@/components/bottom-menu';
 import { DateWheel } from '@/components/date-wheel';
 import { MenuScreen } from '@/components/menu-screen';
 import { Text } from '@/components/text';
-import { ThumbScrollView } from '@/components/thumb-scroll-view';
+import { ScrollPane } from '@/components/scroll-pane';
 import { Brand, Spacing, TextStyles } from '@/constants/theme';
 import { useOnboardingDraft } from '@/features/onboarding/draft';
 
@@ -50,7 +50,7 @@ export default function SettingsScreen() {
     <MenuScreen title="SETTINGS">
       {/* The form scrolls underneath the raised Catch tab, so the list stops at the bar. */}
       <View style={[styles.settings, { marginBottom: barHeight }]}>
-        <ThumbScrollView
+        <ScrollPane
           thumbHeight={104}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
@@ -137,7 +137,7 @@ export default function SettingsScreen() {
             />
             <Text variant="buttonLabel">DELETE ACCOUNT</Text>
           </Pressable>
-        </ThumbScrollView>
+        </ScrollPane>
       </View>
     </MenuScreen>
   );
