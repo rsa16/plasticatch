@@ -3,9 +3,9 @@ import { StyleSheet, View } from 'react-native';
 
 import { CATCH_RISE, useBottomBarHeight } from '@/components/bottom-menu';
 import { MenuScreen } from '@/components/menu-screen';
-import { ThemedText } from '@/components/themed-text';
+import { Text } from '@/components/text';
 import { ThumbScrollView } from '@/components/thumb-scroll-view';
-import { Brand, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 
 // Placeholder catches from the Figma mock until photos are saved from the camera.
 const CATCH_DATES = [
@@ -62,7 +62,9 @@ function CatchCard({ date }: { date: string }) {
           contentFit="cover"
         />
       </View>
-      <ThemedText style={styles.date}>{date}</ThemedText>
+      <Text variant="fieldText" style={styles.date}>
+        {date}
+      </Text>
     </View>
   );
 }
@@ -105,10 +107,6 @@ const styles = StyleSheet.create({
     left: 0,
   },
   date: {
-    color: Brand.onSurface,
-    fontSize: 25,
-    lineHeight: 30,
-    fontWeight: 400,
     textAlign: 'center',
   },
 });

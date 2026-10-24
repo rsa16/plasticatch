@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
+import { Text } from '@/components/text';
 import { ThumbScrollView } from '@/components/thumb-scroll-view';
 import type { LeaderboardEntry } from '@/constants/leaderboards';
 import { Brand } from '@/constants/theme';
@@ -22,7 +22,8 @@ export function LeaderboardList({ entries }: LeaderboardListProps) {
 }
 
 function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
-  const textStyle = entry.isCurrentUser ? styles.textStrong : styles.text;
+  // The signed-in player's row uses the darker ink.
+  const color = entry.isCurrentUser ? 'rowTextStrong' : undefined;
 
   return (
     <View
@@ -30,18 +31,22 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
       accessible
       accessibilityLabel={`Rank ${entry.rank}, ${entry.username}, ${entry.xp} XP`}
     >
-      <ThemedText style={[styles.rowText, textStyle, styles.rank]}>{entry.rank}</ThemedText>
+      <Text variant="body" color={color} style={styles.rank}>
+        {entry.rank}
+      </Text>
       <View style={styles.person}>
         <Image
           source={require('@/assets/images/leaderboard-avatar.png')}
           style={styles.avatar}
           contentFit="cover"
         />
-        <ThemedText style={[styles.rowText, textStyle, styles.username]} numberOfLines={1}>
+        <Text variant="body" color={color} style={styles.username} numberOfLines={1}>
           {entry.username}
-        </ThemedText>
+        </Text>
       </View>
-      <ThemedText style={[styles.rowText, textStyle]}>{entry.xp} XP</ThemedText>
+      <Text variant="body" color={color}>
+        {entry.xp} XP
+      </Text>
     </View>
   );
 }
@@ -61,17 +66,6 @@ const styles = StyleSheet.create({
   },
   rowCurrent: {
     backgroundColor: Brand.accentMuted,
-  },
-  rowText: {
-    fontSize: 14.4,
-    lineHeight: 21.6,
-    fontWeight: 400,
-  },
-  text: {
-    color: Brand.rowText,
-  },
-  textStrong: {
-    color: Brand.rowTextStrong,
   },
   // Rank numbers sit centered in a column that ends where the avatar begins.
   rank: {

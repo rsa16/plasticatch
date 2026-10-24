@@ -1,28 +1,4 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
-import '@/global.css';
-
 import { Platform } from 'react-native';
-
-export const Colors = {
-  light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
-  },
-  dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
-  },
-} as const;
 
 /** PlastiCatch brand palette. These screens use a fixed dark-green look in both color schemes. */
 export const Brand = {
@@ -40,32 +16,33 @@ export const Brand = {
   danger: '#873737',
 } as const;
 
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+/** A key into `Brand`; components may pass one to a text role that picks a colour by state. */
+export type BrandColor = keyof typeof Brand;
 
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
-  },
-});
+/**
+ * The app's text roles. A role owns both its type treatment and its colour, so screens and
+ * components never declare a raw font size, line height, weight, or text colour.
+ *
+ * The first six are the product roles. `menuTitle`, `prompt` and `wheelItem` are additions the
+ * human approved on 2026-10-24 to keep the parity screens pixel-identical; each is used by at
+ * least two screens (menu title: the four menu screens; prompt: the onboarding steps; wheel
+ * item: Date of Birth and Settings). Do not add another one-off role without the same rule.
+ */
+export const TextStyles = {
+  heading: { color: Brand.onSurface, fontSize: 40, lineHeight: 44, fontWeight: 700 },
+  sectionTitle: { color: Brand.onSurface, fontSize: 30, lineHeight: 38, fontWeight: 700 },
+  fieldText: { color: Brand.onSurface, fontSize: 25, lineHeight: 30, fontWeight: 400 },
+  buttonLabel: { color: Brand.surface, fontSize: 25, lineHeight: 30, fontWeight: 400 },
+  // Leaderboard rows: the app's densest body copy.
+  body: { color: Brand.rowText, fontSize: 14.4, lineHeight: 21.6, fontWeight: 400 },
+  // Bottom-menu labels and other small supporting text.
+  caption: { color: Brand.onSurface, fontSize: 15, lineHeight: 18, fontWeight: 400 },
+  menuTitle: { color: Brand.surface, fontSize: 40, lineHeight: 47, fontWeight: 400 },
+  prompt: { color: Brand.accent, fontSize: 25, lineHeight: 30, fontWeight: 400 },
+  wheelItem: { color: Brand.onSurface, fontSize: 22, lineHeight: 28, fontWeight: 400 },
+} as const;
+
+export type TextRole = keyof typeof TextStyles;
 
 export const Spacing = {
   half: 2,

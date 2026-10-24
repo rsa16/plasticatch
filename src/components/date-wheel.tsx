@@ -7,7 +7,7 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
+import { Text } from '@/components/text';
 import { Brand } from '@/constants/theme';
 
 const ITEM_HEIGHT = 44;
@@ -135,12 +135,14 @@ function Wheel({ label, items, selectedIndex, onSelect, style }: WheelProps) {
     >
       {items.map((item, i) => (
         <View key={item} style={styles.item}>
-          <ThemedText
+          <Text
+            variant="wheelItem"
+            color={i === selectedIndex ? undefined : 'accent'}
             style={[styles.itemText, i === selectedIndex && styles.itemTextSelected]}
             numberOfLines={1}
           >
             {item}
-          </ThemedText>
+          </Text>
         </View>
       ))}
     </ScrollView>
@@ -182,14 +184,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   itemText: {
-    color: Brand.accent,
     opacity: 0.6,
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: 400,
   },
   itemTextSelected: {
-    color: Brand.onSurface,
     opacity: 1,
   },
 });

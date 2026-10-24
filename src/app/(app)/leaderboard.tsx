@@ -5,9 +5,9 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useBottomMenuHeight } from '@/components/bottom-menu';
 import { LeaderboardList } from '@/components/leaderboard';
 import { MenuScreen } from '@/components/menu-screen';
-import { ThemedText } from '@/components/themed-text';
+import { Text } from '@/components/text';
 import { LEADERBOARDS } from '@/constants/leaderboards';
-import { Brand, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 
 /** Space between the leaderboard and the raised Catch tab. */
 const LIST_BOTTOM_GAP = 18;
@@ -36,7 +36,9 @@ export default function LeaderboardScreen() {
             onPress={() => step(-1)}
             style={[styles.arrowHit, styles.arrowHitLeft]}
           />
-          <ThemedText style={styles.boardTitle}>{board.title}</ThemedText>
+          <Text variant="sectionTitle" style={styles.boardTitle}>
+            {board.title}
+          </Text>
           <Image
             source={require('@/assets/images/ranking-divider.svg')}
             style={styles.divider}
@@ -92,10 +94,6 @@ const styles = StyleSheet.create({
   },
   boardTitle: {
     width: 244,
-    color: Brand.onSurface,
-    fontSize: 30,
-    lineHeight: 38,
-    fontWeight: 700,
     textAlign: 'center',
   },
   divider: {

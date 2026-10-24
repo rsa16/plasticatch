@@ -12,10 +12,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { OnboardingProgress } from '@/components/onboarding-progress';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Brand, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { Text } from '@/components/text';
+import { Brand, Spacing, TextStyles } from '@/constants/theme';
 
 export const ONBOARDING_STEPS = 5;
 
@@ -82,7 +80,7 @@ export function OnboardingScreen({
   const insets = useSafeAreaInsets();
 
   return (
-    <ThemedView style={styles.screen}>
+    <View style={styles.screen}>
       <View style={styles.backdrop} pointerEvents="none" />
 
       <KeyboardAvoidingView
@@ -102,14 +100,14 @@ export function OnboardingScreen({
           </View>
         </View>
       </KeyboardAvoidingView>
-    </ThemedView>
+    </View>
   );
 }
 
 export function OnboardingHeading({ children }: { children: string }) {
   return (
     <>
-      <ThemedText style={styles.heading}>{children}</ThemedText>
+      <Text variant="heading">{children}</Text>
       <Image
         source={require('@/assets/images/onboarding-divider.svg')}
         style={styles.divider}
@@ -120,12 +118,17 @@ export function OnboardingHeading({ children }: { children: string }) {
 }
 
 export function OnboardingPrompt({ children }: { children: string }) {
-  return <ThemedText style={styles.prompt}>{children}</ThemedText>;
+  return <Text variant="prompt">{children}</Text>;
 }
 
 export function OnboardingField(props: TextInputProps) {
-  const theme = useTheme();
-  return <TextInput placeholderTextColor={theme.textSecondary} {...props} style={styles.field} />;
+  return (
+    <TextInput
+      placeholderTextColor={Brand.rowText}
+      {...props}
+      style={[TextStyles.fieldText, styles.field]}
+    />
+  );
 }
 
 type OnboardingButtonProps = {
@@ -147,7 +150,7 @@ function OnboardingButton({ label, onPress, disabled }: OnboardingButtonProps) {
         disabled && styles.disabled,
       ]}
     >
-      <ThemedText style={styles.buttonLabel}>{label}</ThemedText>
+      <Text variant="buttonLabel">{label}</Text>
     </Pressable>
   );
 }
@@ -179,12 +182,6 @@ const styles = StyleSheet.create({
   footerNext: {
     marginLeft: 'auto',
   },
-  heading: {
-    color: Brand.onSurface,
-    fontSize: 40,
-    lineHeight: 44,
-    fontWeight: 700,
-  },
   divider: {
     width: 324.002,
     height: 5,
@@ -193,20 +190,11 @@ const styles = StyleSheet.create({
     marginVertical: -2,
     transform: [{ rotate: '-0.18deg' }],
   },
-  prompt: {
-    color: Brand.accent,
-    fontSize: 25,
-    lineHeight: 30,
-    fontWeight: 400,
-  },
   field: {
     paddingHorizontal: 15,
     paddingVertical: 10,
     borderRadius: 15,
     backgroundColor: Brand.field,
-    color: Brand.onSurface,
-    fontSize: 25,
-    lineHeight: 30,
   },
   button: {
     width: 98,
@@ -221,11 +209,5 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.4,
-  },
-  buttonLabel: {
-    color: Brand.surface,
-    fontSize: 25,
-    lineHeight: 30,
-    fontWeight: 400,
   },
 });

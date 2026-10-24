@@ -5,8 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { backdropGradient, ONBOARDING_STEPS, type BackdropStop } from '@/components/onboarding';
 import { OnboardingProgress } from '@/components/onboarding-progress';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { Text } from '@/components/text';
 import { Brand, Spacing } from '@/constants/theme';
 
 // This step's tint moves its light band higher than the other steps so the map shows through.
@@ -21,7 +20,7 @@ export default function AllSetScreen() {
   const insets = useSafeAreaInsets();
 
   return (
-    <ThemedView style={styles.screen}>
+    <View style={styles.screen}>
       <View style={styles.map} pointerEvents="none">
         <Image
           source={require('@/assets/images/all-set-map.png')}
@@ -36,7 +35,9 @@ export default function AllSetScreen() {
         <OnboardingProgress step={ONBOARDING_STEPS} total={ONBOARDING_STEPS} />
 
         <View style={styles.message}>
-          <ThemedText style={styles.title}>You’re all set!</ThemedText>
+          <Text variant="heading" style={styles.title}>
+            You’re all set!
+          </Text>
           <Image
             source={require('@/assets/images/all-set-divider.svg')}
             style={styles.divider}
@@ -48,11 +49,11 @@ export default function AllSetScreen() {
             onPress={() => router.replace('/map')}
             style={({ pressed }) => [styles.button, pressed && styles.pressed]}
           >
-            <ThemedText style={styles.buttonLabel}>BEGIN CATCHING</ThemedText>
+            <Text variant="buttonLabel">BEGIN CATCHING</Text>
           </Pressable>
         </View>
       </View>
-    </ThemedView>
+    </View>
   );
 }
 
@@ -98,10 +99,6 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   title: {
-    color: Brand.onSurface,
-    fontSize: 40,
-    lineHeight: 47,
-    fontWeight: 700,
     textAlign: 'center',
   },
   divider: {
@@ -120,11 +117,5 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.7,
-  },
-  buttonLabel: {
-    color: Brand.surface,
-    fontSize: 25,
-    lineHeight: 30,
-    fontWeight: 400,
   },
 });

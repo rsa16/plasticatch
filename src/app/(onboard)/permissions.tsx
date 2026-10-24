@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 import { AppState, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { OnboardingHeading, OnboardingPrompt, OnboardingScreen } from '@/components/onboarding';
-import { ThemedText } from '@/components/themed-text';
+import { Text } from '@/components/text';
 import { Brand, Spacing } from '@/constants/theme';
 
 export default function PermissionsScreen() {
@@ -76,10 +76,14 @@ function PermissionRow({ label, permission, onRequest }: PermissionRowProps) {
   return (
     <View style={styles.row}>
       <View style={styles.rowText}>
-        <ThemedText style={styles.rowLabel}>{label}</ThemedText>
-        <ThemedText style={[styles.rowStatus, permission?.granted && styles.rowStatusGranted]}>
+        <Text variant="wheelItem">{label}</Text>
+        <Text
+          variant="caption"
+          color={permission?.granted ? 'accent' : undefined}
+          style={[styles.rowStatus, permission?.granted && styles.rowStatusGranted]}
+        >
           {status}
-        </ThemedText>
+        </Text>
       </View>
       {action && (
         <Pressable
@@ -88,7 +92,7 @@ function PermissionRow({ label, permission, onRequest }: PermissionRowProps) {
           onPress={action.onPress}
           style={({ pressed }) => [styles.action, pressed && styles.pressed]}
         >
-          <ThemedText style={styles.actionLabel}>{action.label}</ThemedText>
+          <Text variant="buttonLabel">{action.label}</Text>
         </Pressable>
       )}
     </View>
@@ -112,21 +116,10 @@ const styles = StyleSheet.create({
   rowText: {
     flex: 1,
   },
-  rowLabel: {
-    color: Brand.onSurface,
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: 400,
-  },
   rowStatus: {
-    color: Brand.onSurface,
     opacity: 0.6,
-    fontSize: 16,
-    lineHeight: 20,
-    fontWeight: 400,
   },
   rowStatusGranted: {
-    color: Brand.accent,
     opacity: 1,
   },
   action: {
@@ -137,11 +130,5 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.7,
-  },
-  actionLabel: {
-    color: Brand.surface,
-    fontSize: 18,
-    lineHeight: 22,
-    fontWeight: 400,
   },
 });

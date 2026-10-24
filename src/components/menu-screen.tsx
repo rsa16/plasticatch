@@ -3,8 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BACKDROP_GRADIENT } from '@/components/onboarding';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { Text } from '@/components/text';
 import { Brand, Spacing } from '@/constants/theme';
 
 type MenuScreenProps = {
@@ -27,19 +26,19 @@ export function MenuScreen({ title, children, background }: MenuScreenProps) {
   const titleTop = useMenuTitleTop();
 
   return (
-    <ThemedView style={styles.screen}>
+    <View style={styles.screen}>
       <View style={styles.backdrop} pointerEvents="none" />
       {background}
 
       <View style={[styles.content, { paddingTop: titleTop }]}>
         <View style={styles.titlePill}>
-          <ThemedText style={styles.titleText} accessibilityRole="header">
+          <Text variant="menuTitle" accessibilityRole="header">
             {title}
-          </ThemedText>
+          </Text>
         </View>
         {children}
       </View>
-    </ThemedView>
+    </View>
   );
 }
 
@@ -65,11 +64,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     borderRadius: 15,
     backgroundColor: Brand.accent,
-  },
-  titleText: {
-    color: Brand.surface,
-    fontSize: 40,
-    lineHeight: 47,
-    fontWeight: 400,
   },
 });
