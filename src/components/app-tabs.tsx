@@ -27,6 +27,11 @@ export default function AppTabs() {
           renderingMode="template"
         />
       </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="catch">
+        <NativeTabs.Trigger.Label>Catch</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="leaf.fill" md="recycling" />
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }

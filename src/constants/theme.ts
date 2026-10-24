@@ -24,7 +24,23 @@ export const Colors = {
   },
 } as const;
 
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+/** PlastiCatch brand palette. These screens use a fixed dark-green look in both color schemes. */
+export const Brand = {
+  green: '#193328',
+  greenDeep: '#09140f',
+  surface: '#f7f8f7',
+  onSurface: '#1b1f1c',
+  accent: '#378765',
+  accentMuted: '#a2dfc5',
+  field: '#d9e0d9',
+  catchTab: '#39936d',
+  icon: '#000000',
+  rowText: '#4f4f4f',
+  rowTextStrong: '#303030',
+  danger: '#873737',
+} as const;
+
+export type ThemeColor =keyof typeof Colors.light & keyof typeof Colors.dark;
 
 export const Fonts = Platform.select({
   ios: {
