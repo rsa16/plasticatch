@@ -10,12 +10,6 @@ export type OnboardingDraft = {
   username: string;
 };
 
-/** Every state transition the draft accepts. */
-export type OnboardingDraftAction =
-  | { type: 'setDateOfBirth'; dateOfBirth: Date }
-  | { type: 'setUsername'; username: string }
-  | { type: 'reset' };
-
 /** The draft before the player has answered anything. */
 export const EMPTY_ONBOARDING_DRAFT: OnboardingDraft = { username: '' };
 
@@ -28,19 +22,4 @@ export const EMPTY_ONBOARDING_DRAFT: OnboardingDraft = { username: '' };
  */
 export function usernameProblem(username: string): string | null {
   return username.trim().length === 0 ? 'Enter a username.' : null;
-}
-
-/** Pure state transition; the React adapter in `draft-provider.tsx` is the only caller. */
-export function onboardingDraftReducer(
-  draft: OnboardingDraft,
-  action: OnboardingDraftAction,
-): OnboardingDraft {
-  switch (action.type) {
-    case 'setDateOfBirth':
-      return { ...draft, dateOfBirth: action.dateOfBirth };
-    case 'setUsername':
-      return { ...draft, username: action.username };
-    case 'reset':
-      return EMPTY_ONBOARDING_DRAFT;
-  }
 }

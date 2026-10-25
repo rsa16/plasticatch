@@ -4,10 +4,10 @@ import { useState } from 'react';
 import { DateWheel } from '@/components/date-wheel';
 import { OnboardingHeading, OnboardingPrompt, OnboardingScreen } from '@/components/onboarding';
 import { admit } from '@/features/onboarding/age';
-import { useOnboardingDraft } from '@/features/onboarding/draft';
+import { useOnboardingDraftStore } from '@/features/onboarding/draft';
 
 export default function DateOfBirthScreen() {
-  const draft = useOnboardingDraft();
+  const draft = useOnboardingDraftStore();
   // Returning from the next step restores the answer the player already gave.
   const [dateOfBirth, setDateOfBirth] = useState(() => draft.dateOfBirth ?? new Date(2000, 0, 1));
 

@@ -1,10 +1,10 @@
 import { Stack } from 'expo-router';
 
 import { canContinueOnboarding } from '@/features/onboarding/age';
-import { useOnboardingDraft } from '@/features/onboarding/draft';
+import { useOnboardingDraftStore } from '@/features/onboarding/draft';
 
 export default function OnboardLayout() {
-  const draft = useOnboardingDraft();
+  const draft = useOnboardingDraftStore();
   // The date wheel and the dead end are the only steps reachable before the gate clears.
   const admitted = canContinueOnboarding(draft, new Date());
 

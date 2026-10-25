@@ -16,7 +16,7 @@ import { MenuScreen } from '@/components/menu-screen';
 import { Text } from '@/components/text';
 import { ScrollPane } from '@/components/scroll-pane';
 import { Brand, Spacing, TextStyles } from '@/constants/theme';
-import { useOnboardingDraft } from '@/features/onboarding/draft';
+import { useOnboardingDraftStore } from '@/features/onboarding/draft';
 
 // One row of arrows per avatar part, matching onboarding. What each row changes isn't defined yet.
 const AVATAR_ROWS = [0, 1, 2];
@@ -36,7 +36,7 @@ function confirmDeleteAccount(onDelete: () => void) {
 }
 
 export default function SettingsScreen() {
-  const draft = useOnboardingDraft();
+  const draft = useOnboardingDraftStore();
   const barHeight = useBottomBarHeight();
   const usernameInput = useRef<TextInputInstance>(null);
   // Settings edits its own copy. They are not written back to the draft, which records what
