@@ -1,12 +1,2 @@
-export {
-  EMPTY_ONBOARDING_DRAFT,
-  onboardingDraftReducer,
-  usernameProblem,
-  type OnboardingDraft,
-  type OnboardingDraftAction,
-} from './draft';
-export {
-  OnboardingDraftProvider,
-  useOnboardingDraft,
-  type OnboardingDraftStore,
-} from './draft-provider';
+export { EMPTY_ONBOARDING_DRAFT, usernameProblem, type OnboardingDraft } from './draft';
+export { useOnboardingDraftStore, type OnboardingDraftStore } from './store';
