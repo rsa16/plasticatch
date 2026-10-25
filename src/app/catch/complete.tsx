@@ -1,12 +1,13 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenFrame } from '@/components/screen-frame';
 import { Text } from '@/components/text';
 import { useCatchStore } from '@/features/catch';
-import { Brand } from '@/constants/theme';
+import { Brand, Spacing } from '@/constants/theme';
 
 // Streaks and levels aren't tracked yet, so these show the Figma mock's values.
 const PLACEHOLDER_STREAK = 5;
@@ -25,87 +26,94 @@ export default function CatchCompleteScreen() {
   // The catch layout only renders this route once the lifecycle has a completion.
   const completion = useCatchStore((state) => state.completion);
   const reset = useCatchStore((state) => state.reset);
+  const insets = useSafeAreaInsets();
 
   return (
     <ScreenFrame top="step">
-      <View style={styles.titleBlock}>
-        <Text variant="pageTitle" style={styles.title} accessibilityRole="header">
-          Catch Complete!
-        </Text>
-        <Image
-          source={require('@/assets/images/all-set-divider.svg')}
-          style={styles.divider}
-          contentFit="fill"
-        />
-      </View>
-
-      <Image
-        source={require('@/assets/images/catch-stars.svg')}
-        style={styles.stars}
-        contentFit="fill"
-        accessibilityLabel="Three stars"
-      />
-
-      <View style={styles.hero}>
-        <View style={styles.ribbon} pointerEvents="none">
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.three }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.titleBlock}>
+          <Text variant="pageTitle" style={styles.title} accessibilityRole="header">
+            Catch Complete!
+          </Text>
           <Image
-            source={require('@/assets/images/catch-ribbon.png')}
-            style={styles.ribbonImage}
-            tintColor={Brand.accent}
+            source={require('@/assets/images/all-set-divider.svg')}
+            style={styles.divider}
             contentFit="fill"
           />
         </View>
-        <View style={[styles.photoSlot, styles.disposeSlot]}>
-          <Image
-            source={
-              completion?.disposePhoto ? { uri: completion.disposePhoto } : DISPOSE_PLACEHOLDER
-            }
-            style={[styles.photo, styles.tiltRight]}
-            contentFit="cover"
-            accessibilityLabel="Photo of the litter going into the trash"
-          />
-        </View>
-        <View style={[styles.photoSlot, styles.findSlot]}>
-          <Image
-            source={completion?.findPhoto ? { uri: completion.findPhoto } : FIND_PLACEHOLDER}
-            style={[styles.photo, styles.tiltLeft]}
-            contentFit="cover"
-            accessibilityLabel="Photo of the litter you found"
-          />
-        </View>
-        <Text variant="fieldText" style={styles.date}>
-          {formatDate(new Date())}
-        </Text>
-      </View>
 
-      <View style={styles.summary}>
-        <View style={styles.bullets}>
-          <Bullet label={`${completion?.xp ?? 0} XP gained`} />
-          <Bullet
-            label={`Streak: ${PLACEHOLDER_STREAK}`}
-            trailing={
-              <Image
-                source={require('@/assets/images/catch-streak.png')}
-                style={styles.streakIcon}
-                tintColor={Brand.streak}
-                contentFit="contain"
-              />
-            }
-          />
-          {PLACEHOLDER_LEVELLED_UP && <Bullet label="LVL. Up!" />}
+        <Image
+          source={require('@/assets/images/catch-stars.svg')}
+          style={styles.stars}
+          contentFit="fill"
+          accessibilityLabel="Three stars"
+        />
+
+        <View style={styles.hero}>
+          <View style={styles.ribbon} pointerEvents="none">
+            <Image
+              source={require('@/assets/images/catch-ribbon.png')}
+              style={styles.ribbonImage}
+              tintColor={Brand.accent}
+              contentFit="fill"
+            />
+          </View>
+          <View style={[styles.photoSlot, styles.disposeSlot]}>
+            <Image
+              source={
+                completion?.disposePhoto ? { uri: completion.disposePhoto } : DISPOSE_PLACEHOLDER
+              }
+              style={[styles.photo, styles.tiltRight]}
+              contentFit="cover"
+              accessibilityLabel="Photo of the litter going into the trash"
+            />
+          </View>
+          <View style={[styles.photoSlot, styles.findSlot]}>
+            <Image
+              source={completion?.findPhoto ? { uri: completion.findPhoto } : FIND_PLACEHOLDER}
+              style={[styles.photo, styles.tiltLeft]}
+              contentFit="cover"
+              accessibilityLabel="Photo of the litter you found"
+            />
+          </View>
+          <Text variant="fieldText" style={styles.date}>
+            {formatDate(new Date())}
+          </Text>
         </View>
 
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => {
-            reset();
-            router.dismissTo('/map');
-          }}
-          style={({ pressed }) => [styles.done, pressed && styles.pressed]}
-        >
-          <Text variant="buttonLabel">DONE</Text>
-        </Pressable>
-      </View>
+        <View style={styles.summary}>
+          <View style={styles.bullets}>
+            <Bullet label={`${completion?.xp ?? 0} XP gained`} />
+            <Bullet
+              label={`Streak: ${PLACEHOLDER_STREAK}`}
+              trailing={
+                <Image
+                  source={require('@/assets/images/catch-streak.png')}
+                  style={styles.streakIcon}
+                  tintColor={Brand.streak}
+                  contentFit="contain"
+                />
+              }
+            />
+            {PLACEHOLDER_LEVELLED_UP && <Bullet label="LVL. Up!" />}
+          </View>
+
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              reset();
+              router.dismissTo('/map');
+            }}
+            style={({ pressed }) => [styles.done, pressed && styles.pressed]}
+          >
+            <Text variant="buttonLabel">DONE</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
     </ScreenFrame>
   );
 }
@@ -123,6 +131,9 @@ function Bullet({ label, trailing }: { label: string; trailing?: ReactNode }) {
 }
 
 const styles = StyleSheet.create({
+  scroll: {
+    flex: 1,
+  },
   titleBlock: {
     alignSelf: 'center',
     width: 324,
