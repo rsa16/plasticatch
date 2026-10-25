@@ -5,6 +5,7 @@ import {
   View,
   type ScrollViewProps,
   type StyleProp,
+  type ViewInstance,
   type ViewStyle,
 } from 'react-native';
 import Animated, {
@@ -78,7 +79,7 @@ export function ScrollPane({
   keyboardShouldPersistTaps,
 }: ScrollPaneProps) {
   const { height: windowHeight } = useWindowDimensions();
-  const boxRef = useRef<View>(null);
+  const boxRef = useRef<ViewInstance>(null);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
   const [box, setBox] = useState<Box | null>(null);

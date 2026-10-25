@@ -5,6 +5,7 @@ import {
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
+  type ScrollViewInstance,
 } from 'react-native';
 
 import { Text } from '@/components/text';
@@ -86,7 +87,7 @@ type WheelProps = {
 };
 
 function Wheel({ label, items, selectedIndex, onSelect, style }: WheelProps) {
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   // Index the wheel is currently resting on, so we only scroll programmatically when the
   // selection changed from outside (e.g. the day was clamped after a month change).
   const scrolledIndex = useRef(-1);

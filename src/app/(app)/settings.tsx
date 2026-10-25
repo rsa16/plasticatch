@@ -1,7 +1,14 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useRef, useState, type ReactNode } from 'react';
-import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import {
+  Alert,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
+  type TextInputInstance,
+} from 'react-native';
 
 import { CATCH_RISE, useBottomBarHeight } from '@/components/bottom-menu';
 import { DateWheel } from '@/components/date-wheel';
@@ -31,7 +38,7 @@ function confirmDeleteAccount(onDelete: () => void) {
 export default function SettingsScreen() {
   const draft = useOnboardingDraft();
   const barHeight = useBottomBarHeight();
-  const usernameInput = useRef<TextInput>(null);
+  const usernameInput = useRef<TextInputInstance>(null);
   // Settings edits its own copy. They are not written back to the draft, which records what
   // onboarding captured; saving profile changes belongs to the account backlog ticket.
   const [username, setUsername] = useState(() =>
