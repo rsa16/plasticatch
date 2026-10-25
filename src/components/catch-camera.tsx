@@ -1,12 +1,19 @@
 import { CameraView, useCameraPermissions, type CameraType, type FlashMode } from 'expo-camera';
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
-import { useRef, useState, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 import { Linking, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/text';
-import { verifyCatchPhoto } from '@/features/catch';
+import { createCatchStep, createExpoCameraAdapter, verifyCatchPhoto } from '@/features/catch';
 import { Brand, Spacing } from '@/constants/theme';
 
 /** Height of the instruction bar below the status-bar inset. */
@@ -36,6 +43,57 @@ type CatchCameraProps = {
   onClose: () => void;
 };
 
+/**
+ * The mutable bridge between React and the framework-free step: latest permission, permission
+ * prompt, verified callback, and the one mounted camera preview. Keeping it in a stable object lets
+ * the step be created once while the values it reads stay current across renders.
+ */
+class CameraGateway {
+  private permission: ReturnType<typeof useCameraPermissions>[0];
+  private promptPermission: ReturnType<typeof useCameraPermissions>[1];
+  private onVerified: (photo: string) => void;
+  private camera: CameraView | null = null;
+
+  constructor(
+    permission: ReturnType<typeof useCameraPermissions>[0],
+    requestPermission: ReturnType<typeof useCameraPermissions>[1],
+    onVerified: (photo: string) => void,
+  ) {
+    this.permission = permission;
+    this.promptPermission = requestPermission;
+    this.onVerified = onVerified;
+  }
+
+  update(
+    permission: ReturnType<typeof useCameraPermissions>[0],
+    requestPermission: ReturnType<typeof useCameraPermissions>[1],
+    onVerified: (photo: string) => void,
+  ) {
+    this.permission = permission;
+    this.promptPermission = requestPermission;
+    this.onVerified = onVerified;
+  }
+
+  setCamera = (camera: CameraView | null) => {
+    this.camera = camera;
+  };
+
+  getCamera = () => this.camera;
+
+  getPermission = () => {
+    if (!this.permission) return null;
+    return { granted: this.permission.granted, canAskAgain: this.permission.canAskAgain };
+  };
+
+  requestPermission = async () => {
+    await this.promptPermission();
+  };
+
+  onCaptured = (photo: string) => {
+    this.onVerified(photo);
+  };
+}
+
 /** A full-screen camera for one catch step: instruction, XP, controls and the failure popup. */
 export function CatchCamera({
   instruction,
@@ -45,41 +103,63 @@ export function CatchCamera({
   onClose,
 }: CatchCameraProps) {
   const insets = useSafeAreaInsets();
-  const camera = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>('back');
   const [flash, setFlash] = useState<FlashMode>('off');
   const [zoomIndex, setZoomIndex] = useState(0);
-  const [capturing, setCapturing] = useState(false);
-  const [popup, setPopup] = useState<string | null>(null);
+
+  // The step is created once per mounted step, so one mount owns one capture lifecycle. The
+  // gateway carries the latest permission and verified callback without rebuilding the controller.
+  const [gateway] = useState(() => new CameraGateway(permission, requestPermission, onVerified));
+
+  useEffect(() => {
+    gateway.update(permission, requestPermission, onVerified);
+  }, [gateway, permission, requestPermission, onVerified]);
+
+  const setCamera = useCallback(
+    (camera: CameraView | null) => gateway.setCamera(camera),
+    [gateway],
+  );
+
+  const adapter = useMemo(
+    () =>
+      createExpoCameraAdapter({
+        getCamera: gateway.getCamera,
+        getPermission: gateway.getPermission,
+        requestPermission: gateway.requestPermission,
+      }),
+    [gateway],
+  );
+
+  const [step] = useState(() =>
+    createCatchStep({
+      adapter,
+      verify: () => verifyCatchPhoto(),
+      failureMessage,
+      onCaptured: gateway.onCaptured,
+    }),
+  );
+  const state = useSyncExternalStore(step.subscribe, step.getState, step.getState);
+
+  // Pick up the permission once the hook finishes reading it, or after the player visits Settings.
+  useEffect(() => {
+    step.refreshPermission();
+  }, [step, permission?.granted, permission?.canAskAgain]);
+
+  // Leaving the step abandons an in-flight capture: no verified callback, no completion path.
+  useEffect(() => () => step.cancel(), [step]);
 
   const topBarHeight = insets.top + TOP_BAR_BELOW_INSET;
   const controlsHeight = insets.bottom + CONTROLS_ABOVE_INSET;
   const zoom = ZOOM_PRESETS[zoomIndex];
-
-  const capture = async () => {
-    if (!camera.current || capturing) return;
-    setPopup(null);
-    setCapturing(true);
-    try {
-      const photo = await camera.current.takePictureAsync({ quality: 0.7 });
-      if (verifyCatchPhoto()) {
-        onVerified(photo.uri);
-      } else {
-        setPopup(failureMessage);
-      }
-    } catch {
-      setPopup('Couldn’t take a photo. Please try again.');
-    } finally {
-      setCapturing(false);
-    }
-  };
+  const ready = state.status === 'ready';
+  const capturing = state.status === 'capturing' || state.status === 'verifying';
 
   let preview: ReactNode;
-  if (!permission) {
+  if (!state.permission) {
     // Still reading the permission; keep the screen dark rather than flashing a prompt.
     preview = null;
-  } else if (!permission.granted) {
+  } else if (!state.permission.granted) {
     preview = (
       <View
         style={[styles.permission, { paddingTop: topBarHeight, paddingBottom: controlsHeight }]}
@@ -89,11 +169,17 @@ export function CatchCamera({
         </Text>
         <Pressable
           accessibilityRole="button"
-          onPress={() => (permission.canAskAgain ? requestPermission() : Linking.openSettings())}
+          onPress={() => {
+            if (state.permission?.canAskAgain) {
+              void step.requestPermission();
+            } else {
+              void Linking.openSettings();
+            }
+          }}
           style={({ pressed }) => [styles.permissionButton, pressed && styles.pressed]}
         >
           <Text variant="buttonLabel">
-            {permission.canAskAgain ? 'ALLOW CAMERA' : 'OPEN SETTINGS'}
+            {state.permission.canAskAgain ? 'ALLOW CAMERA' : 'OPEN SETTINGS'}
           </Text>
         </Pressable>
       </View>
@@ -101,11 +187,12 @@ export function CatchCamera({
   } else {
     preview = (
       <CameraView
-        ref={camera}
+        ref={setCamera}
         style={StyleSheet.absoluteFill}
         facing={facing}
         flash={flash}
         zoom={zoom.zoom}
+        onCameraReady={step.cameraReady}
       />
     );
   }
@@ -132,7 +219,7 @@ export function CatchCamera({
         </View>
       </View>
 
-      {popup && (
+      {state.failure && (
         <View
           style={[styles.popupArea, { top: topBarHeight, bottom: controlsHeight }]}
           pointerEvents="box-none"
@@ -140,11 +227,11 @@ export function CatchCamera({
           <Pressable
             accessibilityRole="alert"
             accessibilityHint="Dismisses the message"
-            onPress={() => setPopup(null)}
+            onPress={step.dismissFailure}
             style={styles.popup}
           >
             <Text variant="buttonLabel" style={styles.popupText}>
-              {popup}
+              {state.failure}
             </Text>
           </Pressable>
         </View>
@@ -179,7 +266,14 @@ export function CatchCamera({
         </View>
 
         <View style={[styles.row, styles.shutterRow]}>
-          <CircleButton label="Close" onPress={onClose} style={styles.closeButton}>
+          <CircleButton
+            label="Close"
+            onPress={() => {
+              step.cancel();
+              onClose();
+            }}
+            style={styles.closeButton}
+          >
             <Image
               source={require('@/assets/images/catch-close.png')}
               style={styles.closeIcon}
@@ -190,13 +284,15 @@ export function CatchCamera({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Take photo"
-            accessibilityState={{ disabled: capturing || !permission?.granted }}
-            disabled={capturing || !permission?.granted}
-            onPress={capture}
+            accessibilityState={{ disabled: !ready }}
+            disabled={!ready}
+            onPress={() => {
+              void step.capture();
+            }}
             style={({ pressed }) => [
               styles.shutter,
               (pressed || capturing) && styles.pressed,
-              !permission?.granted && styles.disabled,
+              !ready && styles.disabled,
             ]}
           >
             <Image
