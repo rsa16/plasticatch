@@ -27,7 +27,7 @@ export function useBottomMenuHeight() {
   return useBottomBarHeight() + CATCH_RISE;
 }
 
-export type BottomMenuItem = 'gallery' | 'map' | 'catch' | 'rank' | 'settings';
+export type BottomMenuItem = 'my-catches' | 'map' | 'catch' | 'rank' | 'settings';
 
 type MenuButton = {
   key: Exclude<BottomMenuItem, 'catch'>;
@@ -37,14 +37,14 @@ type MenuButton = {
   size: number;
   /** Space between the icon and its label. */
   labelGap: number;
-  /** Extra space above the icon; Rank and Settings sit slightly lower than Gallery and Map. */
+  /** Extra space above the icon; Rank and Settings sit slightly lower than My Catches and Map. */
   offset?: number;
 };
 
 const LEFT_BUTTONS: readonly MenuButton[] = [
   {
-    key: 'gallery',
-    label: 'Gallery',
+    key: 'my-catches',
+    label: 'My Catches',
     icon: require('@/assets/images/menuIcons/gallery.png'),
     size: 44,
     labelGap: 12,
@@ -84,7 +84,7 @@ type BottomMenuProps = {
   onSelect?: (item: BottomMenuItem) => void;
 };
 
-/** The main app menu: Gallery, Map, a raised Catch button, Rank, and Settings. */
+/** The main app menu: My Catches, Map, a raised Catch button, Rank, and Settings. */
 export function BottomMenu({ active, onSelect }: BottomMenuProps) {
   const barHeight = useBottomBarHeight();
   const renderButton = (button: MenuButton) => (

@@ -15,4 +15,11 @@ describe('bottom menu tab routes', () => {
     expect(tabItemForRoute('index')).toBeUndefined();
     expect(tabItemForRoute('catch/find')).toBeUndefined();
   });
+
+  it('opens the private list as My Catches', () => {
+    expect(TAB_ROUTES['my-catches']).toBe('my-catches');
+    expect(APP_TABS).toContain('my-catches');
+    expect(tabItemForRoute('my-catches')).toBe('my-catches');
+    expect(APP_TABS).not.toContain('gallery');
+  });
 });
