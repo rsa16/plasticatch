@@ -1,10 +1,11 @@
 export {
   CATCH_SUCCESS_RATE,
-  catchSessionReducer,
-  EMPTY_CATCH_SESSION,
+  EMPTY_CATCH_STATE,
   STEP_XP,
   verifyCatchPhoto,
-  type CatchSession,
-  type CatchSessionAction,
-} from './session';
-export { CatchSessionProvider, useCatchSession, type CatchSessionStore } from './session-provider';
+  type CatchCompletion,
+  type CatchState,
+  type CatchStep,
+  type CompleteResult,
+} from './lifecycle';
+export { useCatchStore, type CatchStore } from './store';
