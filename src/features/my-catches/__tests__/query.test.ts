@@ -27,7 +27,6 @@ function deterministicSource() {
 describe('My Catches query contract', () => {
   it('uses one stable query key', () => {
     expect(MY_CATCHES_QUERY_KEY).toStrictEqual(['my-catches']);
-    expect(MY_CATCHES_QUERY_KEY).toBe(MY_CATCHES_QUERY_KEY);
   });
 
   it('reads the source through the query key', async () => {

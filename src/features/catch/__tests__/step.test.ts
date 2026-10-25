@@ -87,6 +87,18 @@ describe('catch step readiness', () => {
     expect(step.getState().status).toBe('ready');
   });
 
+  it('does not reject or capture when the permission prompt rejects', async () => {
+    const adapter = createFakeAdapter();
+    adapter.permission.mockReturnValue({ granted: false, canAskAgain: true });
+    adapter.requestPermission.mockRejectedValue(new Error('prompt failed'));
+    const { step, onCaptured } = createStep(adapter);
+
+    await expect(step.requestPermission()).resolves.toBeUndefined();
+
+    expect(step.getState().status).toBe('not-ready');
+    expect(onCaptured).not.toHaveBeenCalled();
+  });
+
   it('returns to not-ready when permission is revoked', () => {
     const adapter = createFakeAdapter();
     const { step } = createStep(adapter);
@@ -186,6 +198,74 @@ describe('catch step capture', () => {
 
     expect(adapter.takePhoto).not.toHaveBeenCalled();
     expect(step.getState().status).toBe('not-ready');
+  });
+});
+
+describe('catch step retake', () => {
+  it('returns a captured step to ready without cancelling the camera', async () => {
+    const adapter = createFakeAdapter();
+    const { step } = createStep(adapter);
+    step.cameraReady();
+    await step.capture();
+
+    expect(step.getState().status).toBe('captured');
+
+    step.retake();
+
+    expect(step.getState().status).toBe('ready');
+    expect(step.getState().failure).toBeNull();
+    expect(adapter.cancel).not.toHaveBeenCalled();
+  });
+
+  it('captures and reports a second photo after retake', async () => {
+    const adapter = createFakeAdapter();
+    adapter.takePhoto.mockResolvedValueOnce('first.jpg').mockResolvedValueOnce('second.jpg');
+    const { step, onCaptured } = createStep(adapter);
+    step.cameraReady();
+
+    await step.capture();
+    step.retake();
+    await step.capture();
+
+    expect(adapter.takePhoto).toHaveBeenCalledTimes(2);
+    expect(onCaptured).toHaveBeenCalledTimes(2);
+    expect(onCaptured).toHaveBeenLastCalledWith('second.jpg');
+    expect(step.getState().status).toBe('captured');
+  });
+
+  it('ignores retake unless the step is captured', async () => {
+    const adapter = createFakeAdapter();
+    adapter.permission.mockReturnValue(null);
+    const { step } = createStep(adapter);
+
+    step.retake();
+    expect(step.getState().status).toBe('not-ready');
+
+    adapter.permission.mockReturnValue({ granted: true, canAskAgain: true });
+    step.refreshPermission();
+    step.cameraReady();
+    step.retake();
+    expect(step.getState().status).toBe('ready');
+
+    const failed = createStep(createFakeAdapter(), { verify: () => false });
+    failed.step.cameraReady();
+    await failed.step.capture();
+    failed.step.retake();
+    expect(failed.step.getState().status).toBe('failed');
+    expect(failed.step.getState().failure).toBe('Step failed copy.');
+  });
+
+  it('ignores retake after the step is cancelled', async () => {
+    const adapter = createFakeAdapter();
+    const { step } = createStep(adapter);
+    step.cameraReady();
+    await step.capture();
+
+    step.cancel();
+    step.retake();
+
+    expect(step.getState().status).toBe('captured');
+    expect(adapter.cancel).toHaveBeenCalledTimes(1);
   });
 });
 

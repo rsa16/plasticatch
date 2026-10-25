@@ -27,7 +27,8 @@ export default function DisposeScreen() {
             disposePhoto: completion.disposePhoto,
           });
         });
-        // Replace so Back from Catch Complete can't reopen the camera for a counted catch.
+        // Replace so Complete takes Dispose's place in the stack. A hardware Back from Complete
+        // pops to Find, which clears the completed catch and leaves the flow.
         router.replace('/catch/complete');
       }}
       onClose={() => {
