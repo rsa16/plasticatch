@@ -1,19 +1,22 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 
-import { GalleryProvider } from '@/features/gallery';
 import { OnboardingDraftProvider } from '@/features/onboarding/draft';
+
+// One query client for the app's lifetime. My Catches reads and writes through it.
+const queryClient = new QueryClient();
 
 export default function RootLayout() {
   return (
-    <OnboardingDraftProvider>
-      <GalleryProvider>
+    <QueryClientProvider client={queryClient}>
+      <OnboardingDraftProvider>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(app)" options={{ gestureEnabled: false }} />
           <Stack.Screen name="(onboard)" />
           {/* Full screen so the camera preview runs edge to edge. */}
           <Stack.Screen name="catch" options={{ presentation: 'fullScreenModal' }} />
         </Stack>
-      </GalleryProvider>
-    </OnboardingDraftProvider>
+      </OnboardingDraftProvider>
+    </QueryClientProvider>
   );
 }

@@ -4,7 +4,7 @@ import type { BottomMenuItem } from '@/components/bottom-menu';
 export type TabMenuItem = Exclude<BottomMenuItem, 'catch'>;
 
 /** Every screen the app shell exposes as a tab, in the order the tab navigator declares them. */
-export const APP_TABS = ['gallery', 'map', 'leaderboard', 'settings'] as const;
+export const APP_TABS = ['my-catches', 'map', 'leaderboard', 'settings'] as const;
 
 /** A screen name a tab route may point at. */
 export type AppTabRoute = (typeof APP_TABS)[number];
@@ -14,7 +14,7 @@ export type AppTabRoute = (typeof APP_TABS)[number];
  * have exactly one route and that route must name an app tab.
  */
 export const TAB_ROUTES = {
-  gallery: 'gallery',
+  'my-catches': 'my-catches',
   map: 'map',
   rank: 'leaderboard',
   settings: 'settings',

@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 
 import { CatchCamera } from '@/components/catch-camera';
 import { useCatchStore } from '@/features/catch';
-import { useGallery } from '@/features/gallery';
+import { useRecordCatch } from '@/features/my-catches';
 
 /** Step 2 of a catch: photograph the same litter going into a trash can. */
 export default function DisposeScreen() {
@@ -10,7 +10,7 @@ export default function DisposeScreen() {
   const disposed = useCatchStore((state) => state.disposed);
   const complete = useCatchStore((state) => state.complete);
   const reset = useCatchStore((state) => state.reset);
-  const gallery = useGallery();
+  const recordCatch = useRecordCatch();
 
   return (
     <CatchCamera
@@ -19,14 +19,14 @@ export default function DisposeScreen() {
       failureMessage="Catch failed. Please show the litter going into the trash can."
       onVerified={(photo) => {
         disposed(photo);
-        // Completion owns the record: the first call hands the pair to the gallery, repeat
-        // calls return the same completion without adding another catch.
-        complete((completion) =>
-          gallery.addCatch({
+        // Completion owns the record: the first call hands the pair to the My Catches mutation,
+        // repeat calls return the same completion without writing another catch.
+        complete((completion) => {
+          recordCatch.mutate({
             findPhoto: completion.findPhoto,
             disposePhoto: completion.disposePhoto,
-          }),
-        );
+          });
+        });
         // Replace so Back from Catch Complete can't reopen the camera for a counted catch.
         router.replace('/catch/complete');
       }}

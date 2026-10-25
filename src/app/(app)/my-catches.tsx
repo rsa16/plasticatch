@@ -7,26 +7,16 @@ import { MenuScreen } from '@/components/menu-screen';
 import { Text } from '@/components/text';
 import { ScrollPane } from '@/components/scroll-pane';
 import { Spacing } from '@/constants/theme';
-import { useGallery, type GalleryCatch } from '@/features/gallery';
+import { useMyCatches, type CatchRecord } from '@/features/my-catches';
 
-function pairs<T>(items: readonly T[]): T[][] {
-  return Array.from({ length: Math.ceil(items.length / 2) }, (_, i) =>
-    items.slice(i * 2, i * 2 + 2),
-  );
-}
-
-function formatDate(date: Date) {
-  return date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
-}
-
-export default function GalleryScreen() {
+export default function MyCatchesScreen() {
   const barHeight = useBottomBarHeight();
-  const { catches } = useGallery();
+  const { data: catches = [] } = useMyCatches();
 
   return (
-    <MenuScreen title="GALLERY">
+    <MenuScreen title="MY CATCHES">
       {/* The photos scroll underneath the raised Catch tab, so the list stops at the bar. */}
-      <View style={[styles.gallery, { marginBottom: barHeight }]}>
+      <View style={[styles.list, { marginBottom: barHeight }]}>
         {catches.length === 0 ? (
           <View style={[styles.empty, { paddingBottom: CATCH_RISE }]}>
             <Text variant="fieldText" style={styles.emptyText}>
@@ -35,12 +25,8 @@ export default function GalleryScreen() {
           </View>
         ) : (
           <ScrollPane thumbHeight={49} contentContainerStyle={styles.grid}>
-            {pairs(catches).map((row) => (
-              <View key={row[0].id} style={styles.row}>
-                {row.map((item) => (
-                  <CatchCard key={item.id} item={item} />
-                ))}
-              </View>
+            {catches.map((item) => (
+              <CatchCard key={item.id} item={item} />
             ))}
           </ScrollPane>
         )}
@@ -49,18 +35,17 @@ export default function GalleryScreen() {
   );
 }
 
-/** One catch: its two photos stacked with the date underneath. Tap to swap which is in front. */
-function CatchCard({ item }: { item: GalleryCatch }) {
+/** One catch: its two photos stacked with the shared date label underneath. Tap to swap. */
+function CatchCard({ item }: { item: CatchRecord }) {
   // The litter photo starts in front; the trash-can photo sits behind it.
   const [disposeInFront, setDisposeInFront] = useState(false);
-  const date = formatDate(item.caughtAt);
   const front = disposeInFront ? item.disposePhoto : item.findPhoto;
   const back = disposeInFront ? item.findPhoto : item.disposePhoto;
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Catch from ${date}`}
+      accessibilityLabel={`Catch from ${item.dateLabel}`}
       accessibilityHint="Swaps the two photos"
       onPress={() => setDisposeInFront((value) => !value)}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
@@ -74,14 +59,14 @@ function CatchCard({ item }: { item: GalleryCatch }) {
         />
       </View>
       <Text variant="fieldText" style={styles.date}>
-        {date}
+        {item.dateLabel}
       </Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  gallery: {
+  list: {
     flex: 1,
     marginTop: 30,
     paddingLeft: 31,
@@ -99,12 +84,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 21,
     paddingBottom: CATCH_RISE + Spacing.three,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 21,
   },
   card: {
     width: 155,
