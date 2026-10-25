@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ScreenFrame } from '@/components/screen-frame';
 import { Text } from '@/components/text';
-import { useCatchSession } from '@/features/catch';
+import { useCatchStore } from '@/features/catch';
 import { Brand } from '@/constants/theme';
 
 // Streaks and levels aren't tracked yet, so these show the Figma mock's values.
@@ -22,7 +22,9 @@ function formatDate(date: Date) {
 
 /** The end of a catch: both photos on a ribbon, the XP earned, and a way back to the app. */
 export default function CatchCompleteScreen() {
-  const session = useCatchSession();
+  // The catch layout only renders this route once the lifecycle has a completion.
+  const completion = useCatchStore((state) => state.completion);
+  const reset = useCatchStore((state) => state.reset);
 
   return (
     <ScreenFrame top="step">
@@ -55,7 +57,9 @@ export default function CatchCompleteScreen() {
         </View>
         <View style={[styles.photoSlot, styles.disposeSlot]}>
           <Image
-            source={session.disposePhoto ? { uri: session.disposePhoto } : DISPOSE_PLACEHOLDER}
+            source={
+              completion?.disposePhoto ? { uri: completion.disposePhoto } : DISPOSE_PLACEHOLDER
+            }
             style={[styles.photo, styles.tiltRight]}
             contentFit="cover"
             accessibilityLabel="Photo of the litter going into the trash"
@@ -63,7 +67,7 @@ export default function CatchCompleteScreen() {
         </View>
         <View style={[styles.photoSlot, styles.findSlot]}>
           <Image
-            source={session.findPhoto ? { uri: session.findPhoto } : FIND_PLACEHOLDER}
+            source={completion?.findPhoto ? { uri: completion.findPhoto } : FIND_PLACEHOLDER}
             style={[styles.photo, styles.tiltLeft]}
             contentFit="cover"
             accessibilityLabel="Photo of the litter you found"
@@ -76,7 +80,7 @@ export default function CatchCompleteScreen() {
 
       <View style={styles.summary}>
         <View style={styles.bullets}>
-          <Bullet label={`${session.xp} XP gained`} />
+          <Bullet label={`${completion?.xp ?? 0} XP gained`} />
           <Bullet
             label={`Streak: ${PLACEHOLDER_STREAK}`}
             trailing={
@@ -93,7 +97,10 @@ export default function CatchCompleteScreen() {
 
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.dismissTo('/map')}
+          onPress={() => {
+            reset();
+            router.dismissTo('/map');
+          }}
           style={({ pressed }) => [styles.done, pressed && styles.pressed]}
         >
           <Text variant="buttonLabel">DONE</Text>
