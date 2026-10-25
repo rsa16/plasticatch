@@ -18,6 +18,10 @@ export default function CatchLayout() {
   const step = segments[segments.length - 1];
   if (step === 'dispose' && !hasFindPhoto) return <Redirect href="/catch/find" />;
   if (step === 'complete' && !completed) return <Redirect href="/map" />;
+  // Completion is only set while the route is Dispose, immediately before it replaces itself with
+  // Complete. So this fires only when a hardware/browser Back returns to a still-mounted Find for
+  // an already-counted catch, never during the normal Find or Dispose visit.
+  if (step === 'find' && completed) return <Redirect href="/map" />;
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
