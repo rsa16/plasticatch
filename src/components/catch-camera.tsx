@@ -1,5 +1,6 @@
 import { CameraView, useCameraPermissions, type CameraType, type FlashMode } from 'expo-camera';
 import { Image } from 'expo-image';
+import { useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import {
   useCallback,
@@ -148,6 +149,14 @@ export function CatchCamera({
 
   // Leaving the step abandons an in-flight capture: no verified callback, no completion path.
   useEffect(() => () => step.cancel(), [step]);
+
+  // A back gesture from the next screen returns to this still-mounted step, so reopen the shutter
+  // to retake the photo. Initial focus is a no-op because the step is not captured yet.
+  useFocusEffect(
+    useCallback(() => {
+      step.retake();
+    }, [step]),
+  );
 
   const topBarHeight = insets.top + TOP_BAR_BELOW_INSET;
   const controlsHeight = insets.bottom + CONTROLS_ABOVE_INSET;

@@ -59,6 +59,11 @@ export type CatchStepController = {
   /** Tell the step that its one camera preview has mounted and is streaming. */
   cameraReady: () => void;
   capture: () => Promise<void>;
+  /**
+   * Resume a captured step so the player can take the photo again, e.g. after backing out of the
+   * next screen. Ignored unless the step is captured and still open.
+   */
+  retake: () => void;
   /** Dismiss the failure popup so the shutter can be used again. */
   dismissFailure: () => void;
   /** Leave the step: no verified callback fires for an in-flight capture. */
@@ -119,7 +124,12 @@ export function createCatchStep({
     refreshPermission,
 
     requestPermission: async () => {
-      await adapter.requestPermission();
+      try {
+        await adapter.requestPermission();
+      } catch {
+        // A rejected prompt must not surface as an unhandled rejection. The permission may still be
+        // readable, so fall through and refresh it either way.
+      }
       if (!closed) refreshPermission();
     },
 
@@ -154,6 +164,13 @@ export function createCatchStep({
         if (closed || current !== attempt) return;
         emit({ ...state, status: 'failed', failure: CAMERA_FAILURE_MESSAGE });
       }
+    },
+
+    retake: () => {
+      if (closed || state.status !== 'captured') return;
+
+      attempt += 1;
+      emit({ ...state, status: readyStatus(), failure: null });
     },
 
     dismissFailure: () => {

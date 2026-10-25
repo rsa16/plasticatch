@@ -6,7 +6,6 @@ import {
   findCatch,
   STEP_XP,
   verifyCatchPhoto,
-  type CatchState,
 } from '@/features/catch/lifecycle';
 
 function foundState(photo = 'find.jpg') {
@@ -106,7 +105,7 @@ describe('catch lifecycle', () => {
   });
 
   it('rejects every transition after the catch is complete', () => {
-    const completed = completeCatch(disposedState()).state as CatchState;
+    const completed = completeCatch(disposedState()).state;
 
     expect(findCatch(completed, 'another.jpg')).toBe(completed);
     expect(disposeCatch(completed, 'another.jpg')).toBe(completed);
