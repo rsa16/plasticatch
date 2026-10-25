@@ -14,6 +14,9 @@ export const Brand = {
   rowText: '#4f4f4f',
   rowTextStrong: '#303030',
   danger: '#873737',
+  // Catch flow: the translucent panels over the camera preview, and the streak flame.
+  scrim: 'rgba(0, 0, 0, 0.6)',
+  streak: '#ff6200',
 } as const;
 
 /** A key into `Brand`; components may pass one to a text role that picks a colour by state. */

@@ -1,54 +1,27 @@
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
 
-import { MenuScreen } from '@/components/menu-screen';
-import { Text } from '@/components/text';
-import { Brand, Spacing } from '@/constants/theme';
+import { CatchCamera } from '@/components/catch-camera';
+import { useCatchSession } from '@/features/catch';
 
 /** Dismiss the Catch flow and return to the app shell's default screen. */
 function backToMap() {
   router.dismissTo('/map');
 }
 
-/** Placeholder for the Find half of a catch, until the capture flow is built. */
+/** Step 1 of a catch: photograph the litter. */
 export default function FindScreen() {
+  const session = useCatchSession();
+
   return (
-    <MenuScreen title="FIND">
-      <View style={styles.content}>
-        <Text variant="fieldText" style={styles.prompt}>
-          Photograph the litter you found to start a catch.
-        </Text>
-        <Pressable
-          accessibilityRole="button"
-          onPress={backToMap}
-          style={({ pressed }) => [styles.button, pressed && styles.pressed]}
-        >
-          <Text variant="buttonLabel">BACK TO MAP</Text>
-        </Pressable>
-      </View>
-    </MenuScreen>
+    <CatchCamera
+      instruction="STEP 1: Point the camera at a piece of litter."
+      xp={session.xp}
+      failureMessage="Catch failed. Please make sure the litter is clearly in view."
+      onVerified={(photo) => {
+        session.found(photo);
+        router.push('/catch/dispose');
+      }}
+      onClose={backToMap}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  content: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 28,
-    paddingBottom: Spacing.six,
-    gap: Spacing.four,
-  },
-  prompt: {
-    textAlign: 'center',
-  },
-  button: {
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 15,
-    backgroundColor: Brand.accent,
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-});

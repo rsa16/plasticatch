@@ -1,23 +1,13 @@
 import { Image } from 'expo-image';
-import { StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { CATCH_RISE, useBottomBarHeight } from '@/components/bottom-menu';
 import { MenuScreen } from '@/components/menu-screen';
 import { Text } from '@/components/text';
 import { ScrollPane } from '@/components/scroll-pane';
 import { Spacing } from '@/constants/theme';
-
-// Placeholder catches from the Figma mock until photos are saved from the camera.
-const CATCH_DATES = [
-  '7/1/2026',
-  '7/2/2026',
-  '7/2/2026',
-  '7/5/2026',
-  '7/10/2026',
-  '7/10/2026',
-  '7/11/2026',
-  '7/15/2026',
-];
+import { useGallery, type GalleryCatch } from '@/features/gallery';
 
 function pairs<T>(items: readonly T[]): T[][] {
   return Array.from({ length: Math.ceil(items.length / 2) }, (_, i) =>
@@ -25,39 +15,60 @@ function pairs<T>(items: readonly T[]): T[][] {
   );
 }
 
+function formatDate(date: Date) {
+  return date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+}
+
 export default function GalleryScreen() {
   const barHeight = useBottomBarHeight();
+  const { catches } = useGallery();
 
   return (
     <MenuScreen title="GALLERY">
       {/* The photos scroll underneath the raised Catch tab, so the list stops at the bar. */}
       <View style={[styles.gallery, { marginBottom: barHeight }]}>
-        <ScrollPane thumbHeight={49} contentContainerStyle={styles.grid}>
-          {pairs(CATCH_DATES).map((row, r) => (
-            <View key={r} style={styles.row}>
-              {row.map((date, c) => (
-                <CatchCard key={c} date={date} />
-              ))}
-            </View>
-          ))}
-        </ScrollPane>
+        {catches.length === 0 ? (
+          <View style={[styles.empty, { paddingBottom: CATCH_RISE }]}>
+            <Text variant="fieldText" style={styles.emptyText}>
+              No catches yet. Tap CATCH to photograph your first piece of litter.
+            </Text>
+          </View>
+        ) : (
+          <ScrollPane thumbHeight={49} contentContainerStyle={styles.grid}>
+            {pairs(catches).map((row) => (
+              <View key={row[0].id} style={styles.row}>
+                {row.map((item) => (
+                  <CatchCard key={item.id} item={item} />
+                ))}
+              </View>
+            ))}
+          </ScrollPane>
+        )}
       </View>
     </MenuScreen>
   );
 }
 
-/** A day's catch: two stacked photos with the date underneath. */
-function CatchCard({ date }: { date: string }) {
+/** One catch: its two photos stacked with the date underneath. Tap to swap which is in front. */
+function CatchCard({ item }: { item: GalleryCatch }) {
+  // The litter photo starts in front; the trash-can photo sits behind it.
+  const [disposeInFront, setDisposeInFront] = useState(false);
+  const date = formatDate(item.caughtAt);
+  const front = disposeInFront ? item.disposePhoto : item.findPhoto;
+  const back = disposeInFront ? item.findPhoto : item.disposePhoto;
+
   return (
-    <View style={styles.card} accessible accessibilityLabel={`Catch from ${date}`}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Catch from ${date}`}
+      accessibilityHint="Swaps the two photos"
+      onPress={() => setDisposeInFront((value) => !value)}
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+    >
       <View style={styles.photoStack}>
+        <Image source={{ uri: back }} style={[styles.photo, styles.photoBack]} contentFit="cover" />
         <Image
-          source={require('@/assets/images/gallery-photo-back.png')}
-          style={[styles.photo, styles.photoBack]}
-          contentFit="cover"
-        />
-        <Image
-          source={require('@/assets/images/gallery-photo-front.png')}
+          source={{ uri: front }}
           style={[styles.photo, styles.photoFront]}
           contentFit="cover"
         />
@@ -65,7 +76,7 @@ function CatchCard({ date }: { date: string }) {
       <Text variant="fieldText" style={styles.date}>
         {date}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 
@@ -75,6 +86,17 @@ const styles = StyleSheet.create({
     marginTop: 30,
     paddingLeft: 31,
     paddingRight: 9,
+  },
+  empty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // Centre the message under the title rather than under the scroll thumb's column.
+    marginRight: 22,
+  },
+  emptyText: {
+    maxWidth: 300,
+    textAlign: 'center',
   },
   grid: {
     gap: 21,
@@ -88,6 +110,9 @@ const styles = StyleSheet.create({
     width: 155,
     alignItems: 'center',
     gap: 21,
+  },
+  pressed: {
+    opacity: 0.85,
   },
   photoStack: {
     width: 155,
