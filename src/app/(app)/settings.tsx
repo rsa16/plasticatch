@@ -24,8 +24,13 @@ import { DELETE_ACCOUNT_UNAVAILABLE, cooldownMessage, usernameToSave } from '@/f
 // One row of arrows per avatar part, matching onboarding. What each row changes isn't defined yet.
 const AVATAR_ROWS = [0, 1, 2];
 
-// Figma placeholders, shown when the onboarding draft has no answer from this session.
+// Figma placeholder, shown while the profile has no saved username.
 const PLACEHOLDER_USERNAME = 'yourusername';
+
+/** The field's value for a stored name, falling back to the placeholder. */
+function displayUsername(stored: string | null): string {
+  return stored ?? PLACEHOLDER_USERNAME;
+}
 
 function formatDate(date: Date) {
   return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -41,7 +46,7 @@ export default function SettingsScreen() {
   // The field mirrors the stored profile name. Settings never writes back to the onboarding
   // draft: that records what onboarding captured, not later account edits.
   const storedUsername = profile?.username ?? null;
-  const [username, setUsername] = useState(() => storedUsername ?? PLACEHOLDER_USERNAME);
+  const [username, setUsername] = useState(() => displayUsername(storedUsername));
   const [dateOfBirth, setDateOfBirth] = useState(() => draft.dateOfBirth ?? new Date(1971, 5, 14));
   const [editingDate, setEditingDate] = useState(false);
   const [savingUsername, setSavingUsername] = useState(false);
@@ -51,7 +56,7 @@ export default function SettingsScreen() {
   const [syncedUsername, setSyncedUsername] = useState(storedUsername);
   if (storedUsername !== syncedUsername) {
     setSyncedUsername(storedUsername);
-    setUsername(storedUsername ?? PLACEHOLDER_USERNAME);
+    setUsername(displayUsername(storedUsername));
   }
 
   // Leaving the account ends the Supabase session; the entry gate routes to the age gate.
@@ -77,7 +82,7 @@ export default function SettingsScreen() {
             ? cooldownMessage(result.retryAt)
             : (usernameErrorMessage(result.code) ?? 'Check the username and try again.'),
         );
-        setUsername(storedUsername ?? PLACEHOLDER_USERNAME);
+        setUsername(displayUsername(storedUsername));
         return;
       }
 
@@ -87,7 +92,7 @@ export default function SettingsScreen() {
         'Could not change username',
         error instanceof Error ? error.message : 'Check your connection and try again.',
       );
-      setUsername(storedUsername ?? PLACEHOLDER_USERNAME);
+      setUsername(displayUsername(storedUsername));
     } finally {
       setSavingUsername(false);
     }
