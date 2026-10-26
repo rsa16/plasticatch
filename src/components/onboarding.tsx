@@ -123,7 +123,6 @@ const useStyles = makeStyles((t) => ({
     paddingHorizontal: t.space.lg,
     paddingVertical: t.space.md,
     borderRadius: t.radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
     borderColor: t.color.line,
   },
 }));

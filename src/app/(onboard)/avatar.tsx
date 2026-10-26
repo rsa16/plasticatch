@@ -76,9 +76,7 @@ export default function AvatarScreen() {
       nextLabel={pending ? 'Saving…' : 'Next'}
     >
       <OnboardingHeading>Build your catcher</OnboardingHeading>
-      <OnboardingPrompt>
-        Pick a look. This head is you on the map and the leaderboard.
-      </OnboardingPrompt>
+      <OnboardingPrompt>Pick a look. Your avatar will be visible to others.</OnboardingPrompt>
 
       <AvatarPicker selection={selection} onChange={setSelection} />
 

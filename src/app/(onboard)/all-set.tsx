@@ -56,9 +56,6 @@ export default function AllSetScreen() {
                   {tip.body}
                 </Text>
               </View>
-              <Text variant="caption" tone="muted">
-                {index + 1}
-              </Text>
             </View>
           ))}
         </Card>

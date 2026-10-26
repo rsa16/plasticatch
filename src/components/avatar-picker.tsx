@@ -1,6 +1,6 @@
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { AvatarHead } from '@/components/avatar-head';
 import { Text } from '@/components/text';
@@ -130,7 +130,6 @@ const useStyles = makeStyles((t) => ({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: t.radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
     borderColor: t.color.line,
     backgroundColor: t.color.accentTint,
   },
@@ -175,7 +174,6 @@ const useStyles = makeStyles((t) => ({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: t.radius.pill,
-    borderWidth: 2,
     borderColor: t.color.bg,
     backgroundColor: t.color.accent,
   },
