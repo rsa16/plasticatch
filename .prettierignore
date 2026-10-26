@@ -15,6 +15,11 @@ build/
 assets/
 package-lock.json
 
+# Deployed Edge Functions are committed verbatim from Supabase and must stay
+# byte-for-byte identical to the live source. Formatting them would create diff
+# noise between the repo and production.
+supabase/functions/
+
 # Prose and scratch notes are not code-formatted
 *.md
 .scratch/

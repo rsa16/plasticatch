@@ -1,0 +1,65 @@
+# Supabase configuration for PlastiCatch.
+#
+# This file describes the local toolchain and the shape of the deployed backend.
+# It intentionally contains no secrets: project keys live in the Supabase
+# dashboard and in the gitignored local `.env`, never in this repository.
+
+project_id = "rivfogygicrhkpfkwmlu"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "10MiB"
+
+[auth]
+enabled = true
+site_url = "plasticatch://"
+additional_redirect_urls = ["plasticatch://auth/callback"]
+jwt_expiry = 3600
+enable_signup = true
+
+# Google is the only configured OAuth provider. Apple is deliberately absent:
+# the live project does not have Apple credentials, and the app must not claim
+# Apple sign-in works.
+[auth.external.google]
+enabled = true
+client_id = "env(SUPABASE_AUTH_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_GOOGLE_SECRET)"
+skip_nonce_check = false
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+
+# Edge Functions. Each deployed function verifies the caller's JWT itself, so the
+# gateway-level switch is left on.
+[functions.verify-catch]
+verify_jwt = true
+
+[functions.gallery-feed]
+verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = true
+
+[analytics]
+enabled = false
