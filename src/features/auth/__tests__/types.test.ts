@@ -1,4 +1,10 @@
-import { avatarFromJson, mapProfileRow, needsOnboarding } from '@/features/auth/types';
+import {
+  avatarFromJson,
+  mapProfileRow,
+  needsOnboarding,
+  onboardingStartRoute,
+  postSignInRoute,
+} from '@/features/auth/types';
 
 const row = {
   id: 'user-1',
@@ -10,6 +16,10 @@ const row = {
   terms_version: '2026-10-01',
   privacy_accepted_at: '2026-10-01T00:00:00Z',
   privacy_version: '2026-10-01',
+  total_xp: 245,
+  level: 3,
+  current_streak: 5,
+  username_changed_at: '2026-10-01T00:00:00Z',
 };
 
 describe('mapProfileRow', () => {
@@ -24,11 +34,26 @@ describe('mapProfileRow', () => {
       termsVersion: '2026-10-01',
       privacyAcceptedAt: '2026-10-01T00:00:00Z',
       privacyVersion: '2026-10-01',
+      totalXp: 245,
+      level: 3,
+      currentStreak: 5,
+      usernameChangedAt: '2026-10-01T00:00:00Z',
     });
   });
 
   it('treats a blank home state as unset', () => {
     expect(mapProfileRow({ ...row, home_state: '  ' }).homeState).toBeNull();
+  });
+
+  it('defaults missing rollups to zero', () => {
+    const mapped = mapProfileRow({
+      ...row,
+      total_xp: null,
+      level: null,
+      current_streak: null,
+    });
+
+    expect(mapped).toMatchObject({ totalXp: 0, level: 0, currentStreak: 0 });
   });
 });
 
@@ -49,12 +74,34 @@ describe('avatarFromJson', () => {
 });
 
 describe('needsOnboarding', () => {
-  it('is true without a profile or username', () => {
+  it('is true without a profile, username or home state', () => {
     expect(needsOnboarding(null)).toBe(true);
     expect(needsOnboarding(mapProfileRow({ ...row, username: null }))).toBe(true);
+    expect(needsOnboarding(mapProfileRow({ ...row, home_state: null }))).toBe(true);
+    expect(needsOnboarding(mapProfileRow({ ...row, home_state: '  ' }))).toBe(true);
   });
 
-  it('is false once a username exists', () => {
+  it('is false once both a username and a home state exist', () => {
     expect(needsOnboarding(mapProfileRow(row))).toBe(false);
+  });
+});
+
+describe('onboardingStartRoute', () => {
+  it('starts at the step the profile is missing', () => {
+    expect(onboardingStartRoute(null)).toBe('/profile');
+    expect(onboardingStartRoute(mapProfileRow({ ...row, username: null }))).toBe('/profile');
+    expect(onboardingStartRoute(mapProfileRow({ ...row, home_state: null }))).toBe('/home-state');
+  });
+});
+
+describe('postSignInRoute', () => {
+  it('sends a complete profile through the entry gate', () => {
+    expect(postSignInRoute(mapProfileRow(row))).toBe('/');
+  });
+
+  it('resumes onboarding at the first missing step', () => {
+    expect(postSignInRoute(null)).toBe('/profile');
+    expect(postSignInRoute(mapProfileRow({ ...row, username: null }))).toBe('/profile');
+    expect(postSignInRoute(mapProfileRow({ ...row, home_state: null }))).toBe('/home-state');
   });
 });

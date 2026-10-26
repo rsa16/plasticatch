@@ -14,6 +14,12 @@ export type Profile = {
   termsVersion: string | null;
   privacyAcceptedAt: string | null;
   privacyVersion: string | null;
+  /** Server-maintained rollups written by the XP ledger; the app never computes them. */
+  totalXp: number;
+  level: number;
+  currentStreak: number;
+  /** Set on a successful rename; Settings derives the 14-day username cooldown from it. */
+  usernameChangedAt: string | null;
 };
 
 /** A `profiles` row as PostgREST returns it. */
@@ -27,11 +33,20 @@ export type ProfileRow = {
   terms_version: string | null;
   privacy_accepted_at: string | null;
   privacy_version: string | null;
+  total_xp: number | null;
+  level: number | null;
+  current_streak: number | null;
+  username_changed_at: string | null;
 };
 
 /** The columns the app selects from `profiles`. */
 export const PROFILE_COLUMNS =
-  'id,username,avatar,home_state,age_verified_at,terms_accepted_at,terms_version,privacy_accepted_at,privacy_version';
+  'id,username,avatar,home_state,age_verified_at,terms_accepted_at,terms_version,privacy_accepted_at,privacy_version,total_xp,level,current_streak,username_changed_at';
+
+/** A numeric rollup, treating a missing or non-finite value as zero. */
+function countOrZero(value: number | null | undefined): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
 
 /** Keep only the string entries of a stored avatar object. */
 export function avatarFromJson(value: unknown): Record<string, string> | null {
@@ -56,16 +71,41 @@ export function mapProfileRow(row: ProfileRow): Profile {
     termsVersion: row.terms_version,
     privacyAcceptedAt: row.privacy_accepted_at,
     privacyVersion: row.privacy_version,
+    totalXp: countOrZero(row.total_xp),
+    level: countOrZero(row.level),
+    currentStreak: countOrZero(row.current_streak),
+    usernameChangedAt: row.username_changed_at,
   };
 }
 
-/** Whether the player still needs to be sent through onboarding. */
+/**
+ * Whether the player still needs to be sent through onboarding.
+ *
+ * A profile is complete only once it has both a username and a home state; either one missing
+ * (or no profile row at all) sends the player back into the onboarding stack.
+ */
 export function needsOnboarding(profile: Profile | null): boolean {
-  return !profile || !profile.username;
+  return !profile || !profile.username || !profile.homeState;
+}
+
+/** The onboarding step to resume at; only meaningful when `needsOnboarding(profile)` is true. */
+export function onboardingStartRoute(profile: Profile | null): '/profile' | '/home-state' {
+  return profile?.username ? '/home-state' : '/profile';
+}
+
+/**
+ * Where a successful sign-in should land.
+ *
+ * A complete profile goes to the entry gate, which resolves to the Map. An incomplete one
+ * resumes onboarding at the first missing step instead of assuming that every sign-in still
+ * needs a username.
+ */
+export function postSignInRoute(profile: Profile | null): '/' | '/profile' | '/home-state' {
+  return needsOnboarding(profile) ? onboardingStartRoute(profile) : '/';
 }
 
 /** A Supabase-shaped auth error, kept structural so fakes stay simple. */
-export type AuthErrorLike = { message: string } | null;
+export type AuthErrorLike = { message: string; code?: string | null } | null;
 
 /** The subset of the Supabase client the session store uses. */
 export type SessionClient = {
@@ -81,10 +121,33 @@ export type SessionClient = {
       provider: 'google';
       options: { redirectTo: string; skipBrowserRedirect: boolean };
     }): Promise<{ data: { url: string | null }; error: AuthErrorLike }>;
-    exchangeCodeForSession(
-      code: string,
-    ): Promise<{ data: { session: Session | null }; error: AuthErrorLike }>;
-    signOut(options?: { scope?: 'global' | 'local' }): Promise<{ error: AuthErrorLike }>;
+    exchangeCodeForSession(code: string): Promise<{
+      data: { session: Session | null; redirectType?: string | null };
+      error: AuthErrorLike;
+    }>;
+    signOut(options?: { scope?: 'global' | 'local' | 'others' }): Promise<{ error: AuthErrorLike }>;
+    signUp(args: {
+      email: string;
+      password: string;
+      options: { emailRedirectTo: string };
+    }): Promise<{
+      data: { session: Session | null; user: { identities?: unknown[] } | null };
+      error: AuthErrorLike;
+    }>;
+    signInWithPassword(args: {
+      email: string;
+      password: string;
+    }): Promise<{ data: { session: Session | null }; error: AuthErrorLike }>;
+    resend(args: {
+      type: 'signup';
+      email: string;
+      options: { emailRedirectTo: string };
+    }): Promise<{ error: AuthErrorLike }>;
+    resetPasswordForEmail(
+      email: string,
+      options: { redirectTo: string },
+    ): Promise<{ error: AuthErrorLike }>;
+    updateUser(attributes: { password: string }): Promise<{ error: AuthErrorLike }>;
   };
 };
 
@@ -103,4 +166,38 @@ export type OpenAuthSession = (url: string, redirectUrl: string) => Promise<OAut
 
 /** The outcome of starting (or finishing) the Google flow. */
 export type SignInOutcome =
+  | { status: 'success' }
+  | { status: 'cancelled' }
+  | { status: 'error'; message: string }
+  /**
+   * A recovery link was exchanged; the player must choose a new password before entering the
+   * app. `recovery_expired` means the link was invalid, expired or already used.
+   */
+  | { status: 'recovery' }
+  | { status: 'recovery_expired' };
+
+/**
+ * The outcome of creating an account or logging in with email and password.
+ *
+ * `confirmation_required` means the project has email confirmation ON and no session exists
+ * yet: the same answer for a new address and an address that already has an account.
+ */
+export type PasswordAuthOutcome =
+  | { status: 'success' }
+  | { status: 'confirmation_required' }
+  | { status: 'error'; message: string };
+
+/** The outcome of an email that leaves the app (confirmation resend, password reset). */
+export type EmailActionOutcome = { status: 'success' } | { status: 'error'; message: string };
+
+/** The outcome of saving a new password from a recovery session. */
+export type UpdatePasswordOutcome = { status: 'success' } | { status: 'error'; message: string };
+
+/**
+ * The outcome of proving the current player's identity again.
+ *
+ * Only `success` means the current session carries a fresh sign-in time; a cancelled provider
+ * sheet or a different account leaves the destructive action closed.
+ */
+export type ReauthOutcome =
   { status: 'success' } | { status: 'cancelled' } | { status: 'error'; message: string };

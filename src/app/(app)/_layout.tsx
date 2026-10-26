@@ -21,7 +21,8 @@ export default function AppLayout() {
                 router.push('/catch/find');
                 return;
               }
-              const target = state.routes.find((route) => route.name === TAB_ROUTES[item]);
+              const routeName = TAB_ROUTES[item];
+              const target = state.routes.find((route) => route.name === routeName);
               if (!target || target.key === current.key) return;
               // Emit tabPress like the default tab bar so screens can still listen for it.
               const event = emitter.emit({
@@ -38,6 +39,17 @@ export default function AppLayout() {
       {APP_TABS.map((name) => (
         <Tabs.Screen key={name} name={name} />
       ))}
+      {/* Settings opens from the avatar button. It is not in APP_TABS, so the menu never shows it. */}
+      <Tabs.Screen name="settings" />
+      {/* Reached from the map's persistent Data sources link; hidden from the custom tab bar. */}
+      <Tabs.Screen name="settings/about" />
+      {/* Settings account rows. Not tabs: the custom bar only lists APP_TABS. */}
+      <Tabs.Screen name="settings/username" />
+      <Tabs.Screen name="settings/home-state" />
+      {/* Avatar picker, reached from the Settings Avatar row. */}
+      <Tabs.Screen name="settings/avatar" />
+      {/* Permanent account deletion, reached from the Settings Account section. */}
+      <Tabs.Screen name="settings/delete" />
     </Tabs>
   );
 }

@@ -1,127 +1,167 @@
 import {
-  CATCH_SUCCESS_RATE,
-  completeCatch,
-  disposeCatch,
   EMPTY_CATCH_STATE,
+  assignCatchId,
+  disposeCatch,
+  failSubmission,
   findCatch,
-  STEP_XP,
-  verifyCatchPhoto,
+  retryCatch,
+  settleRejected,
+  settleVerified,
+  type CatchCapture,
 } from '@/features/catch/lifecycle';
+import type { Rejection } from '@/features/verification/rejection';
+import type { VerifyCatchResult, XpBreakdown } from '@/features/verification/types';
 
-function foundState(photo = 'find.jpg') {
-  return findCatch(EMPTY_CATCH_STATE, photo);
+function capture(uri: string): CatchCapture {
+  return {
+    uri,
+    bytes: new Uint8Array([1, 2, 3]),
+    pHash: '0123456789abcdef',
+    lat: 37.7,
+    lng: -122.4,
+    accuracyM: 5,
+    at: '2026-10-26T00:00:00.000Z',
+    mock: false,
+  };
 }
 
-function disposedState(findPhoto = 'find.jpg', disposePhoto = 'dispose.jpg') {
-  return disposeCatch(foundState(findPhoto), disposePhoto);
+function xp(overrides: Partial<XpBreakdown> = {}): XpBreakdown {
+  return {
+    already_awarded: false,
+    xp_awarded: 25,
+    base_xp: 10,
+    streak_bonus: 0,
+    first_catch_of_day: 15,
+    repeat_location_adjustment: 0,
+    daily_cap_adjustment: 0,
+    total_xp: 125,
+    level: 2,
+    current_streak: 1,
+    longest_streak: 1,
+    ...overrides,
+  };
 }
 
-describe('catch photo verification', () => {
-  it('passes half of all photos for now', () => {
-    expect(CATCH_SUCCESS_RATE).toBe(0.5);
-  });
+function verified(overrides: Partial<VerifyCatchResult> = {}): VerifyCatchResult {
+  return {
+    verdict: 'verified',
+    rejectionCode: null,
+    reason: null,
+    retry: null,
+    xp: xp(),
+    alreadyVerified: false,
+    ...overrides,
+  };
+}
 
-  it('passes a photo when the injected roll is under the success rate', () => {
-    expect(verifyCatchPhoto(() => 0)).toBe(true);
-    expect(verifyCatchPhoto(() => 0.49)).toBe(true);
-  });
+function rejected(retry: 'find' | 'dispose' = 'dispose'): Rejection {
+  return { code: 'too_close', message: 'Too close.', retry };
+}
 
-  it('fails a photo when the injected roll is at or over the success rate', () => {
-    expect(verifyCatchPhoto(() => 0.5)).toBe(false);
-    expect(verifyCatchPhoto(() => 0.99)).toBe(false);
-  });
-});
+function foundState(uri = 'find.jpg') {
+  return findCatch(EMPTY_CATCH_STATE, capture(uri));
+}
+
+function disposedState(find = 'find.jpg', dispose = 'dispose.jpg') {
+  return disposeCatch(foundState(find), capture(dispose));
+}
 
 describe('catch lifecycle', () => {
-  it('starts at Find with no photos and no XP', () => {
-    expect(EMPTY_CATCH_STATE).toStrictEqual({ step: 'find', xp: 0 });
+  it('starts at Find with no captures and no verdict', () => {
+    expect(EMPTY_CATCH_STATE).toStrictEqual({ step: 'find' });
   });
 
-  it('walks Find then Dispose and awards each step once', () => {
+  it('walks Find then Dispose into Verifying', () => {
     const found = foundState();
-    expect(found).toStrictEqual({
-      step: 'dispose',
-      findPhoto: 'find.jpg',
-      xp: STEP_XP,
-    });
+    expect(found.step).toBe('dispose');
+    expect(found.find?.uri).toBe('find.jpg');
 
-    const disposed = disposeCatch(found, 'dispose.jpg');
-    expect(disposed).toStrictEqual({
-      step: 'dispose',
-      findPhoto: 'find.jpg',
-      disposePhoto: 'dispose.jpg',
-      xp: STEP_XP * 2,
-    });
+    const disposed = disposeCatch(found, capture('dispose.jpg'));
+    expect(disposed.step).toBe('verifying');
+    expect(disposed.dispose?.uri).toBe('dispose.jpg');
   });
 
-  it('completes once both photos exist and keeps the completed catch available', () => {
-    const disposed = disposedState();
-
-    const { state, result } = completeCatch(disposed);
-
-    const completion = {
-      findPhoto: 'find.jpg',
-      disposePhoto: 'dispose.jpg',
-      xp: STEP_XP * 2,
-    };
-    expect(result).toStrictEqual({ status: 'completed', completion });
-    expect(state).toStrictEqual({
-      ...disposed,
-      step: 'complete',
-      completion,
-    });
-  });
-
-  it('rejects Dispose before Find without changing state or awarding XP', () => {
-    const next = disposeCatch(EMPTY_CATCH_STATE, 'dispose.jpg');
-
+  it('rejects Dispose before Find without changing state', () => {
+    const next = disposeCatch(EMPTY_CATCH_STATE, capture('dispose.jpg'));
     expect(next).toBe(EMPTY_CATCH_STATE);
-    expect(next.xp).toBe(0);
-    expect(next.disposePhoto).toBeUndefined();
   });
 
-  it('rejects completion before both photos exist', () => {
-    const emptyResult = completeCatch(EMPTY_CATCH_STATE);
-    const foundResult = completeCatch(foundState());
+  it('replaces a retaken Find photo and drops the old Dispose photo', () => {
+    const first = foundState('one.jpg');
+    const retaken = findCatch(first, capture('two.jpg'));
 
-    expect(emptyResult.result).toStrictEqual({ status: 'rejected' });
-    expect(emptyResult.state).toBe(EMPTY_CATCH_STATE);
-    expect(foundResult.result).toStrictEqual({ status: 'rejected' });
-    expect(foundResult.state.completion).toBeUndefined();
+    expect(retaken.find?.uri).toBe('two.jpg');
+    expect(retaken.dispose).toBeUndefined();
   });
 
-  it('replaces a retaken photo without awarding XP again', () => {
-    const firstFind = foundState('one.jpg');
-    const retakenFind = findCatch(firstFind, 'two.jpg');
-
-    expect(retakenFind.findPhoto).toBe('two.jpg');
-    expect(retakenFind.xp).toBe(STEP_XP);
-
-    const firstDispose = disposeCatch(retakenFind, 'back-one.jpg');
-    const retakenDispose = disposeCatch(firstDispose, 'back-two.jpg');
-
-    expect(retakenDispose.disposePhoto).toBe('back-two.jpg');
-    expect(retakenDispose.xp).toBe(STEP_XP * 2);
-  });
-
-  it('rejects every transition after the catch is complete', () => {
-    const completed = completeCatch(disposedState()).state;
-
-    expect(findCatch(completed, 'another.jpg')).toBe(completed);
-    expect(disposeCatch(completed, 'another.jpg')).toBe(completed);
-    expect(completeCatch(completed).state).toBe(completed);
-  });
-
-  it('returns the same completion on repeat and never awards XP twice', () => {
-    const first = completeCatch(disposedState());
-    const second = completeCatch(first.state);
+  it('settles a verified catch and reuses the same completion on repeat', () => {
+    const ready = assignCatchId(disposedState(), 'catch-1');
+    const first = settleVerified(ready, verified());
+    const second = settleVerified(first.state, verified());
 
     expect(first.result.status).toBe('completed');
+    expect(first.state.step).toBe('success');
+    expect(first.state.completion).toMatchObject({
+      catchId: 'catch-1',
+      findPhoto: 'find.jpg',
+      disposePhoto: 'dispose.jpg',
+    });
     expect(second.result).toStrictEqual({
       status: 'already-completed',
       completion: first.result.status === 'completed' ? first.result.completion : undefined,
     });
     expect(second.state).toBe(first.state);
-    expect(second.state.xp).toBe(STEP_XP * 2);
+  });
+
+  it('does not settle without a catch id or without both captures', () => {
+    expect(settleVerified(disposedState(), verified()).result).toStrictEqual({
+      status: 'not-ready',
+    });
+    expect(settleVerified(assignCatchId(foundState(), 'id'), verified()).result).toStrictEqual({
+      status: 'not-ready',
+    });
+  });
+
+  it('settles a rejection with its message and retry half', () => {
+    const { state, result } = settleRejected(disposedState(), rejected('dispose'));
+
+    expect(result).toStrictEqual({ status: 'rejected', rejection: rejected('dispose') });
+    expect(state.step).toBe('reject');
+    expect(state.rejection?.retry).toBe('dispose');
+  });
+
+  it('keeps the catch on a retryable submission failure', () => {
+    const ready = assignCatchId(disposedState(), 'catch-1');
+    const failed = failSubmission(ready, 'offline');
+
+    expect(failed.step).toBe('verifying');
+    expect(failed.failure).toBe('offline');
+    expect(failed.catchId).toBe('catch-1');
+    expect(failed.find).toBe(ready.find);
+    expect(failed.dispose).toBe(ready.dispose);
+  });
+
+  it('retries only the rejected half and starts a new catch id for a Dispose retry', () => {
+    const ready = assignCatchId(disposedState(), 'catch-1');
+    const rejectedState = settleRejected(ready, rejected('dispose')).state;
+
+    const disposeRetry = retryCatch(rejectedState, 'dispose');
+    expect(disposeRetry.step).toBe('dispose');
+    expect(disposeRetry.find?.uri).toBe('find.jpg');
+    expect(disposeRetry.dispose).toBeUndefined();
+    expect(disposeRetry.catchId).toBeUndefined();
+
+    const findRetry = retryCatch(rejectedState, 'find');
+    expect(findRetry.step).toBe('find');
+    expect(findRetry.find).toBeUndefined();
+    expect(findRetry.catchId).toBeUndefined();
+  });
+
+  it('rejects every transition after the catch is settled', () => {
+    const ready = assignCatchId(disposedState(), 'catch-1');
+    const settled = settleVerified(ready, verified()).state;
+
+    expect(findCatch(settled, capture('another.jpg'))).toBe(settled);
+    expect(disposeCatch(settled, capture('another.jpg'))).toBe(settled);
   });
 });

@@ -1,9 +1,18 @@
 import { Image, type ImageSource } from 'expo-image';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useEffect } from 'react';
+import { AppState, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { TAB_LABELS, type BottomMenuItem, type TabMenuItem } from '@/components/bottom-menu-routes';
+import { ReadOnlyBanner } from '@/components/read-only-banner';
 import { Text } from '@/components/text';
 import { Brand } from '@/constants/theme';
+import {
+  deriveReadOnly,
+  readOnlyReason,
+  recoveryForReadOnly,
+} from '@/features/permissions/read-only';
+import { useReadOnlyStore } from '@/stores/read-only';
 
 /** Height of the menu bar above the bottom safe-area inset. */
 const BAR_HEIGHT = 95;
@@ -27,31 +36,28 @@ export function useBottomMenuHeight() {
   return useBottomBarHeight() + CATCH_RISE;
 }
 
-export type BottomMenuItem = 'my-catches' | 'map' | 'catch' | 'rank' | 'settings';
+export type { BottomMenuItem } from '@/components/bottom-menu-routes';
 
 type MenuButton = {
-  key: Exclude<BottomMenuItem, 'catch'>;
-  label: string;
+  key: TabMenuItem;
   icon: ImageSource;
   /** Icon size; the icons don't all share the same frame in Figma. */
   size: number;
   /** Space between the icon and its label. */
   labelGap: number;
-  /** Extra space above the icon; Rank and Settings sit slightly lower than My Catches and Map. */
+  /** Extra space above the icon; the Leaderboard item sits slightly lower than the others. */
   offset?: number;
 };
 
 const LEFT_BUTTONS: readonly MenuButton[] = [
   {
     key: 'my-catches',
-    label: 'My Catches',
     icon: require('@/assets/images/menuIcons/gallery.png'),
     size: 44,
     labelGap: 12,
   },
   {
     key: 'map',
-    label: 'Map',
     icon: require('@/assets/images/menuIcons/map.png'),
     size: 42,
     labelGap: 16,
@@ -60,17 +66,8 @@ const LEFT_BUTTONS: readonly MenuButton[] = [
 
 const RIGHT_BUTTONS: readonly MenuButton[] = [
   {
-    key: 'rank',
-    label: 'Rank',
+    key: 'leaderboard',
     icon: require('@/assets/images/menuIcons/rank.png'),
-    size: 44,
-    labelGap: 9,
-    offset: 1.8,
-  },
-  {
-    key: 'settings',
-    label: 'Settings',
-    icon: require('@/assets/images/menuIcons/settings.png'),
     size: 44,
     labelGap: 9,
     offset: 1.8,
@@ -84,9 +81,32 @@ type BottomMenuProps = {
   onSelect?: (item: BottomMenuItem) => void;
 };
 
-/** The main app menu: My Catches, Map, a raised Catch button, Rank, and Settings. */
+/** The main app menu: My Catches, Map, a raised Catch button, and Leaderboard. */
 export function BottomMenu({ active, onSelect }: BottomMenuProps) {
   const barHeight = useBottomBarHeight();
+  const camera = useReadOnlyStore((state) => state.camera);
+  const location = useReadOnlyStore((state) => state.location);
+  const refresh = useReadOnlyStore((state) => state.refresh);
+  const request = useReadOnlyStore((state) => state.request);
+
+  // Re-check whenever the shell mounts and whenever the app returns from the OS Settings app, so
+  // a grant made outside the app clears read-only mode without a restart.
+  useEffect(() => {
+    void refresh();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void refresh();
+    });
+    return () => subscription.remove();
+  }, [refresh]);
+
+  const readOnly = deriveReadOnly(camera, location);
+  const reason = readOnlyReason(readOnly);
+  const recovery = recoveryForReadOnly(camera, location, {
+    settingsAvailable: Platform.OS !== 'web',
+  });
+  // Settings has no tab of its own; the banner would only link back to the screen showing it.
+  const showBanner = readOnly.readOnly && active !== undefined;
+
   const renderButton = (button: MenuButton) => (
     <MenuButtonView
       key={button.key}
@@ -96,16 +116,48 @@ export function BottomMenu({ active, onSelect }: BottomMenuProps) {
     />
   );
 
+  async function handleCatch() {
+    if (!readOnly.readOnly) {
+      onSelect?.('catch');
+      return;
+    }
+    // The OS prompt is the first recovery path while it is still allowed. If it is not, the only
+    // way back is the Settings app.
+    if (recovery === 'settings') {
+      void Linking.openSettings();
+      return;
+    }
+    const next = await request();
+    if (!deriveReadOnly(next.camera, next.location).readOnly) onSelect?.('catch');
+  }
+
   return (
     <View style={[styles.bar, { height: barHeight }]}>
+      {showBanner && <ReadOnlyBanner reason={reason} />}
+
       <View style={styles.group}>{LEFT_BUTTONS.map(renderButton)}</View>
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Catch"
+        accessibilityLabel={readOnly.readOnly ? `Catch unavailable. ${reason}` : 'Catch'}
+        accessibilityHint={
+          readOnly.readOnly
+            ? recovery === 'settings'
+              ? 'Opens Settings so you can allow camera and location access'
+              : 'Asks for camera and location access again'
+            : undefined
+        }
+        // The press remains actionable in read-only mode so the player can re-prompt or open
+        // Settings; only the label and hint announce that Catch is unavailable.
         accessibilityState={{ selected: active === 'catch' }}
-        onPress={() => onSelect?.('catch')}
-        style={({ pressed }) => [styles.catchTab, pressed && styles.pressed]}
+        onPress={() => {
+          void handleCatch();
+        }}
+        style={({ pressed }) => [
+          styles.catchTab,
+          readOnly.readOnly && styles.catchTabDisabled,
+          pressed && styles.pressed,
+        ]}
       >
         <View style={styles.catchButton}>
           <Image
@@ -140,11 +192,12 @@ function MenuButtonView({
   onPress: () => void;
 }) {
   const color = active ? Brand.accent : Brand.icon;
+  const label = TAB_LABELS[button.key];
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={button.label}
+      accessibilityLabel={label}
       accessibilityState={{ selected: active }}
       onPress={onPress}
       style={({ pressed }) => [
@@ -159,8 +212,8 @@ function MenuButtonView({
         tintColor={color}
         contentFit="contain"
       />
-      <Text variant="caption" color={active ? 'accent' : undefined}>
-        {button.label}
+      <Text variant="caption" color={active ? 'accent' : undefined} numberOfLines={1}>
+        {label}
       </Text>
     </Pressable>
   );
@@ -195,17 +248,25 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   catchTab: {
+    // Centred on the screen, not on the unequal left/right button groups.
+    position: 'absolute',
+    left: '50%',
     width: 125,
+    marginLeft: -62.5,
     // Rises above the bar and runs past the bottom edge of the screen.
-    marginTop: -CATCH_RISE,
-    marginBottom: -6,
-    alignSelf: 'stretch',
+    top: -CATCH_RISE,
+    bottom: -6,
+    zIndex: 1,
     alignItems: 'center',
     paddingTop: 28,
     borderRadius: 15,
     backgroundColor: Brand.catchTab,
     boxShadow:
       '4px 0px 4px 0px rgba(0, 0, 0, 0.25), -4px 0px 4px 0px rgba(0, 0, 0, 0.25), 0px -4px 4px 0px rgba(0, 0, 0, 0.25)',
+  },
+  // Read-only still accepts the press: it re-prompts or opens Settings.
+  catchTabDisabled: {
+    opacity: 0.55,
   },
   catchButton: {
     width: 87,

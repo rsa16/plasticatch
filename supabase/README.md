@@ -12,31 +12,36 @@ deployed state rather than from a replayed migration chain (see `migrations/READ
 
 Each of the three original functions (`verify-catch`, `gallery-feed`, `delete-account`) is committed
 verbatim from the deployed source. Do not hand-edit a deployed function without a matching deploy.
-`verify-photo` is the exception: it is authored in this repo and is **not deployed yet** (see below).
+`verify-photo` is the exception: it is authored in this repo and deployed from here (v3).
 
 | Function | Entry point | Auth | Purpose |
 | -------- | ----------- | ---- | ------- |
-| `verify-catch` | `functions/verify-catch/index.ts` | caller JWT + service role | Deterministic verification of a find/dispose pair and XP award |
+| `verify-catch` | `functions/verify-catch/index.ts` | caller JWT + service role | Deterministic gates, then the photo-check gate for a find/dispose pair, then the XP award |
 | `gallery-feed` | `functions/gallery-feed/index.ts` | caller JWT + service role | Owner-only paginated gallery with short-lived signed photo URLs |
 | `delete-account` | `functions/delete-account/index.ts` | caller JWT + service role | Photo cleanup then Auth user deletion, with confirmation and re-auth |
-| `verify-photo` | `functions/verify-photo/index.ts` | caller JWT + service role | Claude photo check for one Find/Dispose capture; holds the Anthropic key, rate-limited per player |
+| `verify-photo` | `functions/verify-photo/index.ts` | caller JWT + service role | One Claude photo check per step; holds the Anthropic key, rate-limited per player |
 
 `seed-debris-tracker-once` and `debris-tracker-probe` are one-off data-import helpers and are not
 part of the app runtime.
 
 ### `verify-photo`
 
-The app never calls Anthropic. It invokes `verify-photo` with its Supabase session; the function
-calls the model with the project secret and returns only `{ pass, item, reason }`. Calls are logged
-to `photo_check_calls`, which also enforces 200 checks per player per rolling 24 hours.
+The app never calls Anthropic, and never sends image bytes to an Edge Function. It uploads the
+blurred JPEGs to `catch-photos` and sends **storage paths**; `verify-catch` forwards them to
+`verify-photo`, which downloads the objects with the service role and returns only
+`{ pass, item, reason }`. Calls are logged to `photo_check_calls`, which also enforces 200 checks
+per player per rolling 24 hours.
 
+- Gate position: `verify-catch` runs it **only after** every deterministic gate passes, and a pass
+  can never override a failed hard gate. A model, network or quota failure is not a rejection: the
+  catch is reset to `awaiting_dispose` and the client offers a retry.
+- The Find and Dispose checks run in parallel; Find is reported first when both fail.
 - Secret: `ANTHROPIC_API_KEY`, set with
   `npx supabase secrets set ANTHROPIC_API_KEY=... --project-ref rivfogygicrhkpfkwmlu`.
   It is never read from `.env` and never reaches the app bundle.
 - Secret: `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are injected by the platform.
-- **Prototype scope:** the function receives photos as captured, before ticket 25's privacy
-  pipeline (pHash before blur, face blur, original discard). Do not ship a build that uses it
-  with real players until that pipeline lands.
+- Privacy: the function only ever sees the on-device blurred output. The pHash is computed on the
+  pre-blur original by the client, and the original is deleted before upload.
 
 
 ## Storage
@@ -63,6 +68,7 @@ npx supabase db pull
 
 # Deploy a function from this directory.
 npx supabase functions deploy verify-catch
+npx supabase functions deploy verify-photo
 npx supabase functions deploy gallery-feed
 npx supabase functions deploy delete-account
 

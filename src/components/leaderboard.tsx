@@ -1,26 +1,31 @@
-import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 
-import { Text } from '@/components/text';
+import { AvatarHead } from '@/components/avatar-head';
 import { ScrollPane } from '@/components/scroll-pane';
+import { Text } from '@/components/text';
 import { Brand } from '@/constants/theme';
+import { useSessionStore } from '@/features/auth';
 import type { LeaderboardEntry } from '@/features/leaderboard';
 
 type LeaderboardListProps = {
   entries: readonly LeaderboardEntry[];
   /** The viewer's rank, shown even when it is outside `entries`; `null` when there is none. */
   ownRank: number | null;
+  /** The viewer's score for the same cohort, shown on the pinned row. */
+  ownXp?: number | null;
 };
 
 /** Scrollable leaderboard rows plus the viewer's own rank below them. */
-export function LeaderboardList({ entries, ownRank }: LeaderboardListProps) {
+export function LeaderboardList({ entries, ownRank, ownXp }: LeaderboardListProps) {
   return (
     <View style={styles.container}>
       <ScrollPane thumbHeight={35} contentContainerStyle={styles.rows}>
         {entries.length === 0 ? (
-          <Text variant="body" style={styles.empty}>
-            No rankings yet.
-          </Text>
+          ownRank === null ? (
+            <Text variant="body" style={styles.empty}>
+              No rankings yet.
+            </Text>
+          ) : null
         ) : (
           entries.map((entry) => (
             <LeaderboardRow key={`${entry.rank}-${entry.username}`} entry={entry} />
@@ -28,7 +33,7 @@ export function LeaderboardList({ entries, ownRank }: LeaderboardListProps) {
         )}
       </ScrollPane>
 
-      {ownRank !== null && <OwnRankRow ownRank={ownRank} />}
+      {ownRank !== null && <OwnRankRow ownRank={ownRank} ownXp={ownXp} />}
     </View>
   );
 }
@@ -44,11 +49,7 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
         {entry.rank}
       </Text>
       <View style={styles.person}>
-        <Image
-          source={require('@/assets/images/leaderboard-avatar.png')}
-          style={styles.avatar}
-          contentFit="cover"
-        />
+        <AvatarHead avatar={entry.avatar} size={32} />
         <Text variant="body" style={styles.username} numberOfLines={1}>
           {entry.username}
         </Text>
@@ -59,7 +60,9 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
 }
 
 /** The viewer's own rank, pinned below the visible rows so it is always on screen. */
-function OwnRankRow({ ownRank }: { ownRank: number }) {
+function OwnRankRow({ ownRank, ownXp }: { ownRank: number; ownXp?: number | null }) {
+  const avatar = useSessionStore((state) => state.profile?.avatar ?? null);
+
   return (
     <View
       style={[styles.row, styles.rowCurrent]}
@@ -70,10 +73,12 @@ function OwnRankRow({ ownRank }: { ownRank: number }) {
         {ownRank}
       </Text>
       <View style={styles.person}>
+        <AvatarHead avatar={avatar} size={32} />
         <Text variant="body" color="rowTextStrong">
           Your rank
         </Text>
       </View>
+      {typeof ownXp === 'number' && <Text variant="body">{ownXp} XP</Text>}
     </View>
   );
 }
@@ -115,10 +120,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     marginLeft: 5,
-  },
-  avatar: {
-    width: 32,
-    height: 32,
   },
   username: {
     flexShrink: 1,

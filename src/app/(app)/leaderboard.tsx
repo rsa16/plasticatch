@@ -2,9 +2,11 @@ import { Image } from 'expo-image';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { AvatarButton } from '@/components/avatar-button';
 import { useBottomMenuHeight } from '@/components/bottom-menu';
 import { LeaderboardList } from '@/components/leaderboard';
 import { MenuScreen } from '@/components/menu-screen';
+import { useMenuTitleTop } from '@/components/screen-frame';
 import { Text } from '@/components/text';
 import { Spacing } from '@/constants/theme';
 import {
@@ -17,9 +19,12 @@ import {
 
 /** Space between the leaderboard and the raised Catch tab. */
 const LIST_BOTTOM_GAP = 18;
+/** Centre the 44 pt avatar button on the 52 pt title pill. */
+const AVATAR_OFFSET = 4;
 
 export default function LeaderboardScreen() {
   const menuHeight = useBottomMenuHeight();
+  const titleTop = useMenuTitleTop();
   const [cohort, setCohort] = useState<Cohort>('state');
   // Ranks come from the RPC; the client only labels the cohort and splits the viewer's row.
   const { data } = useLeaderboard(cohort);
@@ -32,52 +37,59 @@ export default function LeaderboardScreen() {
     });
 
   return (
-    <MenuScreen title="RANKING">
-      <View style={[styles.board, { marginBottom: menuHeight + LIST_BOTTOM_GAP }]}>
-        <View style={styles.boardHeader}>
-          <Image
-            source={require('@/assets/images/ranking-arrows.svg')}
-            style={styles.arrows}
-            contentFit="fill"
-          />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Previous leaderboard"
-            hitSlop={Spacing.two}
-            onPress={() => step(-1)}
-            style={[styles.arrowHit, styles.arrowHitLeft]}
-          />
-          <Text variant="sectionTitle" style={styles.boardTitle}>
-            {leaderboard.title}
-          </Text>
-          <Image
-            source={require('@/assets/images/ranking-divider.svg')}
-            style={styles.divider}
-            contentFit="fill"
-          />
-          <Text variant="caption" color="accent" style={styles.metricLabel}>
-            {leaderboard.metricLabel}
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Next leaderboard"
-            hitSlop={Spacing.two}
-            onPress={() => step(1)}
-            style={[styles.arrowHit, styles.arrowHitRight]}
+    <View style={styles.screen}>
+      <MenuScreen title="RANKING">
+        <View style={[styles.board, { marginBottom: menuHeight + LIST_BOTTOM_GAP }]}>
+          <View style={styles.boardHeader}>
+            <Image
+              source={require('@/assets/images/ranking-arrows.svg')}
+              style={styles.arrows}
+              contentFit="fill"
+            />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Previous leaderboard"
+              hitSlop={Spacing.two}
+              onPress={() => step(-1)}
+              style={[styles.arrowHit, styles.arrowHitLeft]}
+            />
+            <Text variant="sectionTitle" style={styles.boardTitle}>
+              {leaderboard.title}
+            </Text>
+            <Image
+              source={require('@/assets/images/ranking-divider.svg')}
+              style={styles.divider}
+              contentFit="fill"
+            />
+            <Text variant="caption" color="accent" style={styles.metricLabel}>
+              {leaderboard.metricLabel}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Next leaderboard"
+              hitSlop={Spacing.two}
+              onPress={() => step(1)}
+              style={[styles.arrowHit, styles.arrowHitRight]}
+            />
+          </View>
+
+          <LeaderboardList
+            key={leaderboard.cohort}
+            entries={leaderboard.entries}
+            ownRank={leaderboard.ownRank}
+            ownXp={leaderboard.ownXp}
           />
         </View>
-
-        <LeaderboardList
-          key={leaderboard.cohort}
-          entries={leaderboard.entries}
-          ownRank={leaderboard.ownRank}
-        />
-      </View>
-    </MenuScreen>
+      </MenuScreen>
+      <AvatarButton top={titleTop + AVATAR_OFFSET} side="right" />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
   board: {
     flex: 1,
     marginTop: 29,

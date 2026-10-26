@@ -14,7 +14,8 @@ const CORS_HEADERS = {
   "Content-Type": "application/json; charset=utf-8",
 };
 
-const MIN_DISTANCE_M = 10;
+// Below 3 m the two shots are not a real carry; the 500 m ceiling still stops a drive-by.
+const MIN_DISTANCE_M = 3;
 const MAX_DISTANCE_M = 500;
 const MIN_ELAPSED_S = 15;
 const MAX_ELAPSED_S = 30 * 60;
@@ -79,6 +80,45 @@ function hamming(a: unknown, b: unknown): number | null {
 
 function safeString(value: unknown): string | null {
   return typeof value === "string" ? value : null;
+}
+
+type PhotoCheckVerdict = { pass: boolean; reason: string };
+
+/**
+ * Ask `verify-photo` to judge a step from the blurred objects in Storage.
+ *
+ * verify-catch stays the only authority on the verdict: a passing photo check never overrides a
+ * failed hard gate, and a failing one rejects the catch. An unavailable check (model/network/
+ * quota) throws so the caller can leave the catch retryable rather than reject it.
+ */
+async function photoCheck(
+  step: "find" | "dispose",
+  paths: string[],
+  authorization: string,
+): Promise<PhotoCheckVerdict> {
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/verify-photo`, {
+    method: "POST",
+    headers: {
+      Authorization: authorization,
+      apikey: SUPABASE_ANON_KEY!,
+      "Content-Type": "application/json",
+    },
+    signal: AbortSignal.timeout(45_000),
+    body: JSON.stringify({ step, paths }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`photo_check_unavailable:${response.status}`);
+  }
+
+  const body = await response.json() as Record<string, unknown>;
+  if (typeof body.pass !== "boolean") {
+    throw new Error("photo_check_invalid_response");
+  }
+  return {
+    pass: body.pass,
+    reason: typeof body.reason === "string" ? body.reason : "",
+  };
 }
 
 Deno.serve(async (req: Request) => {
@@ -269,6 +309,41 @@ Deno.serve(async (req: Request) => {
     else if (duplicateFind || duplicateDispose) rejectionCode = "duplicate_photo";
     else if (withinCatchDistance === null || withinCatchDistance <= PHASH_HAMMING_THRESHOLD) rejectionCode = "reused_photo";
 
+    // The photo check runs only after every deterministic gate has passed. It can reject a catch
+    // but can never turn a hard-gate failure into a verification, and it never awards XP by itself.
+    let photoReason: string | null = null;
+    let photoRetry: "find" | "dispose" | null = null;
+    if (rejectionCode === null) {
+      // The two checks are independent: the Dispose check is sent the Find photo as context, but
+      // it does not read the Find verdict. Running them together costs one model latency instead
+      // of two, which is the difference between ~10 s and ~5 s at the player. The trade is that a
+      // failing Find photo still spends the Dispose call's quota.
+      const [findCheck, disposeCheck] = await Promise.all([
+        photoCheck("find", [body.find.path], authorization),
+        photoCheck("dispose", [body.find.path, body.dispose.path], authorization),
+      ]);
+
+      // Report the Find half first: a Dispose verdict judged against a bad Find photo is not
+      // meaningful, and its retry would show the player the same wrong photo.
+      if (!findCheck.pass) {
+        rejectionCode = "photo_check_failed";
+        photoReason = findCheck.reason || null;
+        photoRetry = "find";
+      } else if (!disposeCheck.pass) {
+        rejectionCode = "photo_check_failed";
+        photoReason = disposeCheck.reason || null;
+        photoRetry = "dispose";
+      }
+
+      gates.photo_check = {
+        passed: findCheck.pass && disposeCheck.pass,
+        find: { passed: findCheck.pass, reason: findCheck.reason },
+        dispose: { passed: disposeCheck.pass, reason: disposeCheck.reason },
+      };
+    } else {
+      gates.photo_check = { passed: false, skipped: "hard_gate_failed" };
+    }
+
     const passed = rejectionCode === null;
     const { data: lastAttempt, error: attemptLookupError } = await admin
       .from("verification_attempts")
@@ -309,7 +384,14 @@ Deno.serve(async (req: Request) => {
     if (verdictError) throw new Error(`verdict_update_failed: ${verdictError.message}`);
 
     if (!passed) {
-      return response(200, { verdict: "rejected", rejection_code: rejectionCode, xp_breakdown: null, gates });
+      return response(200, {
+        verdict: "rejected",
+        rejection_code: rejectionCode,
+        reason: photoReason,
+        retry: photoRetry,
+        xp_breakdown: null,
+        gates,
+      });
     }
 
     const { data: award, error: awardError } = await admin.rpc("award_catch_xp", {

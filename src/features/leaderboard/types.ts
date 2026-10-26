@@ -9,6 +9,8 @@ export type LeaderboardEntry = {
   rank: number;
   username: string;
   xp: number;
+  /** The player's stored avatar; `null` renders the neutral head. */
+  avatar: Record<string, string> | null;
 };
 
 /** What a board source supplies for one cohort. */
@@ -20,6 +22,8 @@ export type BoardStandings = {
   entries: readonly LeaderboardEntry[];
   /** The viewer's rank, kept outside `entries`; `null` when there is no ranking. */
   ownRank: number | null;
+  /** The viewer's score for this cohort, so the pinned row can show its metric. */
+  ownXp?: number | null;
 };
 
 /** An empty board, used before the live standings arrive and when there are none. */
@@ -47,4 +51,5 @@ export type Board = {
   metricLabel: string;
   entries: readonly LeaderboardEntry[];
   ownRank: number | null;
+  ownXp?: number | null;
 };

@@ -6,6 +6,7 @@ describe('parseRedirectParams', () => {
       code: 'abc123',
       error: null,
       errorDescription: null,
+      type: null,
     });
   });
 
@@ -14,7 +15,17 @@ describe('parseRedirectParams', () => {
       code: 'xyz',
       error: null,
       errorDescription: null,
+      type: null,
     });
+  });
+
+  it('reads the link type from a recovery redirect', () => {
+    expect(parseRedirectParams('plasticatch://auth/callback?code=abc&type=recovery').type).toBe(
+      'recovery',
+    );
+    expect(
+      parseRedirectParams('plasticatch://auth/callback#type=recovery&access_token=x').type,
+    ).toBe('recovery');
   });
 
   it('decodes escaped values', () => {
@@ -31,6 +42,7 @@ describe('parseRedirectParams', () => {
       code: null,
       error: null,
       errorDescription: null,
+      type: null,
     });
   });
 });

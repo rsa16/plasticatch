@@ -10,6 +10,7 @@ import { Text } from '@/components/text';
 import { PRIVACY_VERSION, TERMS_VERSION } from '@/constants/legal';
 import { Brand } from '@/constants/theme';
 import { TERMS_OF_SERVICE } from '@/constants/terms-of-service';
+import { goBackOr } from '@/features/onboarding/back';
 import { acceptConsent } from '@/features/onboarding/profile-service';
 
 const THUMB_HEIGHT = 57;
@@ -50,8 +51,8 @@ export default function TermsScreen() {
 
   return (
     <OnboardingScreen
-      step={4}
-      onBack={() => router.back()}
+      step={5}
+      onBack={() => goBackOr('/permissions')}
       onNext={handleNext}
       nextDisabled={!complete || pending}
     >
