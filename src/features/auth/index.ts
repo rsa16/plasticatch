@@ -18,6 +18,7 @@ export { useSessionStore } from './session';
 export type { SessionStore } from './session-store';
 export {
   needsOnboarding,
+  onboardingStartRoute,
   avatarFromJson,
   mapProfileRow,
   type AuthStatus,

@@ -1,4 +1,9 @@
-import { avatarFromJson, mapProfileRow, needsOnboarding } from '@/features/auth/types';
+import {
+  avatarFromJson,
+  mapProfileRow,
+  needsOnboarding,
+  onboardingStartRoute,
+} from '@/features/auth/types';
 
 const row = {
   id: 'user-1',
@@ -49,12 +54,22 @@ describe('avatarFromJson', () => {
 });
 
 describe('needsOnboarding', () => {
-  it('is true without a profile or username', () => {
+  it('is true without a profile, username or home state', () => {
     expect(needsOnboarding(null)).toBe(true);
     expect(needsOnboarding(mapProfileRow({ ...row, username: null }))).toBe(true);
+    expect(needsOnboarding(mapProfileRow({ ...row, home_state: null }))).toBe(true);
+    expect(needsOnboarding(mapProfileRow({ ...row, home_state: '  ' }))).toBe(true);
   });
 
-  it('is false once a username exists', () => {
+  it('is false once both a username and a home state exist', () => {
     expect(needsOnboarding(mapProfileRow(row))).toBe(false);
+  });
+});
+
+describe('onboardingStartRoute', () => {
+  it('starts at the step the profile is missing', () => {
+    expect(onboardingStartRoute(null)).toBe('/profile');
+    expect(onboardingStartRoute(mapProfileRow({ ...row, username: null }))).toBe('/profile');
+    expect(onboardingStartRoute(mapProfileRow({ ...row, home_state: null }))).toBe('/home-state');
   });
 });

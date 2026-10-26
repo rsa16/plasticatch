@@ -64,6 +64,21 @@ export function usernameErrorMessage(code: string | null): string | null {
   }
 }
 
+/** The message shown for a home-state rejection, or `null` when there is nothing to say. */
+export function homeStateErrorMessage(code: string | null): string | null {
+  switch (code) {
+    case 'invalid_home_state':
+      return 'Choose one of the 50 states or Washington, DC.';
+    case 'profile_not_found':
+    case 'sign_in_required':
+      return 'Sign in again to save your home state.';
+    case null:
+      return null;
+    default:
+      return 'That home state could not be saved. Try again.';
+  }
+}
+
 /** Ask the server whether a username can still be claimed. */
 export async function checkUsernameAvailable(username: string): Promise<UsernameCheck> {
   const { data, error } = await getSupabase().rpc('check_username_available', {
@@ -93,6 +108,17 @@ export async function markAgeVerified(): Promise<ProfileWriteResult> {
   });
 
   if (error) throw new Error(`age_verification_failed: ${error.message}`);
+
+  return toProfileWriteResult(data as RpcJson);
+}
+
+/** Persist the player's explicit home state; the server normalises and validates the code. */
+export async function saveHomeState(state: string): Promise<ProfileWriteResult> {
+  const { data, error } = await getSupabase().rpc('update_my_profile', {
+    p_home_state: state,
+  });
+
+  if (error) throw new Error(`home_state_update_failed: ${error.message}`);
 
   return toProfileWriteResult(data as RpcJson);
 }

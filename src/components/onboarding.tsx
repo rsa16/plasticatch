@@ -8,7 +8,7 @@ import { ScreenFrame } from '@/components/screen-frame';
 import { Text } from '@/components/text';
 import { Brand, Spacing, TextStyles } from '@/constants/theme';
 
-export const ONBOARDING_STEPS = 5;
+export const ONBOARDING_STEPS = 6;
 
 /** Gap between the Back/Next buttons and the bottom safe-area edge. */
 const FOOTER_BOTTOM_GAP = 56;

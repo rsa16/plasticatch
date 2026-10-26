@@ -59,9 +59,19 @@ export function mapProfileRow(row: ProfileRow): Profile {
   };
 }
 
-/** Whether the player still needs to be sent through onboarding. */
+/**
+ * Whether the player still needs to be sent through onboarding.
+ *
+ * A profile is complete only once it has both a username and a home state; either one missing
+ * (or no profile row at all) sends the player back into the onboarding stack.
+ */
 export function needsOnboarding(profile: Profile | null): boolean {
-  return !profile || !profile.username;
+  return !profile || !profile.username || !profile.homeState;
+}
+
+/** The onboarding step to resume at; only meaningful when `needsOnboarding(profile)` is true. */
+export function onboardingStartRoute(profile: Profile | null): '/profile' | '/home-state' {
+  return profile?.username ? '/home-state' : '/profile';
 }
 
 /** A Supabase-shaped auth error, kept structural so fakes stay simple. */

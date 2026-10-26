@@ -16,6 +16,7 @@ export default function OnboardLayout() {
       <Stack.Screen name="date-of-birth" />
       <Stack.Protected guard={admitted}>
         <Stack.Screen name="profile" />
+        <Stack.Screen name="home-state" />
         <Stack.Screen name="permissions" />
         <Stack.Screen name="terms" />
         <Stack.Screen name="all-set" options={{ gestureEnabled: false }} />

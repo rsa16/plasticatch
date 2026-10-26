@@ -1,4 +1,5 @@
 import {
+  homeStateErrorMessage,
   toProfileWriteResult,
   toUsernameCheck,
   usernameErrorMessage,
@@ -62,5 +63,14 @@ describe('usernameErrorMessage', () => {
   it('falls back for an unknown code and stays quiet with none', () => {
     expect(usernameErrorMessage('something_new')).toBeTruthy();
     expect(usernameErrorMessage(null)).toBeNull();
+  });
+});
+
+describe('homeStateErrorMessage', () => {
+  it('explains a server rejection and stays quiet on success', () => {
+    expect(homeStateErrorMessage('invalid_home_state')).toContain('50 states');
+    expect(homeStateErrorMessage('sign_in_required')).toContain('Sign in again');
+    expect(homeStateErrorMessage('something_new')).toBeTruthy();
+    expect(homeStateErrorMessage(null)).toBeNull();
   });
 });
