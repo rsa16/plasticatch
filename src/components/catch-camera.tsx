@@ -267,6 +267,20 @@ export function CatchCamera({
             <Text variant="buttonLabel" style={styles.popupText}>
               {state.failure}
             </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close message"
+              onPress={step.dismissFailure}
+              hitSlop={12}
+              style={({ pressed }) => [styles.popupClose, pressed && styles.pressed]}
+            >
+              <Image
+                source={require('@/assets/images/catch-close.png')}
+                style={styles.popupCloseIcon}
+                tintColor={Brand.surface}
+                contentFit="contain"
+              />
+            </Pressable>
           </Pressable>
         </View>
       )}
@@ -430,13 +444,23 @@ const styles = StyleSheet.create({
     minHeight: 146,
     justifyContent: 'center',
     paddingLeft: 30,
-    paddingRight: 27,
+    // Room for the close button in the top-right corner.
+    paddingRight: 44,
     paddingVertical: Spacing.four,
     borderRadius: 20,
     backgroundColor: Brand.scrim,
   },
   popupText: {
     maxWidth: 244,
+  },
+  popupClose: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+  },
+  popupCloseIcon: {
+    width: 16,
+    height: 16,
   },
   controls: {
     position: 'absolute',
