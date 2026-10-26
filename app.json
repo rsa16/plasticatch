@@ -46,7 +46,8 @@
         {
           "locationWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location to record where you collect plastic."
         }
-      ]
+      ],
+      "@rnmapbox/maps"
     ],
     "experiments": {
       "typedRoutes": true,
