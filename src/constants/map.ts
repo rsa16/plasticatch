@@ -21,6 +21,26 @@ export const MAP_PIN_MAX_PINS = MAP_PIN_PAGE_LIMIT * MAP_PIN_MAX_PAGES;
 /** A viewport with fewer active pins than this gets the sparse-data callout, never a blank map. */
 export const MAP_SPARSE_PIN_THRESHOLD = 5;
 
+/** The exact modeled-estimate wording the Map and About screen must carry. */
+export const EPA_RISK_LABEL = 'EPA modeled estimate — Sept 2024 snapshot';
+export const EPA_RISK_SNAPSHOT = 'September 2024';
+export const EPA_RISK_ATTRIBUTION =
+  'U.S. Environmental Protection Agency, Escaped Trash Risk Map (layer 19)';
+
+/** OLM pins are drawn in their own hue so they never read as Debris Tracker rows. */
+export const OLM_PIN_COLOR = '#7c3aed';
+
+/**
+ * The EPA grid is a single low-opacity ramp: green for low modeled density through amber and red
+ * for the highest cells. The layer is never interactive.
+ */
+export const EPA_RISK_COLORS = {
+  low: '#2f7d63',
+  mid: '#d97706',
+  high: '#b91c1c',
+} as const;
+export const EPA_RISK_OPACITY = 0.24;
+
 /** Where the camera starts before the first viewport query resolves: the continental US. */
 export const MAP_DEFAULT_CENTER: readonly [number, number] = [-98.5795, 39.8283];
 export const MAP_DEFAULT_ZOOM = 3;
@@ -78,7 +98,7 @@ export const SOURCE_META: Readonly<Record<string, SourceMeta>> = {
   },
   openlittermap: {
     label: 'OpenLitterMap',
-    attribution: 'OpenLitterMap (openlittermap.com)',
+    attribution: 'OpenLitterMap contributors (openlittermap.com), ODbL 1.0',
     license: 'ODbL 1.0 — share-alike, kept isolated in its own table and layer',
   },
   seeded: {
@@ -106,16 +126,16 @@ export const DATA_SOURCES = [
   },
   {
     name: 'OpenLitterMap',
-    role: 'Licensed ground-truth fallback (own toggle in V1.1)',
+    role: 'Ground-truth pins, isolated under ODbL (own Map toggle)',
     attribution: 'OpenLitterMap (openlittermap.com)',
-    snapshot: 'No OpenLitterMap pins are seeded in V1',
+    snapshot: 'Seeded from demo-state bbox tiles at zoom 15 (26 October 2026)',
     license: 'ODbL 1.0 — share-alike. Its data stays isolated in a separate table and layer.',
   },
   {
     name: 'EPA Escaped Trash Risk Map',
     role: 'Modeled risk layer, toggle-only and never clickable',
     attribution: 'US Environmental Protection Agency, Escaped Trash Risk Map (layer 19)',
-    snapshot: 'Modeled estimate — September 2024 snapshot',
+    snapshot: EPA_RISK_LABEL,
     license: 'EPA public data; modeled estimate, not an observation.',
   },
   {

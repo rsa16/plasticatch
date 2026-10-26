@@ -5,18 +5,23 @@ import { Text } from '@/components/text';
 import { Brand, Spacing } from '@/constants/theme';
 import type { MapPin } from '@/features/map/pin';
 import type { PlayerPosition } from '@/features/map/location';
+import type { RiskCell } from '@/features/map/risk';
 import type { Viewport } from '@/features/map/viewport';
 
 export type MapCanvasProps = {
   pins: readonly MapPin[];
+  /** OpenLitterMap pins, drawn only while its own toggle is on. */
+  olmPins: readonly MapPin[];
+  /** EPA modeled cells, drawn as a non-interactive fill layer. */
+  riskCells: readonly RiskCell[];
   playerPosition: PlayerPosition | null;
   avatar: Record<string, string> | null;
   /** Fired on first load and whenever the camera settles on a new visible box. */
   onViewportChange: (viewport: Viewport) => void;
-  onPinPress: (pinId: number) => void;
+  onPinPress: (pinId: number, source: string) => void;
   onReady?: () => void;
   onError?: () => void;
-  /** True while the first pin query is in flight; map gestures stay available for exploration. */
+  /** True while the first Debris Tracker pin query is in flight. */
   pinsLoading?: boolean;
 };
 
@@ -27,7 +32,13 @@ export type MapCanvasProps = {
  * import it. Metro picks `map-canvas.native.tsx` on iOS/Android and this fallback everywhere
  * else; the pin query and controls still work.
  */
-export function MapCanvas({ pins }: MapCanvasProps) {
+export function MapCanvas({ pins, olmPins, riskCells }: MapCanvasProps) {
+  const counts = [
+    `${pins.length} Debris Tracker pins`,
+    olmPins.length > 0 ? `${olmPins.length} OpenLitterMap pins` : null,
+    riskCells.length > 0 ? `${riskCells.length} EPA risk cells` : null,
+  ].filter(Boolean);
+
   return (
     <View style={styles.container}>
       <Image
@@ -39,7 +50,7 @@ export function MapCanvas({ pins }: MapCanvasProps) {
       <View style={styles.notice}>
         <Text variant="body">
           Interactive maps are available in the PlastiCatch mobile app.
-          {pins.length > 0 ? ` ${pins.length} pins in this viewport.` : ''}
+          {counts.length > 0 ? ` ${counts.join(' · ')} in this viewport.` : ''}
         </Text>
       </View>
     </View>

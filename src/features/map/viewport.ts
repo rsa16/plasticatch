@@ -84,6 +84,23 @@ export function stateScope(
   return /^[A-Z]{2}$/.test(code) ? code : null;
 }
 
+/**
+ * The EPA viewport call. It shares the pin envelope and My State contract but has no cursor: the
+ * seeded layer is small (138 cells) and returns every intersecting cell up to the RPC cap.
+ */
+export function riskRequestArgs(
+  viewport: Viewport,
+  stateCode: string | null,
+): Record<string, unknown> {
+  return {
+    p_west: viewport.west,
+    p_south: viewport.south,
+    p_east: viewport.east,
+    p_north: viewport.north,
+    p_state_code: stateCode,
+  };
+}
+
 export type PinsCursor = {
   observedAt: string;
   id: number;
