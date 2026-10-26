@@ -10,11 +10,16 @@ import type { OpenAuthSession, SignInOutcome } from './types';
  */
 export const OAUTH_REDIRECT_URL = 'plasticatch://auth/callback';
 
-/** The parameters carried by an OAuth redirect, whether in the query or the fragment. */
+/** The parameters carried by an OAuth or email-link redirect, whether in the query or fragment. */
 export type RedirectParams = {
   code: string | null;
   error: string | null;
   errorDescription: string | null;
+  /**
+   * The link type (`recovery`, `signup`, …). Only an implicit-flow redirect carries it; the
+   * project's PKCE flow returns just a code, so recovery detection also uses the exchange.
+   */
+  type: string | null;
 };
 
 function decode(value: string): string {
@@ -33,7 +38,12 @@ function decode(value: string): string {
  * wins over the fragment, which is where an implicit-flow provider would put its tokens.
  */
 export function parseRedirectParams(url: string): RedirectParams {
-  const result: RedirectParams = { code: null, error: null, errorDescription: null };
+  const result: RedirectParams = {
+    code: null,
+    error: null,
+    errorDescription: null,
+    type: null,
+  };
 
   const queryStart = url.indexOf('?');
   const fragmentStart = url.indexOf('#');
@@ -58,6 +68,7 @@ export function parseRedirectParams(url: string): RedirectParams {
       if (key === 'error_description' && !result.errorDescription) {
         result.errorDescription = value || null;
       }
+      if (key === 'type' && !result.type) result.type = value || null;
     }
   }
 

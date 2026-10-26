@@ -2,7 +2,13 @@ import type { Session } from '@supabase/supabase-js';
 import { create } from 'zustand';
 
 import { OAUTH_REDIRECT_URL, outcomeFromRedirect, parseRedirectParams } from './oauth';
-import { SIGN_IN_ERROR, SIGN_UP_ERROR, UNAVAILABLE_ERROR } from './messages';
+import { PASSWORD_UPDATE_ERROR, SIGN_IN_ERROR, SIGN_UP_ERROR, UNAVAILABLE_ERROR } from './messages';
+import { isRecoveryRedirect, isRecoveryRedirectType } from './recovery';
+import {
+  forgetRecoveryRequest,
+  hasRecoveryRequest,
+  rememberRecoveryRequest,
+} from './recovery-intent';
 import type {
   AuthStatus,
   EmailActionOutcome,
@@ -12,6 +18,7 @@ import type {
   ReadProfile,
   SessionClient,
   SignInOutcome,
+  UpdatePasswordOutcome,
 } from './types';
 
 /** What the session store exposes to screens. */
@@ -32,6 +39,8 @@ export type SessionStore = {
   resendConfirmation: (email: string) => Promise<EmailActionOutcome>;
   /** Start the password reset email flow. Never reveals whether the address has an account. */
   resetPassword: (email: string) => Promise<EmailActionOutcome>;
+  /** Save a new password for the signed-in recovery session. */
+  updatePassword: (password: string) => Promise<UpdatePasswordOutcome>;
   /** Exchange a PKCE code from a redirect URL (used by the callback route). */
   completeOAuth: (url: string) => Promise<SignInOutcome>;
   /** End the session locally even when the network call fails. */
@@ -257,13 +266,45 @@ export function createSessionStore({
           return { status: 'error', message: UNAVAILABLE_ERROR };
         }
 
+        // Remember that a link may be on its way. An unknown address is indistinguishable here,
+        // and without a real link this marker simply expires.
+        await rememberRecoveryRequest();
+
         return { status: 'success' };
       },
 
+      async updatePassword(password) {
+        set({ error: null });
+
+        try {
+          const { error } = await getClient().auth.updateUser({ password });
+
+          if (error) {
+            set({ error: PASSWORD_UPDATE_ERROR });
+            return { status: 'error', message: PASSWORD_UPDATE_ERROR };
+          }
+
+          return { status: 'success' };
+        } catch {
+          set({ error: PASSWORD_UPDATE_ERROR });
+          return { status: 'error', message: PASSWORD_UPDATE_ERROR };
+        }
+      },
+
       async completeOAuth(url) {
+        const recoveryRedirect = isRecoveryRedirect(url);
         const outcome = outcomeFromRedirect(url);
 
+        // A recovery link that expired or was already used never reaches the code exchange.
+        // GoTrue's PKCE error redirect carries no `type`, so the reset marker is the only way
+        // to tell it apart from a failed OAuth or sign-up link.
         if (outcome.status !== 'success') {
+          if (recoveryRedirect || (await hasRecoveryRequest())) {
+            await forgetRecoveryRequest();
+            set({ error: null });
+            return { status: 'recovery_expired' };
+          }
+
           set({ error: outcome.status === 'error' ? outcome.message : null });
           return outcome;
         }
@@ -277,15 +318,26 @@ export function createSessionStore({
         }
 
         const { data, error } = await getClient().auth.exchangeCodeForSession(code);
+        const recovery = recoveryRedirect || isRecoveryRedirectType(data.redirectType);
 
         if (error || !data.session) {
+          if (recovery || (await hasRecoveryRequest())) {
+            await forgetRecoveryRequest();
+            set({ error: null });
+            return { status: 'recovery_expired' };
+          }
+
           const message = messageOf(error, 'Could not complete sign-in.');
           set({ error: message });
           return { status: 'error', message };
         }
 
         await applySession(data.session);
-        return { status: 'success' };
+        // Any completed callback settles the reset request, so a stale marker cannot mislabel a
+        // later failure.
+        await forgetRecoveryRequest();
+
+        return recovery ? { status: 'recovery' } : { status: 'success' };
       },
 
       async signOut() {

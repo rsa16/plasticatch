@@ -2,8 +2,22 @@ import type { Session } from '@supabase/supabase-js';
 
 import { OAUTH_REDIRECT_URL } from '@/features/auth/oauth';
 import { createSessionStore } from '@/features/auth/session-store';
-import { SIGN_IN_ERROR, SIGN_UP_ERROR, UNAVAILABLE_ERROR } from '@/features/auth/messages';
+import {
+  PASSWORD_UPDATE_ERROR,
+  SIGN_IN_ERROR,
+  SIGN_UP_ERROR,
+  UNAVAILABLE_ERROR,
+} from '@/features/auth/messages';
+import {
+  forgetRecoveryRequest,
+  hasRecoveryRequest,
+  rememberRecoveryRequest,
+} from '@/features/auth/recovery-intent';
 import type { OAuthResult, Profile, SessionClient } from '@/features/auth/types';
+
+beforeEach(async () => {
+  await forgetRecoveryRequest();
+});
 
 function fakeSession(userId: string): Session {
   return { user: { id: userId }, access_token: 'token' } as unknown as Session;
@@ -35,7 +49,7 @@ function makeClient(overrides: Partial<Record<keyof SessionClient['auth'], unkno
         error: null,
       })),
       exchangeCodeForSession: jest.fn(async () => ({
-        data: { session: fakeSession('user-1') },
+        data: { session: fakeSession('user-1'), redirectType: null },
         error: null,
       })),
       signOut: jest.fn(async () => ({ error: null })),
@@ -49,6 +63,7 @@ function makeClient(overrides: Partial<Record<keyof SessionClient['auth'], unkno
       })),
       resend: jest.fn(async () => ({ error: null })),
       resetPasswordForEmail: jest.fn(async () => ({ error: null })),
+      updateUser: jest.fn(async () => ({ error: null })),
       ...overrides,
     },
   } as unknown as SessionClient;
@@ -406,5 +421,158 @@ describe('email/password session store', () => {
       status: 'error',
       message: UNAVAILABLE_ERROR,
     });
+    await expect(store.getState().updatePassword('secret123')).resolves.toStrictEqual({
+      status: 'error',
+      message: PASSWORD_UPDATE_ERROR,
+    });
+  });
+});
+
+describe('password recovery', () => {
+  it('routes a recovery exchange to the new-password flow', async () => {
+    const client = makeClient({
+      exchangeCodeForSession: jest.fn(async () => ({
+        data: { session: fakeSession('user-1'), redirectType: 'recovery' },
+        error: null,
+      })),
+    });
+    const { store } = makeStore({ client });
+
+    const outcome = await store.getState().completeOAuth('plasticatch://auth/callback?code=abc');
+
+    expect(outcome).toStrictEqual({ status: 'recovery' });
+    expect(store.getState().status).toBe('signed-in');
+    expect(store.getState().session?.user.id).toBe('user-1');
+  });
+
+  it('recognises a recovery redirect even when the exchange reports no type', async () => {
+    const { store } = makeStore();
+
+    const outcome = await store
+      .getState()
+      .completeOAuth('plasticatch://auth/callback?code=abc&type=recovery');
+
+    expect(outcome).toStrictEqual({ status: 'recovery' });
+    expect(store.getState().status).toBe('signed-in');
+  });
+
+  it('keeps a sign-up confirmation callback on the existing success route', async () => {
+    const client = makeClient({
+      exchangeCodeForSession: jest.fn(async () => ({
+        data: { session: fakeSession('user-1'), redirectType: 'signup' },
+        error: null,
+      })),
+    });
+    const { store } = makeStore({ client });
+
+    const outcome = await store.getState().completeOAuth('plasticatch://auth/callback?code=abc');
+
+    expect(outcome).toStrictEqual({ status: 'success' });
+    expect(store.getState().status).toBe('signed-in');
+  });
+
+  it('remembers the reset request until the callback handles it', async () => {
+    const client = makeClient({
+      exchangeCodeForSession: jest.fn(async () => ({
+        data: { session: fakeSession('user-1'), redirectType: 'recovery' },
+        error: null,
+      })),
+    });
+    const { store } = makeStore({ client });
+
+    await store.getState().resetPassword('player@example.com');
+    await expect(hasRecoveryRequest()).resolves.toBe(true);
+
+    await store.getState().completeOAuth('plasticatch://auth/callback?code=abc');
+    await expect(hasRecoveryRequest()).resolves.toBe(false);
+  });
+
+  it('shows the request-a-new-link state for an expired redirect carrying the marker', async () => {
+    const { store } = makeStore();
+    await store.getState().initialize();
+
+    const outcome = await store
+      .getState()
+      .completeOAuth(
+        'plasticatch://auth/callback?error=access_denied&error_code=otp_expired&type=recovery',
+      );
+
+    expect(outcome).toStrictEqual({ status: 'recovery_expired' });
+    expect(store.getState().error).toBeNull();
+    expect(store.getState().status).toBe('signed-out');
+  });
+
+  it('uses the pending reset request to classify an expired PKCE link', async () => {
+    const client = makeClient({
+      exchangeCodeForSession: jest.fn(async () => ({
+        data: { session: null, redirectType: null },
+        error: { message: 'invalid flow state' },
+      })),
+    });
+    const { store } = makeStore({ client });
+    await store.getState().initialize();
+
+    await rememberRecoveryRequest();
+    const outcome = await store.getState().completeOAuth('plasticatch://auth/callback?code=abc');
+
+    expect(outcome).toStrictEqual({ status: 'recovery_expired' });
+    expect(store.getState().error).toBeNull();
+    expect(store.getState().status).toBe('signed-out');
+    await expect(hasRecoveryRequest()).resolves.toBe(false);
+  });
+
+  it('classifies an expired PKCE link that fails before the code exchange', async () => {
+    const { store } = makeStore();
+
+    await rememberRecoveryRequest();
+    const outcome = await store
+      .getState()
+      .completeOAuth('plasticatch://auth/callback?error=access_denied&error_code=otp_expired');
+
+    expect(outcome).toStrictEqual({ status: 'recovery_expired' });
+    expect(store.getState().error).toBeNull();
+  });
+
+  it('keeps a failed callback on the generic sign-in error when no reset was requested', async () => {
+    const client = makeClient({
+      exchangeCodeForSession: jest.fn(async () => ({
+        data: { session: null, redirectType: null },
+        error: { message: 'Could not complete sign-in.' },
+      })),
+    });
+    const { store } = makeStore({ client });
+
+    const outcome = await store.getState().completeOAuth('plasticatch://auth/callback?code=abc');
+
+    expect(outcome).toStrictEqual({
+      status: 'error',
+      message: 'Could not complete sign-in.',
+    });
+    expect(store.getState().error).toBe('Could not complete sign-in.');
+  });
+
+  it('saves a new password through updateUser', async () => {
+    const { store, client } = makeStore();
+
+    const outcome = await store.getState().updatePassword('new-secret');
+
+    expect(outcome).toStrictEqual({ status: 'success' });
+    expect(client.auth.updateUser).toHaveBeenCalledWith({ password: 'new-secret' });
+    expect(store.getState().error).toBeNull();
+  });
+
+  it('maps an update failure to one generic message, never the provider text', async () => {
+    const client = makeClient({
+      updateUser: jest.fn(async () => ({
+        error: { message: 'Password should be at least 6 characters' },
+      })),
+    });
+    const { store } = makeStore({ client });
+
+    const outcome = await store.getState().updatePassword('short');
+
+    expect(outcome).toStrictEqual({ status: 'error', message: PASSWORD_UPDATE_ERROR });
+    expect(PASSWORD_UPDATE_ERROR).not.toContain('characters');
+    expect(store.getState().error).toBe(PASSWORD_UPDATE_ERROR);
   });
 });

@@ -1,6 +1,8 @@
 export { OAUTH_REDIRECT_URL, outcomeFromRedirect, parseRedirectParams } from './oauth';
+export { RECOVERY_REDIRECT_TYPE, isRecoveryRedirect } from './recovery';
 export {
   GOOGLE_ERROR,
+  PASSWORD_UPDATE_ERROR,
   RESEND_NOTICE,
   RESET_NOTICE,
   SIGN_IN_ERROR,
@@ -11,8 +13,10 @@ export {
   MIN_PASSWORD_LENGTH,
   normalizeEmail,
   validateCredentials,
+  validateNewPassword,
   type CredentialFields,
   type CredentialMode,
+  type NewPasswordFields,
 } from './credentials';
 export { useSessionStore } from './session';
 export type { SessionStore } from './session-store';
@@ -26,4 +30,5 @@ export {
   type PasswordAuthOutcome,
   type Profile,
   type SignInOutcome,
+  type UpdatePasswordOutcome,
 } from './types';
