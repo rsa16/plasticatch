@@ -79,9 +79,6 @@ export default function ResetPasswordScreen() {
       >
         <View style={styles.titleGroup}>
           <Badge label="Account recovery" tone="accent" />
-          <Text variant="display" numberOfLines={1} adjustsFontSizeToFit style={styles.wordmark}>
-            PlastiCatch
-          </Text>
         </View>
 
         <View style={styles.auth}>
@@ -171,9 +168,6 @@ const styles = StyleSheet.create({
     maxWidth: 342,
     alignItems: 'center',
     gap: 8,
-  },
-  wordmark: {
-    textAlign: 'center',
   },
   auth: {
     width: '100%',
