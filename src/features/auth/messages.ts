@@ -20,6 +20,13 @@ export const PASSWORD_UPDATE_ERROR =
 
 export const GOOGLE_ERROR = "Google sign-in didn't complete. Check your connection and try again.";
 
+/**
+ * A re-authentication that came back as another account. The deletion is cancelled and the
+ * app signs out rather than leaving the wrong player able to continue.
+ */
+export const REAUTH_DIFFERENT_ACCOUNT =
+  'That signed in to a different account, so nothing was deleted. You have been signed out.';
+
 /** Shown after a resend, whether or not the address has an account. */
 export const RESEND_NOTICE = "If that address needs confirming, we've sent another link.";
 
