@@ -41,6 +41,7 @@ describe('standingsFromRows', () => {
       { rank: 1, username: 'alpha', xp: 100, avatar: null },
     ]);
     expect(standings.ownRank).toBe(124);
+    expect(standings.ownXp).toBe(100);
   });
 
   it('maps the stored avatar onto the row and keeps null for a missing one', () => {

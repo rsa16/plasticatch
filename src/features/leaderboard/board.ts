@@ -21,5 +21,11 @@ export function board(cohort: Cohort, standings: BoardStandings): Board {
   const visibleEntries =
     ownRank === null ? entries : entries.filter((entry) => entry.rank !== ownRank);
 
-  return { cohort, ...COHORT_LABELS[cohort], entries: visibleEntries, ownRank };
+  return {
+    cohort,
+    ...COHORT_LABELS[cohort],
+    entries: visibleEntries,
+    ownRank,
+    ...(standings.ownXp !== undefined ? { ownXp: standings.ownXp } : {}),
+  };
 }

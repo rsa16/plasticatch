@@ -11,17 +11,21 @@ type LeaderboardListProps = {
   entries: readonly LeaderboardEntry[];
   /** The viewer's rank, shown even when it is outside `entries`; `null` when there is none. */
   ownRank: number | null;
+  /** The viewer's score for the same cohort, shown on the pinned row. */
+  ownXp?: number | null;
 };
 
 /** Scrollable leaderboard rows plus the viewer's own rank below them. */
-export function LeaderboardList({ entries, ownRank }: LeaderboardListProps) {
+export function LeaderboardList({ entries, ownRank, ownXp }: LeaderboardListProps) {
   return (
     <View style={styles.container}>
       <ScrollPane thumbHeight={35} contentContainerStyle={styles.rows}>
         {entries.length === 0 ? (
-          <Text variant="body" style={styles.empty}>
-            No rankings yet.
-          </Text>
+          ownRank === null ? (
+            <Text variant="body" style={styles.empty}>
+              No rankings yet.
+            </Text>
+          ) : null
         ) : (
           entries.map((entry) => (
             <LeaderboardRow key={`${entry.rank}-${entry.username}`} entry={entry} />
@@ -29,7 +33,7 @@ export function LeaderboardList({ entries, ownRank }: LeaderboardListProps) {
         )}
       </ScrollPane>
 
-      {ownRank !== null && <OwnRankRow ownRank={ownRank} />}
+      {ownRank !== null && <OwnRankRow ownRank={ownRank} ownXp={ownXp} />}
     </View>
   );
 }
@@ -56,7 +60,7 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
 }
 
 /** The viewer's own rank, pinned below the visible rows so it is always on screen. */
-function OwnRankRow({ ownRank }: { ownRank: number }) {
+function OwnRankRow({ ownRank, ownXp }: { ownRank: number; ownXp?: number | null }) {
   const avatar = useSessionStore((state) => state.profile?.avatar ?? null);
 
   return (
@@ -74,6 +78,7 @@ function OwnRankRow({ ownRank }: { ownRank: number }) {
           Your rank
         </Text>
       </View>
+      {typeof ownXp === 'number' && <Text variant="body">{ownXp} XP</Text>}
     </View>
   );
 }

@@ -28,11 +28,11 @@ const REQUEST_TIMEOUT_MS = 30_000;
 /** Photos per step: Find shows the litter, Dispose shows it going into a bin. */
 const PHOTOS_PER_STEP: Record<string, number> = { find: 1, dispose: 2 };
 
-/** Largest base64 photo accepted. A 1024px JPEG is a few hundred KB. */
-const MAX_PHOTO_BASE64_LENGTH = 2_000_000;
+/** Largest blurred JPEG accepted from the private bucket. */
+const MAX_PHOTO_BYTES = 5_000_000;
 
-/** Largest combined base64 payload accepted, so one request cannot post a gallery. */
-const MAX_TOTAL_BASE64_LENGTH = 3_000_000;
+/** The private bucket that holds blurred catch photos only. */
+const PHOTO_BUCKET = "catch-photos";
 
 /**
  * Checks allowed per player per rolling 24 hours. Two per catch, so this is ~100 catches a
@@ -53,7 +53,8 @@ type VerifyStep = "find" | "dispose";
 
 type VerifyRequest = {
   step: VerifyStep;
-  photos: string[];
+  /** Storage object paths under the caller's prefix, never image bytes. */
+  paths: string[];
 };
 
 type Verdict = {
@@ -95,9 +96,13 @@ function json(status: number, body: Record<string, unknown>) {
   });
 }
 
-const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
+/** `{user_id}/{catch_id}/{find|dispose}.jpg` under the private bucket. */
+const PHOTO_PATH = /^(?<user>[0-9a-f-]{36})\/(?<catch>[0-9a-f-]{36})\/(?<half>find|dispose)\.jpg$/i;
 
-/** Validate the body; returns the request or a message naming what is wrong. */
+/**
+ * Validate the body. The client sends storage paths, never image bytes: ADR-0001's guardrail is
+ * that images go app → Storage directly and Edge Functions receive only small JSON.
+ */
 function parseRequest(
   value: unknown,
 ): { ok: true; request: VerifyRequest } | { ok: false; error: string } {
@@ -112,31 +117,55 @@ function parseRequest(
     return { ok: false, error: "invalid_step" };
   }
   if (
-    !Array.isArray(body.photos) ||
-    body.photos.length !== PHOTOS_PER_STEP[step]
+    !Array.isArray(body.paths) ||
+    body.paths.length !== PHOTOS_PER_STEP[step]
   ) {
     return { ok: false, error: "invalid_photo_count" };
   }
 
-  let total = 0;
-
-  for (const photo of body.photos) {
-    if (
-      typeof photo !== "string" || photo.length === 0 || !BASE64.test(photo)
-    ) {
-      return { ok: false, error: "invalid_photo" };
+  const paths: string[] = [];
+  for (const path of body.paths) {
+    if (typeof path !== "string" || !PHOTO_PATH.test(path)) {
+      return { ok: false, error: "invalid_photo_path" };
     }
-    if (photo.length > MAX_PHOTO_BASE64_LENGTH) {
-      return { ok: false, error: "photo_too_large" };
-    }
-    total += photo.length;
+    paths.push(path);
   }
 
-  if (total > MAX_TOTAL_BASE64_LENGTH) {
-    return { ok: false, error: "payload_too_large" };
+  const halves = paths.map((path) => PHOTO_PATH.exec(path)?.groups?.half);
+  const expected = step === "find" ? ["find"] : ["find", "dispose"];
+  if (halves.join(",") !== expected.join(",")) {
+    return { ok: false, error: "invalid_photo_order" };
   }
 
-  return { ok: true, request: { step, photos: body.photos as string[] } };
+  return { ok: true, request: { step, paths } };
+}
+
+/** Every path must live under the caller's own user prefix. */
+function ownedBy(paths: string[], userId: string): boolean {
+  return paths.every((path) => PHOTO_PATH.exec(path)?.groups?.user === userId);
+}
+
+function toBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
+/** Read one blurred object with the service role and encode it for the model. */
+async function downloadPhoto(
+  admin: ReturnType<typeof createClient>,
+  path: string,
+): Promise<string> {
+  const { data, error } = await admin.storage.from(PHOTO_BUCKET).download(path);
+  if (error || !data) throw new Error(`photo_download_failed: ${error?.message ?? path}`);
+
+  const bytes = new Uint8Array(await data.arrayBuffer());
+  if (bytes.length === 0) throw new Error("photo_empty");
+  if (bytes.length > MAX_PHOTO_BYTES) throw new Error("photo_too_large");
+  return toBase64(bytes);
 }
 
 /** Longest reason the app's popup can show without breaking its fixed layout. */
@@ -177,7 +206,7 @@ function photoBlocks(photos: string[]): unknown[] {
   ]);
 }
 
-async function askClaude(request: VerifyRequest): Promise<Verdict> {
+async function askClaude(request: { step: VerifyStep; photos: string[] }): Promise<Verdict> {
   if (!ANTHROPIC_API_KEY) throw new Error("anthropic_key_missing");
 
   const response = await fetch(ANTHROPIC_URL, {
@@ -275,6 +304,21 @@ Deno.serve(async (req) => {
 
   const parsed = parseRequest(body);
   if (!parsed.ok) return json(400, { error: parsed.error });
+  if (!ownedBy(parsed.request.paths, viewer.id)) {
+    return json(403, { error: "photo_path_forbidden" });
+  }
+
+  // The function fetches the blurred objects itself; the request body carries paths only.
+  let photos: string[];
+  try {
+    photos = await Promise.all(
+      parsed.request.paths.map((path) => downloadPhoto(admin, path)),
+    );
+  } catch (error) {
+    console.error("photo download failed", error instanceof Error ? error.message : error);
+    return json(502, { error: "photo_download_failed" });
+  }
+  const request = { step: parsed.request.step, photos };
 
   // Quota is checked before spending an API call, and counted in the same table that
   // records outcomes, so the limit and the audit trail cannot drift apart.
@@ -299,7 +343,7 @@ Deno.serve(async (req) => {
 
   let verdict: Verdict;
   try {
-    verdict = await askClaude(parsed.request);
+    verdict = await askClaude(request);
   } catch (error) {
     const details = error instanceof Error ? error.message : "unknown_error";
     console.error("photo check failed", details);
@@ -310,7 +354,7 @@ Deno.serve(async (req) => {
 
     await admin.from("photo_check_calls").insert({
       user_id: viewer.id,
-      step: parsed.request.step,
+      step: request.step,
       outcome: "error",
     });
 
@@ -319,7 +363,7 @@ Deno.serve(async (req) => {
 
   const { error: logError } = await admin.from("photo_check_calls").insert({
     user_id: viewer.id,
-    step: parsed.request.step,
+    step: request.step,
     outcome: verdict.pass ? "pass" : "fail",
   });
   if (logError) console.error("photo check log failed", logError);

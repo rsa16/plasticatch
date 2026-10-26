@@ -77,6 +77,7 @@ export default function LeaderboardScreen() {
             key={leaderboard.cohort}
             entries={leaderboard.entries}
             ownRank={leaderboard.ownRank}
+            ownXp={leaderboard.ownXp}
           />
         </View>
       </MenuScreen>

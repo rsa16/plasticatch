@@ -6,12 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenFrame } from '@/components/screen-frame';
 import { Text } from '@/components/text';
-import { useCatchStore } from '@/features/catch';
 import { Brand, Spacing } from '@/constants/theme';
-
-// Streaks and levels aren't tracked yet, so these show the Figma mock's values.
-const PLACEHOLDER_STREAK = 5;
-const PLACEHOLDER_LEVELLED_UP = true;
+import { useCatchStore } from '@/features/catch';
 
 // Shown in place of a photo the session doesn't have, e.g. when the screen is opened directly.
 const FIND_PLACEHOLDER = require('@/assets/images/gallery-photo-front.png');
@@ -21,12 +17,23 @@ function formatDate(date: Date) {
   return date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
 }
 
-/** The end of a catch: both photos on a ribbon, the XP earned, and a way back to the app. */
-export default function CatchCompleteScreen() {
-  // The catch layout only renders this route once the lifecycle has a completion.
+/** The end of a verified catch: both blurred photos, the ledger breakdown and the new streak. */
+export default function CatchSuccessScreen() {
   const completion = useCatchStore((state) => state.completion);
   const reset = useCatchStore((state) => state.reset);
   const insets = useSafeAreaInsets();
+  const xp = completion?.result.xp;
+
+  const lines: string[] = [];
+  if (xp) {
+    if (xp.base_xp) lines.push(`+${xp.base_xp} XP base`);
+    if (xp.streak_bonus) lines.push(`+${xp.streak_bonus} XP streak bonus`);
+    if (xp.first_catch_of_day) lines.push(`+${xp.first_catch_of_day} XP first catch today`);
+    if (xp.repeat_location_adjustment) {
+      lines.push(`${xp.repeat_location_adjustment} XP repeat location`);
+    }
+    if (xp.daily_cap_adjustment) lines.push(`${xp.daily_cap_adjustment} XP daily cap`);
+  }
 
   return (
     <ScreenFrame top="step">
@@ -37,7 +44,7 @@ export default function CatchCompleteScreen() {
       >
         <View style={styles.titleBlock}>
           <Text variant="pageTitle" style={styles.title} accessibilityRole="header">
-            Catch Complete!
+            Trash caught!
           </Text>
           <Image
             source={require('@/assets/images/all-set-divider.svg')}
@@ -69,7 +76,7 @@ export default function CatchCompleteScreen() {
               }
               style={[styles.photo, styles.tiltRight]}
               contentFit="cover"
-              accessibilityLabel="Photo of the litter going into the trash"
+              accessibilityLabel="Blurred photo of the litter going into the trash"
             />
           </View>
           <View style={[styles.photoSlot, styles.findSlot]}>
@@ -77,7 +84,7 @@ export default function CatchCompleteScreen() {
               source={completion?.findPhoto ? { uri: completion.findPhoto } : FIND_PLACEHOLDER}
               style={[styles.photo, styles.tiltLeft]}
               contentFit="cover"
-              accessibilityLabel="Photo of the litter you found"
+              accessibilityLabel="Blurred photo of the litter you found"
             />
           </View>
           <Text variant="fieldText" style={styles.date}>
@@ -87,9 +94,12 @@ export default function CatchCompleteScreen() {
 
         <View style={styles.summary}>
           <View style={styles.bullets}>
-            <Bullet label={`${completion?.xp ?? 0} XP gained`} />
+            <Bullet label={`${xp?.xp_awarded ?? 0} XP gained`} />
+            {lines.map((line) => (
+              <Bullet key={line} label={line} />
+            ))}
             <Bullet
-              label={`Streak: ${PLACEHOLDER_STREAK}`}
+              label={`Streak: ${xp?.current_streak ?? 0}`}
               trailing={
                 <Image
                   source={require('@/assets/images/catch-streak.png')}
@@ -99,19 +109,32 @@ export default function CatchCompleteScreen() {
                 />
               }
             />
-            {PLACEHOLDER_LEVELLED_UP && <Bullet label="LVL. Up!" />}
+            {xp?.level !== undefined && <Bullet label={`Level ${xp.level}`} />}
+            <Bullet label="Added to My Catches" />
           </View>
 
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              reset();
-              router.dismissTo('/map');
-            }}
-            style={({ pressed }) => [styles.done, pressed && styles.pressed]}
-          >
-            <Text variant="buttonLabel">DONE</Text>
-          </Pressable>
+          <View style={styles.actions}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                reset();
+                router.dismissTo('/map');
+              }}
+              style={({ pressed }) => [styles.done, pressed && styles.pressed]}
+            >
+              <Text variant="buttonLabel">DONE</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                reset();
+                router.dismissTo('/my-catches');
+              }}
+              style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
+            >
+              <Text variant="buttonLabel">VIEW IN MY CATCHES</Text>
+            </Pressable>
+          </View>
         </View>
       </ScrollView>
     </ScreenFrame>
@@ -146,7 +169,6 @@ const styles = StyleSheet.create({
   divider: {
     width: '100%',
     height: 5,
-    // Figma lays the 5px stroke out in a 1px slot; keep the surrounding spacing the same.
     marginVertical: -2,
     transform: [{ rotate: '-0.18deg' }],
   },
@@ -156,14 +178,12 @@ const styles = StyleSheet.create({
     width: 228.07,
     height: 71.035,
   },
-  // A 393pt-wide canvas (the Figma frame) holding the ribbon, both photos and the date.
   hero: {
     alignSelf: 'center',
     width: 393,
     height: 300,
     marginTop: -2,
   },
-  // The ribbon artwork is cropped top and bottom by a 136pt band.
   ribbon: {
     position: 'absolute',
     left: 12,
@@ -179,7 +199,6 @@ const styles = StyleSheet.create({
     width: 349,
     height: 196,
   },
-  // Each slot is the bounding box of its tilted photo, so the photo rotates about its centre.
   photoSlot: {
     position: 'absolute',
     width: 193.865,
@@ -238,11 +257,22 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
   },
+  actions: {
+    alignItems: 'center',
+    gap: 12,
+  },
   done: {
+    minWidth: 180,
+    alignItems: 'center',
     paddingHorizontal: 15,
     paddingVertical: 10,
     borderRadius: 15,
     backgroundColor: Brand.accent,
+  },
+  secondary: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 15,
   },
   pressed: {
     opacity: 0.7,

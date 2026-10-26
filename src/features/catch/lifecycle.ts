@@ -7,104 +7,149 @@
  * award XP.
  */
 
-/** Which step of the Catch flow the active catch is on. */
-export type CatchStep = 'find' | 'dispose' | 'complete';
+import type { Rejection } from '@/features/verification/rejection';
+import type { PreparedCapture, VerifyCatchResult } from '@/features/verification/types';
 
-/** A finished catch, produced once by `completeCatch`. */
+/** Which step of the Catch flow the active catch is on. */
+export type CatchStep = 'find' | 'dispose' | 'verifying' | 'success' | 'reject';
+
+/** A photo after the privacy pipeline, with the bytes retained for the upload. */
+export type CatchCapture = PreparedCapture & { bytes: Uint8Array };
+
+/** A finished, verified catch. Produced once by `settleVerified`. */
 export type CatchCompletion = {
+  catchId: string;
   findPhoto: string;
   disposePhoto: string;
-  xp: number;
+  result: VerifyCatchResult;
 };
 
 /** Everything the Catch flow knows about the catch in progress. */
 export type CatchState = {
   step: CatchStep;
-  findPhoto?: string;
-  disposePhoto?: string;
-  xp: number;
+  catchId?: string;
+  find?: CatchCapture;
+  dispose?: CatchCapture;
   completion?: CatchCompletion;
+  rejection?: Rejection;
+  /** A retryable failure while submitting; the catch is preserved. */
+  failure?: string;
 };
 
 /** The state before the player has photographed anything. */
-export const EMPTY_CATCH_STATE: CatchState = { step: 'find', xp: 0 };
-
-/** XP for each verified step. Two steps make the 200 XP the Catch Complete screen shows. */
-export const STEP_XP = 100;
-
-/**
- * Chance that a photo passes the mock verifier, used when `EXPO_PUBLIC_CATCH_VERIFIER` isn't
- * `claude`: every photo is judged by a coin flip, so half of all attempts fail.
- */
-export const CATCH_SUCCESS_RATE = 0.5;
-
-/**
- * Whether a photo counts as a verified catch step. `random` is injectable so tests can pin the
- * outcome; it must return a number in [0, 1) like `Math.random`.
- */
-export function verifyCatchPhoto(random: () => number = Math.random): boolean {
-  return random() < CATCH_SUCCESS_RATE;
-}
+export const EMPTY_CATCH_STATE: CatchState = { step: 'find' };
 
 /** The outcome of asking the lifecycle to finish a catch. */
 export type CompleteResult =
   | { status: 'completed'; completion: CatchCompletion }
   | { status: 'already-completed'; completion: CatchCompletion }
-  | { status: 'rejected' };
+  | { status: 'rejected'; rejection: Rejection }
+  | { status: 'not-ready' };
 
 /**
- * Record the Find photo. A retake replaces the photo without awarding the step's XP twice.
- * A completed catch is immutable.
+ * Record the Find photo. A retake replaces the photo without changing the step. A catch that has
+ * already been settled is immutable.
  */
-export function findCatch(state: CatchState, photo: string): CatchState {
-  if (state.step === 'complete') return state;
+export function findCatch(state: CatchState, capture: CatchCapture): CatchState {
+  if (state.completion || state.rejection) return state;
 
   return {
     ...state,
     step: 'dispose',
-    findPhoto: photo,
-    xp: state.findPhoto ? state.xp : state.xp + STEP_XP,
+    find: capture,
+    dispose: undefined,
+    failure: undefined,
   };
 }
 
 /**
- * Record the Dispose photo. Dispose is only earned after a Find photo; otherwise the state is
- * returned untouched. A retake replaces the photo without awarding the step's XP twice.
+ * Record the Dispose photo and move to verification. Dispose is only accepted after a Find photo,
+ * and a settled catch is immutable.
  */
-export function disposeCatch(state: CatchState, photo: string): CatchState {
-  if (!state.findPhoto || state.step === 'complete') return state;
+export function disposeCatch(state: CatchState, capture: CatchCapture): CatchState {
+  if (!state.find || state.completion || state.rejection) return state;
 
   return {
     ...state,
-    disposePhoto: photo,
-    xp: state.disposePhoto ? state.xp : state.xp + STEP_XP,
+    step: 'verifying',
+    dispose: capture,
+    failure: undefined,
   };
 }
 
-/**
- * Finish the catch. Completion requires both photos, awards no extra XP, and is idempotent:
- * repeating it returns the same completion instead of creating another one.
- */
-export function completeCatch(state: CatchState): {
-  state: CatchState;
-  result: CompleteResult;
-} {
+/** Attach the catch id before the first submission. Repeating it keeps the same id. */
+export function assignCatchId(state: CatchState, catchId: string): CatchState {
+  return state.catchId ? state : { ...state, catchId };
+}
+
+/** The server verified the catch: freeze it and keep the ledger answer. */
+export function settleVerified(
+  state: CatchState,
+  result: VerifyCatchResult,
+): { state: CatchState; result: CompleteResult } {
   if (state.completion) {
     return { state, result: { status: 'already-completed', completion: state.completion } };
   }
-
-  if (!state.findPhoto || !state.disposePhoto) {
-    return { state, result: { status: 'rejected' } };
+  if (!state.catchId || !state.find || !state.dispose || result.verdict !== 'verified') {
+    return { state, result: { status: 'not-ready' } };
   }
 
   const completion: CatchCompletion = {
-    findPhoto: state.findPhoto,
-    disposePhoto: state.disposePhoto,
-    xp: state.xp,
+    catchId: state.catchId,
+    findPhoto: state.find.uri,
+    disposePhoto: state.dispose.uri,
+    result,
   };
 
   return {
-    state: { ...state, step: 'complete', completion },
+    state: { ...state, step: 'success', completion, rejection: undefined, failure: undefined },
     result: { status: 'completed', completion },
+  };
+}
+
+/** The server rejected the catch: no XP, no My Catches record, and a retry half. */
+export function settleRejected(
+  state: CatchState,
+  rejection: Rejection,
+): { state: CatchState; result: CompleteResult } {
+  return {
+    state: { ...state, step: 'reject', rejection, failure: undefined },
+    result: { status: 'rejected', rejection },
+  };
+}
+
+/** A network/server failure. The same catch can be submitted again. */
+export function failSubmission(state: CatchState, failure: string): CatchState {
+  return { ...state, failure };
+}
+
+/**
+ * Start the half the rejection asks for. A Find retry drops both photos and starts over; a
+ * Dispose retry keeps the Find capture but drops the rejected Dispose photo and the catch id, so
+ * the next submission creates a fresh row instead of reusing a rejected one.
+ */
+export function retryCatch(state: CatchState, half: 'find' | 'dispose'): CatchState {
+  if (state.step !== 'reject' && !state.failure) return state;
+
+  if (half === 'find' || !state.find) {
+    return {
+      step: 'find',
+      catchId: undefined,
+      find: undefined,
+      dispose: undefined,
+      completion: undefined,
+      rejection: undefined,
+      failure: undefined,
+    };
+  }
+
+  return {
+    step: 'dispose',
+    catchId: undefined,
+    find: state.find,
+    dispose: undefined,
+    completion: undefined,
+    rejection: undefined,
+    failure: undefined,
   };
 }
