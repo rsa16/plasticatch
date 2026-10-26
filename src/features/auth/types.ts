@@ -125,7 +125,7 @@ export type SessionClient = {
       data: { session: Session | null; redirectType?: string | null };
       error: AuthErrorLike;
     }>;
-    signOut(options?: { scope?: 'global' | 'local' }): Promise<{ error: AuthErrorLike }>;
+    signOut(options?: { scope?: 'global' | 'local' | 'others' }): Promise<{ error: AuthErrorLike }>;
     signUp(args: {
       email: string;
       password: string;
