@@ -284,14 +284,6 @@ export default function SignInScreen() {
                   onPress={() => void handleGoogle()}
                   disabled={pending}
                 />
-                {/* Apple is not configured on the project, so the button stays visual-only. */}
-                <SocialButton
-                  label="Sign in with Apple"
-                  icon={require('@/assets/images/apple-logo.png')}
-                  iconSize={24}
-                  disabled
-                  hint="Apple sign-in is not available yet."
-                />
               </View>
 
               <AuthCard>
@@ -421,20 +413,17 @@ function SocialButton({
   iconSize,
   onPress,
   disabled = false,
-  hint,
 }: {
   label: string;
   icon: number;
   iconSize: number;
-  onPress?: () => void;
+  onPress: () => void;
   disabled?: boolean;
-  hint?: string;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ disabled }}
-      accessibilityHint={hint}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
