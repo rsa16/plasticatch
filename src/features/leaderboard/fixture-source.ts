@@ -25,10 +25,9 @@ const GLOBAL_ENTRIES: readonly LeaderboardEntry[] = [
  * RPC exists. The viewer's own rank is deliberately outside the visible rows so the screen has
  * to render it separately.
  *
- * This module always returns its fixtures. The development/production choice lives in
- * `index.ts`, which is the only place that selects an adapter.
+ * This module always returns its fixtures and is imported only by tests; no screen selects it.
  */
-export const fixtureSource: BoardSource = (cohort) =>
+export const fixtureSource: BoardSource = async (cohort) =>
   cohort === 'state'
     ? { entries: STATE_ENTRIES, ownRank: 56 }
     : { entries: GLOBAL_ENTRIES, ownRank: 124 };

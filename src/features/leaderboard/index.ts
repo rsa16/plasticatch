@@ -1,17 +1,20 @@
 import { board, COHORTS } from './board';
-import { productionSource } from './production-source';
+import { useLeaderboard } from './query';
+import { leaderboardSource, standingsFromRows } from './supabase-source';
 
-export type { Board, BoardSource, BoardStandings, Cohort, LeaderboardEntry } from './types';
-export { board, COHORTS, productionSource };
+export type {
+  Board,
+  BoardSource,
+  BoardStandings,
+  Cohort,
+  LeaderboardEntry,
+  LeaderboardRow,
+} from './types';
+export { EMPTY_STANDINGS } from './types';
+export { board, COHORTS, leaderboardSource, standingsFromRows, useLeaderboard };
 
 /**
- * The screen consumes this, never the fixtures directly. `__DEV__` is a build-time constant, so
- * a production build folds this branch away and never instantiates the fixture adapter; a
- * conditional require keeps its mock players out of the production bundle as well.
+ * The screen's default source is live in every build. Fixtures are imported only by tests
+ * (`./fixture-source`), so a release bundle cannot contain mock players or mock XP.
  */
-export const defaultSource = __DEV__
-  ? // A static import would keep the fixtures in the production bundle even though the branch
-    // is dead there, so load the adapter only for a development build.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    (require('./fixture-source') as typeof import('./fixture-source')).fixtureSource
-  : productionSource;
+export const defaultSource = leaderboardSource;
