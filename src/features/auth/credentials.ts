@@ -1,5 +1,8 @@
-/** Supabase's default minimum password length; the PlastiCatch project does not override it. */
-export const MIN_PASSWORD_LENGTH = 6;
+/**
+ * The local minimum for new passwords. Stricter than Supabase's default; the live project should
+ * also raise its server-side minimum and enable leaked-password protection (a dashboard action).
+ */
+export const MIN_PASSWORD_LENGTH = 8;
 
 /** Which form the auth screen is showing. */
 export type CredentialMode = 'login' | 'create';

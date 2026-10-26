@@ -20,6 +20,7 @@ type ResetStage = 'form' | 'success';
  */
 export default function ResetPasswordScreen() {
   const status = useSessionStore((state) => state.status);
+  const recoverySession = useSessionStore((state) => state.recoverySession);
   const updatePassword = useSessionStore((state) => state.updatePassword);
   const params = useLocalSearchParams<{ state?: string | string[] }>();
 
@@ -34,7 +35,9 @@ export default function ResetPasswordScreen() {
   // Wait for the persisted session to resolve before deciding the link is unusable.
   if (status === 'loading') return null;
 
-  const linkExpired = stateParam === 'expired' || status !== 'signed-in';
+  // Only a session created by this recovery link may set a new password. An ordinary signed-in
+  // session reaching this deep link must not work as a password-change backdoor.
+  const linkExpired = stateParam === 'expired' || status !== 'signed-in' || !recoverySession;
 
   async function handleSubmit() {
     if (pending) return;

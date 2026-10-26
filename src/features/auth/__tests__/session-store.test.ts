@@ -555,13 +555,26 @@ describe('password recovery', () => {
     expect(store.getState().error).toBe('Could not complete sign-in.');
   });
 
-  it('saves a new password through updateUser', async () => {
+  it('refuses to set a password without a recovery session', async () => {
     const { store, client } = makeStore();
+
+    const outcome = await store.getState().updatePassword('new-secret');
+
+    expect(outcome).toStrictEqual({ status: 'error', message: PASSWORD_UPDATE_ERROR });
+    expect(client.auth.updateUser).not.toHaveBeenCalled();
+    expect(store.getState().recoverySession).toBe(false);
+  });
+
+  it('saves a new password through updateUser and revokes other sessions', async () => {
+    const { store, client } = makeStore();
+    store.setState({ recoverySession: true });
 
     const outcome = await store.getState().updatePassword('new-secret');
 
     expect(outcome).toStrictEqual({ status: 'success' });
     expect(client.auth.updateUser).toHaveBeenCalledWith({ password: 'new-secret' });
+    expect(client.auth.signOut).toHaveBeenCalledWith({ scope: 'others' });
+    expect(store.getState().recoverySession).toBe(false);
     expect(store.getState().error).toBeNull();
   });
 
@@ -572,12 +585,23 @@ describe('password recovery', () => {
       })),
     });
     const { store } = makeStore({ client });
+    store.setState({ recoverySession: true });
 
     const outcome = await store.getState().updatePassword('short');
 
     expect(outcome).toStrictEqual({ status: 'error', message: PASSWORD_UPDATE_ERROR });
     expect(PASSWORD_UPDATE_ERROR).not.toContain('characters');
     expect(store.getState().error).toBe(PASSWORD_UPDATE_ERROR);
+    expect(store.getState().recoverySession).toBe(true);
+  });
+
+  it('clears the recovery flag on sign-out', async () => {
+    const { store } = makeStore();
+    store.setState({ recoverySession: true });
+
+    await store.getState().signOut();
+
+    expect(store.getState().recoverySession).toBe(false);
   });
 });
 

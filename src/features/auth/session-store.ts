@@ -46,6 +46,8 @@ export type SessionStore = {
   resendConfirmation: (email: string) => Promise<EmailActionOutcome>;
   /** Start the password reset email flow. Never reveals whether the address has an account. */
   resetPassword: (email: string) => Promise<EmailActionOutcome>;
+  /** True only for a session created by a password-recovery link. */
+  recoverySession: boolean;
   /** Save a new password for the signed-in recovery session. */
   updatePassword: (password: string) => Promise<UpdatePasswordOutcome>;
   /** Prove the current player's identity with their password, keeping the same account. */
@@ -162,6 +164,7 @@ export function createSessionStore({
       session: null,
       profile: null,
       error: null,
+      recoverySession: false,
 
       async initialize() {
         if (initialized) return;
@@ -331,6 +334,11 @@ export function createSessionStore({
       },
 
       async updatePassword(password) {
+        if (!get().recoverySession) {
+          // A normal signed-in session must not be usable as a password-change backdoor.
+          return { status: 'error', message: PASSWORD_UPDATE_ERROR };
+        }
+
         set({ error: null });
 
         try {
@@ -341,6 +349,12 @@ export function createSessionStore({
             return { status: 'error', message: PASSWORD_UPDATE_ERROR };
           }
 
+          // A recovery session is one-shot. Revoke every other session and drop the flag so a
+          // stolen session cannot keep access after the owner resets the password.
+          await getClient()
+            .auth.signOut({ scope: 'others' })
+            .catch(() => undefined);
+          set({ recoverySession: false });
           return { status: 'success' };
         } catch {
           set({ error: PASSWORD_UPDATE_ERROR });
@@ -435,10 +449,17 @@ export function createSessionStore({
         // later failure.
         await forgetRecoveryRequest();
 
-        return recovery ? { status: 'recovery' } : { status: 'success' };
+        if (recovery) {
+          set({ recoverySession: true });
+          return { status: 'recovery' };
+        }
+
+        set({ recoverySession: false });
+        return { status: 'success' };
       },
 
       async signOut() {
+        set({ recoverySession: false });
         try {
           const { error } = await getClient().auth.signOut();
           // A network failure must not trap the player in the session.
