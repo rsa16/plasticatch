@@ -181,3 +181,12 @@ export type EmailActionOutcome = { status: 'success' } | { status: 'error'; mess
 
 /** The outcome of saving a new password from a recovery session. */
 export type UpdatePasswordOutcome = { status: 'success' } | { status: 'error'; message: string };
+
+/**
+ * The outcome of proving the current player's identity again.
+ *
+ * Only `success` means the current session carries a fresh sign-in time; a cancelled provider
+ * sheet or a different account leaves the destructive action closed.
+ */
+export type ReauthOutcome =
+  { status: 'success' } | { status: 'cancelled' } | { status: 'error'; message: string };

@@ -33,9 +33,8 @@ function statistic(value: number | null | undefined): string {
 /**
  * The account hub.
  *
- * Every row either opens a real route or is omitted. Delete account (ticket 37) does not exist
- * yet, so it is absent rather than a dead control. Support and Privacy appear only when their
- * destinations are provisioned.
+ * Every row either opens a real route or is omitted. Support and Privacy appear only when
+ * their destinations are provisioned.
  */
 export default function SettingsScreen() {
   const profile = useSessionStore((state) => state.profile);
@@ -166,6 +165,13 @@ export default function SettingsScreen() {
           </Section>
 
           <Section title="Account">
+            <Row
+              label="Delete account"
+              value="Permanent"
+              actionLabel="Delete"
+              accessibilityHint="Opens the account deletion screen"
+              onPress={() => router.push('/settings/delete')}
+            />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Log out"

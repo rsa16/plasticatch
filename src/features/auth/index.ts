@@ -3,6 +3,7 @@ export { RECOVERY_REDIRECT_TYPE, isRecoveryRedirect } from './recovery';
 export {
   GOOGLE_ERROR,
   PASSWORD_UPDATE_ERROR,
+  REAUTH_DIFFERENT_ACCOUNT,
   RESEND_NOTICE,
   RESET_NOTICE,
   SIGN_IN_ERROR,
@@ -29,6 +30,7 @@ export {
   type EmailActionOutcome,
   type PasswordAuthOutcome,
   type Profile,
+  type ReauthOutcome,
   type SignInOutcome,
   type UpdatePasswordOutcome,
 } from './types';

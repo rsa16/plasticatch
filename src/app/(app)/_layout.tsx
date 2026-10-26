@@ -48,6 +48,8 @@ export default function AppLayout() {
       <Tabs.Screen name="settings/home-state" />
       {/* Avatar picker, reached from the Settings Avatar row. */}
       <Tabs.Screen name="settings/avatar" />
+      {/* Permanent account deletion, reached from the Settings Account section. */}
+      <Tabs.Screen name="settings/delete" />
     </Tabs>
   );
 }

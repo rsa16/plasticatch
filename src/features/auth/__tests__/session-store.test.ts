@@ -580,3 +580,98 @@ describe('password recovery', () => {
     expect(store.getState().error).toBe(PASSWORD_UPDATE_ERROR);
   });
 });
+
+describe('session store re-authentication', () => {
+  function sessionWithEmail(userId: string, email = 'player@example.com'): Session {
+    return { user: { id: userId, email }, access_token: 'token' } as unknown as Session;
+  }
+
+  async function signedInStore(client = makeClient()) {
+    const store = createSessionStore({
+      getClient: () => client,
+      openAuth: jest.fn(async (): Promise<OAuthResult> => ({
+        type: 'success',
+        url: 'plasticatch://auth/callback?code=abc',
+      })),
+      readProfile: jest.fn(async (id: string) => fakeProfile(id)),
+    });
+
+    await store.getState().initialize();
+    return store;
+  }
+
+  it('re-authenticates an email identity with the current address and password', async () => {
+    const current = sessionWithEmail('user-1');
+    const client = makeClient({
+      getSession: jest.fn(async () => ({ data: { session: current }, error: null })),
+      signInWithPassword: jest.fn(async () => ({
+        data: { session: sessionWithEmail('user-1') },
+        error: null,
+      })),
+    });
+    const store = await signedInStore(client);
+
+    const outcome = await store.getState().reauthenticateWithPassword('secret');
+
+    expect(outcome).toStrictEqual({ status: 'success' });
+    expect(client.auth.signInWithPassword).toHaveBeenCalledWith({
+      email: 'player@example.com',
+      password: 'secret',
+    });
+    expect(store.getState().session?.user.id).toBe('user-1');
+  });
+
+  it('keeps the current session when the password is wrong', async () => {
+    const current = sessionWithEmail('user-1');
+    const client = makeClient({
+      getSession: jest.fn(async () => ({ data: { session: current }, error: null })),
+      signInWithPassword: jest.fn(async () => ({
+        data: { session: null },
+        error: { message: 'Invalid login credentials' },
+      })),
+    });
+    const store = await signedInStore(client);
+
+    const outcome = await store.getState().reauthenticateWithPassword('wrong');
+
+    expect(outcome.status).toBe('error');
+    expect(store.getState().status).toBe('signed-in');
+    expect(store.getState().session?.user.id).toBe('user-1');
+  });
+
+  it('signs out when a re-authentication returns a different account', async () => {
+    const current = sessionWithEmail('user-1');
+    const client = makeClient({
+      getSession: jest.fn(async () => ({ data: { session: current }, error: null })),
+      signInWithPassword: jest.fn(async () => ({
+        data: { session: sessionWithEmail('user-2') },
+        error: null,
+      })),
+    });
+    const store = await signedInStore(client);
+
+    const outcome = await store.getState().reauthenticateWithPassword('secret');
+
+    expect(outcome.status).toBe('error');
+    expect(client.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
+    expect(store.getState().status).toBe('signed-out');
+  });
+
+  it('requires the Google flow to return the same account', async () => {
+    const current = sessionWithEmail('user-1');
+    const client = makeClient({
+      getSession: jest.fn(async () => ({ data: { session: current }, error: null })),
+      exchangeCodeForSession: jest.fn(async () => ({
+        data: { session: sessionWithEmail('user-2'), redirectType: null },
+        error: null,
+      })),
+    });
+    const store = await signedInStore(client);
+
+    const outcome = await store.getState().reauthenticateWithGoogle();
+
+    expect(outcome.status).toBe('error');
+    expect(client.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
+    expect(store.getState().status).toBe('signed-out');
+  });
+});
