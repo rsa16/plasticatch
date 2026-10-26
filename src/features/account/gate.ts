@@ -24,23 +24,25 @@ export type AccountUser = {
 };
 
 /**
- * Password for an email identity, the provider flow for a Google-only account.
+ * Password for an email account, the provider flow for a Google account.
  *
- * A linked email identity wins, because its password is the credential the player chose.
- * Anything else has no method the app can honestly re-authenticate with.
+ * `app_metadata.provider` is the credential the player actually signs in with, so it wins over
+ * linked identities: an auto-linked email identity on a Google account may have no usable
+ * password. Linked identities are the fallback when the metadata is absent.
  */
 export function reauthMethodFor(user: AccountUser | null | undefined): ReauthMethod | null {
   if (!user) return null;
 
+  const metadataProvider = user.app_metadata?.provider?.toLowerCase();
+  if (metadataProvider === 'email') return 'password';
+  if (metadataProvider === 'google') return 'google';
+
   const identityProviders = (user.identities ?? [])
     .map((identity) => identity.provider?.toLowerCase())
     .filter((provider): provider is string => Boolean(provider));
-  const metadataProvider = user.app_metadata?.provider?.toLowerCase();
 
   if (identityProviders.includes('email')) return 'password';
   if (identityProviders.includes('google')) return 'google';
-  if (metadataProvider === 'email') return 'password';
-  if (metadataProvider === 'google') return 'google';
 
   return null;
 }

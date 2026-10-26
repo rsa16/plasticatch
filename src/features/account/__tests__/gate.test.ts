@@ -29,7 +29,8 @@ describe('reauthMethodFor', () => {
     ).toBe('google');
   });
 
-  it('prefers a linked email identity when one exists', () => {
+  it('prefers the sign-in provider over a linked email identity', () => {
+    // An auto-linked email identity on a Google account may have no usable password.
     expect(
       reauthMethodFor({
         id: 'user-1',
@@ -37,10 +38,25 @@ describe('reauthMethodFor', () => {
         app_metadata: { provider: 'google' },
         identities: [{ provider: 'google' }, { provider: 'email' }],
       }),
+    ).toBe('google');
+    expect(
+      reauthMethodFor({
+        id: 'user-1',
+        email: 'player@example.com',
+        app_metadata: { provider: 'email' },
+        identities: [{ provider: 'email' }, { provider: 'google' }],
+      }),
     ).toBe('password');
   });
 
-  it('falls back to the provider metadata when identities are missing', () => {
+  it('falls back to the linked identity when provider metadata is missing', () => {
+    expect(
+      reauthMethodFor({
+        id: 'user-1',
+        email: 'player@example.com',
+        identities: [{ provider: 'email' }],
+      }),
+    ).toBe('password');
     expect(reauthMethodFor({ id: 'user-1', app_metadata: { provider: 'google' } })).toBe('google');
   });
 
