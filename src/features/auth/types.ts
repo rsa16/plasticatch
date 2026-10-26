@@ -14,6 +14,12 @@ export type Profile = {
   termsVersion: string | null;
   privacyAcceptedAt: string | null;
   privacyVersion: string | null;
+  /** Server-maintained rollups written by the XP ledger; the app never computes them. */
+  totalXp: number;
+  level: number;
+  currentStreak: number;
+  /** Set on a successful rename; Settings derives the 14-day username cooldown from it. */
+  usernameChangedAt: string | null;
 };
 
 /** A `profiles` row as PostgREST returns it. */
@@ -27,11 +33,20 @@ export type ProfileRow = {
   terms_version: string | null;
   privacy_accepted_at: string | null;
   privacy_version: string | null;
+  total_xp: number | null;
+  level: number | null;
+  current_streak: number | null;
+  username_changed_at: string | null;
 };
 
 /** The columns the app selects from `profiles`. */
 export const PROFILE_COLUMNS =
-  'id,username,avatar,home_state,age_verified_at,terms_accepted_at,terms_version,privacy_accepted_at,privacy_version';
+  'id,username,avatar,home_state,age_verified_at,terms_accepted_at,terms_version,privacy_accepted_at,privacy_version,total_xp,level,current_streak,username_changed_at';
+
+/** A numeric rollup, treating a missing or non-finite value as zero. */
+function countOrZero(value: number | null | undefined): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
 
 /** Keep only the string entries of a stored avatar object. */
 export function avatarFromJson(value: unknown): Record<string, string> | null {
@@ -56,6 +71,10 @@ export function mapProfileRow(row: ProfileRow): Profile {
     termsVersion: row.terms_version,
     privacyAcceptedAt: row.privacy_accepted_at,
     privacyVersion: row.privacy_version,
+    totalXp: countOrZero(row.total_xp),
+    level: countOrZero(row.level),
+    currentStreak: countOrZero(row.current_streak),
+    usernameChangedAt: row.username_changed_at,
   };
 }
 
