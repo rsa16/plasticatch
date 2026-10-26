@@ -30,15 +30,31 @@ export default function SignInScreen() {
       const outcome = await signInWithGoogle();
 
       if (outcome.status === 'success') {
-        // The age gate already ran, so stamp the account as verified and continue onboarding.
+        // The age gate already ran, so stamp the account as verified before continuing. A
+        // failure here is surfaced rather than ignored: the profile must not silently stay
+        // unverified.
         const { dateOfBirth } = useOnboardingDraftStore.getState();
         if (dateOfBirth && admit(dateOfBirth, new Date())) {
-          await markAgeVerified().catch(() => undefined);
+          const stamped = await markAgeVerified();
+
+          if (!stamped.success) {
+            Alert.alert(
+              'Could not finish signing in',
+              'Your age could not be recorded. Check your connection and try again.',
+            );
+            return;
+          }
         }
+
         await refreshProfile();
         continueToOnboarding();
       }
       if (outcome.status === 'error') Alert.alert('Sign-in failed', outcome.message);
+    } catch (error) {
+      Alert.alert(
+        'Sign-in failed',
+        error instanceof Error ? error.message : 'Check your connection and try again.',
+      );
     } finally {
       setPending(false);
     }
