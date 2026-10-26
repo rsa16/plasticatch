@@ -1,17 +1,65 @@
 import { Image, type ImageSource, type ImageStyle } from 'expo-image';
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, View, type StyleProp } from 'react-native';
+import { useState } from 'react';
+import { Alert, Pressable, StyleSheet, View, type StyleProp } from 'react-native';
 
 import { Text } from '@/components/text';
 import { BottomTabInset, Brand, Spacing } from '@/constants/theme';
+import { useSessionStore } from '@/features/auth';
+import { admit } from '@/features/onboarding/age';
+import { useOnboardingDraftStore } from '@/features/onboarding/draft';
+import { markAgeVerified } from '@/features/onboarding/profile-service';
 
-// Placeholder until real auth exists: both providers go straight to onboarding.
 // `replace` keeps sign-in out of the history so users can't navigate back to it.
 function continueToOnboarding() {
-  router.replace('/date-of-birth');
+  router.replace('/profile');
 }
 
 export default function SignInScreen() {
+  const signInWithGoogle = useSessionStore((state) => state.signInWithGoogle);
+  const refreshProfile = useSessionStore((state) => state.refreshProfile);
+  const [pending, setPending] = useState(false);
+
+  // Google is the only configured provider. The age gate has already run by the time this
+  // screen is reachable, so a successful sign-in continues into onboarding.
+  async function handleGoogle() {
+    if (pending) return;
+    setPending(true);
+
+    try {
+      const outcome = await signInWithGoogle();
+
+      if (outcome.status === 'success') {
+        // The age gate already ran, so stamp the account as verified before continuing. A
+        // failure here is surfaced rather than ignored: the profile must not silently stay
+        // unverified.
+        const { dateOfBirth } = useOnboardingDraftStore.getState();
+        if (dateOfBirth && admit(dateOfBirth, new Date())) {
+          const stamped = await markAgeVerified();
+
+          if (!stamped.success) {
+            Alert.alert(
+              'Could not finish signing in',
+              'Your age could not be recorded. Check your connection and try again.',
+            );
+            return;
+          }
+        }
+
+        await refreshProfile();
+        continueToOnboarding();
+      }
+      if (outcome.status === 'error') Alert.alert('Sign-in failed', outcome.message);
+    } catch (error) {
+      Alert.alert(
+        'Sign-in failed',
+        error instanceof Error ? error.message : 'Check your connection and try again.',
+      );
+    } finally {
+      setPending(false);
+    }
+  }
+
   return (
     <View style={styles.screen}>
       <View style={styles.hero} pointerEvents="none">
@@ -46,13 +94,16 @@ export default function SignInScreen() {
             label="Sign in with Google"
             icon={require('@/assets/images/google-logo.png')}
             iconStyle={styles.googleIcon}
-            onPress={continueToOnboarding}
+            onPress={handleGoogle}
+            disabled={pending}
           />
+          {/* Apple is not configured on the project, so the button stays visual-only. */}
           <SignInButton
             label="Sign in with Apple"
             icon={require('@/assets/images/apple-logo.png')}
             iconStyle={styles.appleIcon}
-            onPress={continueToOnboarding}
+            disabled
+            hint="Apple sign-in is not available yet."
           />
         </View>
       </View>
@@ -65,14 +116,30 @@ type SignInButtonProps = {
   icon: ImageSource;
   iconStyle: StyleProp<ImageStyle>;
   onPress?: () => void;
+  disabled?: boolean;
+  hint?: string;
 };
 
-function SignInButton({ label, icon, iconStyle, onPress }: SignInButtonProps) {
+function SignInButton({
+  label,
+  icon,
+  iconStyle,
+  onPress,
+  disabled = false,
+  hint,
+}: SignInButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      accessibilityHint={hint}
+      disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [styles.button, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.button,
+        disabled && styles.disabled,
+        pressed && styles.pressed,
+      ]}
     >
       <Image source={icon} style={iconStyle} contentFit="cover" />
       <Text variant="secondaryButtonLabel">{label}</Text>
@@ -156,6 +223,9 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.7,
+  },
+  disabled: {
+    opacity: 0.5,
   },
   googleIcon: {
     width: 36,

@@ -14,10 +14,21 @@ export {
 export {
   MY_CATCHES_QUERY_KEY,
   fetchMyCatches,
+  myCatchesQueryKey,
   recordMyCatch,
+  sourceForSession,
   useMyCatches,
   useRecordCatch,
+  type MyCatchesMode,
 } from './query';
+export {
+  GALLERY_PAGE_SIZE,
+  catchRecordsFromGallery,
+  createGalleryCatchSource,
+  galleryCatchSource,
+  type GalleryInvoke,
+  type GalleryItem,
+} from './gallery-source';
 export {
   createInMemoryCatchSource,
   myCatchesSource,

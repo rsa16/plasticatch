@@ -16,41 +16,86 @@ import { MenuScreen } from '@/components/menu-screen';
 import { Text } from '@/components/text';
 import { ScrollPane } from '@/components/scroll-pane';
 import { Brand, Spacing, TextStyles } from '@/constants/theme';
+import { useSessionStore } from '@/features/auth';
 import { useOnboardingDraftStore } from '@/features/onboarding/draft';
+import { claimUsername, usernameErrorMessage } from '@/features/onboarding/profile-service';
+import { DELETE_ACCOUNT_UNAVAILABLE, cooldownMessage, usernameToSave } from '@/features/profile';
 
 // One row of arrows per avatar part, matching onboarding. What each row changes isn't defined yet.
 const AVATAR_ROWS = [0, 1, 2];
 
-// Figma placeholders, shown when the onboarding draft has no answer from this session.
+// Figma placeholder, shown while the profile has no saved username.
 const PLACEHOLDER_USERNAME = 'yourusername';
+
+/** The field's value for a stored name, falling back to the placeholder. */
+function displayUsername(stored: string | null): string {
+  return stored ?? PLACEHOLDER_USERNAME;
+}
 
 function formatDate(date: Date) {
   return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-function confirmDeleteAccount(onDelete: () => void) {
-  Alert.alert('Delete account?', 'This permanently removes your catches and progress.', [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Delete', style: 'destructive', onPress: onDelete },
-  ]);
-}
-
 export default function SettingsScreen() {
   const draft = useOnboardingDraftStore();
+  const profile = useSessionStore((state) => state.profile);
+  const signOutSession = useSessionStore((state) => state.signOut);
+  const refreshProfile = useSessionStore((state) => state.refreshProfile);
   const barHeight = useBottomBarHeight();
   const usernameInput = useRef<TextInputInstance>(null);
-  // Settings edits its own copy. They are not written back to the draft, which records what
-  // onboarding captured; saving profile changes belongs to the account backlog ticket.
-  const [username, setUsername] = useState(() =>
-    draft.username.length > 0 ? draft.username : PLACEHOLDER_USERNAME,
-  );
+  // The field mirrors the stored profile name. Settings never writes back to the onboarding
+  // draft: that records what onboarding captured, not later account edits.
+  const storedUsername = profile?.username ?? null;
+  const [username, setUsername] = useState(() => displayUsername(storedUsername));
   const [dateOfBirth, setDateOfBirth] = useState(() => draft.dateOfBirth ?? new Date(1971, 5, 14));
   const [editingDate, setEditingDate] = useState(false);
+  const [savingUsername, setSavingUsername] = useState(false);
 
-  // Leaving the account ends the session, so the next player starts onboarding with a clean draft.
-  function signOut() {
-    draft.reset();
-    router.replace('/sign-in');
+  // The profile can resolve after this screen mounts. Adjust the field during render (React's
+  // documented pattern for derived state) rather than in an effect, so there is no extra pass.
+  const [syncedUsername, setSyncedUsername] = useState(storedUsername);
+  if (storedUsername !== syncedUsername) {
+    setSyncedUsername(storedUsername);
+    setUsername(displayUsername(storedUsername));
+  }
+
+  // Leaving the account ends the Supabase session; the entry gate routes to the age gate.
+  async function signOut() {
+    await signOutSession();
+    router.replace('/');
+  }
+
+  // Save through the server so policy, uniqueness and the 14-day cooldown all apply.
+  async function saveUsername() {
+    const candidate = usernameToSave(username, storedUsername);
+    if (!candidate || savingUsername) return;
+
+    setSavingUsername(true);
+
+    try {
+      const result = await claimUsername(candidate);
+
+      if (!result.success) {
+        Alert.alert(
+          'Could not change username',
+          result.code === 'username_cooldown'
+            ? cooldownMessage(result.retryAt)
+            : (usernameErrorMessage(result.code) ?? 'Check the username and try again.'),
+        );
+        setUsername(displayUsername(storedUsername));
+        return;
+      }
+
+      await refreshProfile();
+    } catch (error) {
+      Alert.alert(
+        'Could not change username',
+        error instanceof Error ? error.message : 'Check your connection and try again.',
+      );
+      setUsername(displayUsername(storedUsername));
+    } finally {
+      setSavingUsername(false);
+    }
   }
 
   return (
@@ -87,6 +132,10 @@ export default function SettingsScreen() {
                 textContentType="username"
                 autoCapitalize="none"
                 autoCorrect={false}
+                returnKeyType="done"
+                onSubmitEditing={saveUsername}
+                onBlur={saveUsername}
+                editable={!savingUsername}
               />
               <Pressable
                 accessibilityRole="button"
@@ -129,7 +178,8 @@ export default function SettingsScreen() {
 
           <Pressable
             accessibilityRole="button"
-            onPress={() => confirmDeleteAccount(signOut)}
+            accessibilityState={{ disabled: true }}
+            onPress={() => Alert.alert('Delete account', DELETE_ACCOUNT_UNAVAILABLE)}
             style={({ pressed }) => [
               styles.button,
               styles.deleteAccount,

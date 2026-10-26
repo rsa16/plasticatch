@@ -22,8 +22,23 @@ export type BoardStandings = {
   ownRank: number | null;
 };
 
-/** A source adapter: fixtures in development and tests, empty in production. */
-export type BoardSource = (cohort: Cohort) => BoardStandings;
+/** An empty board, used before the live standings arrive and when there are none. */
+export const EMPTY_STANDINGS: BoardStandings = { entries: [], ownRank: null };
+
+/** A source adapter. The live one calls the `get_leaderboard` RPC; tests pass fakes. */
+export type BoardSource = (cohort: Cohort) => Promise<BoardStandings>;
+
+/** One row as the `get_leaderboard` RPC returns it. */
+export type LeaderboardRow = {
+  rank: number;
+  user_id: string;
+  username: string | null;
+  avatar: unknown;
+  home_state: string | null;
+  score: number;
+  total_xp: number;
+  is_viewer: boolean;
+};
 
 /** The leaderboard's public contract: cohort labels, visible rows, and the viewer's own rank. */
 export type Board = {

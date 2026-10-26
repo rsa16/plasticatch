@@ -1,6 +1,7 @@
 import {
   CAMERA_FAILURE_MESSAGE,
   createCatchStep,
+  VERIFY_FAILURE_MESSAGE,
   type CameraPermission,
   type CatchCameraAdapter,
 } from '@/features/catch/step';
@@ -359,6 +360,62 @@ describe('catch step failure', () => {
     expect(step.getState().status).toBe('failed');
     expect(step.getState().failure).toBe(CAMERA_FAILURE_MESSAGE);
     expect(onCaptured).not.toHaveBeenCalled();
+  });
+
+  it('shows the verifier’s reason when it rejects the photo with one', async () => {
+    const adapter = createFakeAdapter();
+    const { step, onCaptured } = createStep(adapter, {
+      verify: async () => ({ pass: false, reason: 'that looks like a shoe, not litter.' }),
+    });
+    step.cameraReady();
+
+    await step.capture();
+
+    expect(step.getState().status).toBe('failed');
+    expect(step.getState().failure).toBe('Catch failed: that looks like a shoe, not litter.');
+    expect(onCaptured).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the fixed copy when a rejection has no reason', async () => {
+    const adapter = createFakeAdapter();
+    const { step } = createStep(adapter, { verify: async () => ({ pass: false, reason: '' }) });
+    step.cameraReady();
+
+    await step.capture();
+
+    expect(step.getState().failure).toBe('Step failed copy.');
+  });
+
+  it('accepts a passing verdict object', async () => {
+    const adapter = createFakeAdapter();
+    const { step, onCaptured } = createStep(adapter, {
+      verify: async () => ({ pass: true, reason: 'A plastic bottle.' }),
+    });
+    step.cameraReady();
+
+    await step.capture();
+
+    expect(step.getState().status).toBe('captured');
+    expect(onCaptured).toHaveBeenCalledWith('photo.jpg');
+  });
+
+  it('shows the check-failed copy, not a failed catch, when the verifier throws', async () => {
+    const adapter = createFakeAdapter();
+    const { step, onCaptured } = createStep(adapter, {
+      verify: async () => {
+        throw new Error('network down');
+      },
+    });
+    step.cameraReady();
+
+    await step.capture();
+
+    expect(step.getState().status).toBe('failed');
+    expect(step.getState().failure).toBe(VERIFY_FAILURE_MESSAGE);
+    expect(onCaptured).not.toHaveBeenCalled();
+
+    step.dismissFailure();
+    expect(step.getState().status).toBe('ready');
   });
 
   it('does not capture while the failure popup is still open', async () => {
