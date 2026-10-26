@@ -4,7 +4,9 @@ import {
   createInMemoryCatchSource,
   fetchMyCatches,
   MY_CATCHES_QUERY_KEY,
+  myCatchesQueryKey,
   recordMyCatch,
+  sourceForSession,
   type CatchRecord,
 } from '@/features/my-catches';
 
@@ -25,8 +27,14 @@ function deterministicSource() {
 }
 
 describe('My Catches query contract', () => {
-  it('uses one stable query key', () => {
+  it('uses one stable query key prefix', () => {
     expect(MY_CATCHES_QUERY_KEY).toStrictEqual(['my-catches']);
+    expect(myCatchesQueryKey('live')).toStrictEqual(['my-catches', 'live']);
+  });
+
+  it('reads the live feed only for a signed-in session', () => {
+    expect(sourceForSession(true).mode).toBe('live');
+    expect(sourceForSession(false).mode).toBe('prototype');
   });
 
   it('reads the source through the query key', async () => {
@@ -41,8 +49,9 @@ describe('My Catches query contract', () => {
   it('writes the catch and refreshes the visible list', async () => {
     const queryClient = newQueryClient();
     const source = deterministicSource();
+    const prototypeKey = myCatchesQueryKey('prototype');
     const cached = await queryClient.fetchQuery({
-      queryKey: MY_CATCHES_QUERY_KEY,
+      queryKey: prototypeKey,
       queryFn: () => fetchMyCatches(source),
     });
     expect(cached).toStrictEqual([]);
@@ -61,12 +70,12 @@ describe('My Catches query contract', () => {
 
     // The cache updates as soon as the write succeeds, before a refetch completes.
     expect(
-      (queryClient.getQueryData<CatchRecord[]>(MY_CATCHES_QUERY_KEY) ?? []).map((item) => item.id),
+      (queryClient.getQueryData<CatchRecord[]>(prototypeKey) ?? []).map((item) => item.id),
     ).toStrictEqual(['server-id-2', 'server-id-1']);
 
     // The invalidated query refetches the same list from the source.
     const refreshed = await queryClient.fetchQuery({
-      queryKey: MY_CATCHES_QUERY_KEY,
+      queryKey: prototypeKey,
       queryFn: () => fetchMyCatches(source),
     });
     expect(refreshed.map((item) => item.id)).toStrictEqual(['server-id-2', 'server-id-1']);
