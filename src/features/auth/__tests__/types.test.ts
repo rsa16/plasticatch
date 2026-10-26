@@ -15,6 +15,10 @@ const row = {
   terms_version: '2026-10-01',
   privacy_accepted_at: '2026-10-01T00:00:00Z',
   privacy_version: '2026-10-01',
+  total_xp: 245,
+  level: 3,
+  current_streak: 5,
+  username_changed_at: '2026-10-01T00:00:00Z',
 };
 
 describe('mapProfileRow', () => {
@@ -29,11 +33,26 @@ describe('mapProfileRow', () => {
       termsVersion: '2026-10-01',
       privacyAcceptedAt: '2026-10-01T00:00:00Z',
       privacyVersion: '2026-10-01',
+      totalXp: 245,
+      level: 3,
+      currentStreak: 5,
+      usernameChangedAt: '2026-10-01T00:00:00Z',
     });
   });
 
   it('treats a blank home state as unset', () => {
     expect(mapProfileRow({ ...row, home_state: '  ' }).homeState).toBeNull();
+  });
+
+  it('defaults missing rollups to zero', () => {
+    const mapped = mapProfileRow({
+      ...row,
+      total_xp: null,
+      level: null,
+      current_streak: null,
+    });
+
+    expect(mapped).toMatchObject({ totalXp: 0, level: 0, currentStreak: 0 });
   });
 });
 

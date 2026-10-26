@@ -15,6 +15,71 @@ export function usernameToSave(input: string, current: string | null): string | 
   return candidate;
 }
 
+/** The wait the server enforces after a successful rename. */
+export const USERNAME_COOLDOWN_DAYS = 14;
+export const USERNAME_COOLDOWN_MS = USERNAME_COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
+
+/**
+ * Milliseconds left before another rename is allowed, or `0` when there is no active cooldown.
+ *
+ * `username_changed_at` is written only by a successful change, so a fresh account with no
+ * rename can edit immediately. An unreadable timestamp is treated as no cooldown: the server is
+ * still the authority and will answer `username_cooldown` with the real retry time.
+ */
+export function usernameCooldownRemaining(
+  changedAt: string | null,
+  now: number = Date.now(),
+): number {
+  if (!changedAt) return 0;
+
+  const changed = new Date(changedAt).getTime();
+  if (Number.isNaN(changed)) return 0;
+
+  // A rename can land while a screen that renders this stays mounted. A clock sampled before
+  // the change must never report more than the full window, so cap at 14 days.
+  const remaining = Math.min(changed + USERNAME_COOLDOWN_MS - now, USERNAME_COOLDOWN_MS);
+  return remaining > 0 ? remaining : 0;
+}
+
+/** A coarse remaining wait, in the largest unit that keeps the countdown readable. */
+export function formatCooldownRemaining(remainingMs: number): string {
+  const minutes = Math.max(1, Math.ceil(remainingMs / 60_000));
+
+  if (minutes >= 24 * 60) {
+    const days = Math.ceil(minutes / (24 * 60));
+    return `${days} day${days === 1 ? '' : 's'}`;
+  }
+
+  if (minutes >= 60) {
+    const hours = Math.ceil(minutes / 60);
+    return `${hours} hour${hours === 1 ? '' : 's'}`;
+  }
+
+  return `${minutes} minute${minutes === 1 ? '' : 's'}`;
+}
+
+/** The countdown shown while the rename control is disabled, or `null` once it is allowed. */
+export function usernameCooldownLabel(
+  changedAt: string | null,
+  now: number = Date.now(),
+): string | null {
+  const remaining = usernameCooldownRemaining(changedAt, now);
+  if (remaining === 0) return null;
+
+  return `You can change your username again in ${formatCooldownRemaining(remaining)}.`;
+}
+
+/** The compact row value: the remaining wait, or "Change now" once allowed. */
+export function usernameCooldownSummary(
+  changedAt: string | null,
+  now: number = Date.now(),
+): string {
+  const remaining = usernameCooldownRemaining(changedAt, now);
+  if (remaining === 0) return 'Change now';
+
+  return `Available in ${formatCooldownRemaining(remaining)}`;
+}
+
 /** A readable message for a username-cooldown rejection. */
 export function cooldownMessage(retryAt: string | null): string {
   if (!retryAt) return 'You changed your username recently. Try again later.';
@@ -30,12 +95,3 @@ export function cooldownMessage(retryAt: string | null): string {
     year: 'numeric',
   })}.`;
 }
-
-/**
- * Why the Delete Account button cannot act yet.
- *
- * The backend requires a typed-username confirmation and a recent re-authentication. The screen
- * for that is not built, so the button must say so rather than delete anything.
- */
-export const DELETE_ACCOUNT_UNAVAILABLE =
-  'Account deletion needs the typed-username confirmation screen, which is not available yet. Nothing was deleted.';

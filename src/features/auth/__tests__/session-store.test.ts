@@ -34,6 +34,10 @@ function fakeProfile(id: string): Profile {
     termsVersion: null,
     privacyAcceptedAt: null,
     privacyVersion: null,
+    totalXp: 0,
+    level: 0,
+    currentStreak: 0,
+    usernameChangedAt: null,
   };
 }
 

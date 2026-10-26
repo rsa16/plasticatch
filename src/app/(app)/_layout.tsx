@@ -43,6 +43,9 @@ export default function AppLayout() {
       <Tabs.Screen name="settings" />
       {/* Reached from the map's persistent Data sources link; hidden from the custom tab bar. */}
       <Tabs.Screen name="settings/about" />
+      {/* Settings account rows. Not tabs: the custom bar only lists APP_TABS. */}
+      <Tabs.Screen name="settings/username" />
+      <Tabs.Screen name="settings/home-state" />
     </Tabs>
   );
 }
