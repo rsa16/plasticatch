@@ -26,6 +26,8 @@ describe('recovery intent', () => {
     await rememberRecoveryRequest(now);
 
     await expect(hasRecoveryRequest(now + RECOVERY_INTENT_TTL_MS + 1)).resolves.toBe(false);
+    // The expired marker is removed, not merely ignored on this read.
+    await expect(AsyncStorage.getAllKeys()).resolves.toStrictEqual([]);
     await expect(hasRecoveryRequest(now + RECOVERY_INTENT_TTL_MS + 2)).resolves.toBe(false);
   });
 

@@ -10,7 +10,7 @@ import { ScrollPane } from '@/components/scroll-pane';
 import { Text } from '@/components/text';
 import { privacyUrl, supportEmail } from '@/constants/legal';
 import { Brand, Spacing } from '@/constants/theme';
-import { US_STATES } from '@/constants/us-states';
+import { usStateName } from '@/constants/us-states';
 import { useSessionStore } from '@/features/auth';
 import {
   VERIFIED_CATCHES_QUERY_KEY,
@@ -20,11 +20,6 @@ import {
 } from '@/features/profile';
 
 const NOT_LOADED = '—';
-
-function stateName(code: string | null | undefined): string | null {
-  if (!code) return null;
-  return US_STATES.find((state) => state.code === code)?.name ?? code;
-}
 
 function statistic(value: number | null | undefined): string {
   return typeof value === 'number' && Number.isFinite(value) ? String(value) : NOT_LOADED;
@@ -105,7 +100,7 @@ export default function SettingsScreen() {
             />
             <Row
               label="Home state"
-              value={stateName(profile?.homeState) ?? 'Not set'}
+              value={usStateName(profile?.homeState) ?? profile?.homeState ?? 'Not set'}
               actionLabel="Change"
               accessibilityHint="Opens the home state picker"
               onPress={() => router.push('/settings/home-state')}

@@ -30,7 +30,7 @@ describe('avatar artwork', () => {
     expect(avatarHeadLayers({ hair: 'hair_99' })).toStrictEqual(avatarHeadLayers(DEFAULT_AVATAR));
   });
 
-  it('exposes a neutral image for a head with no artwork at all', () => {
-    expect(DEFAULT_AVATAR_SOURCE).toBeDefined();
+  it('keeps the neutral fallback separate from every layered preset', () => {
+    expect(Object.values(AVATAR_ARTWORK)).not.toContain(DEFAULT_AVATAR_SOURCE);
   });
 });

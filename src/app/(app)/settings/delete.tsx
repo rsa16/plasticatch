@@ -11,6 +11,7 @@ import { supportEmail } from '@/constants/legal';
 import { Brand, Spacing, TextStyles } from '@/constants/theme';
 import {
   REAUTH_WINDOW_MS,
+  USERNAME_LESS_CONFIRMATION,
   canDeleteAccount,
   deleteAccount,
   invokeDeleteAccount,
@@ -225,22 +226,26 @@ export default function DeleteAccountScreen() {
           )}
 
           <Text variant="sectionTitle" accessibilityRole="header">
-            2. Type your username
+            2. Confirm the deletion
           </Text>
 
           <Text variant="body">
             {username
               ? `Type ${username} exactly to confirm.`
-              : 'This account has no username to confirm.'}
+              : `This account has no username. Type ${USERNAME_LESS_CONFIRMATION} to confirm.`}
           </Text>
 
           <View style={styles.field}>
             <TextInput
               value={confirmation}
               onChangeText={setConfirmation}
-              editable={!deleting && Boolean(username)}
+              editable={!deleting}
               style={[TextStyles.fieldText, styles.input]}
-              accessibilityLabel="Type your username to confirm"
+              accessibilityLabel={
+                username
+                  ? 'Type your username to confirm'
+                  : `Type ${USERNAME_LESS_CONFIRMATION} to confirm`
+              }
               autoComplete="off"
               autoCapitalize="none"
               autoCorrect={false}

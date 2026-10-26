@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { SymbolView } from 'expo-symbols';
@@ -17,6 +18,7 @@ import { homeStateErrorMessage, saveHomeState } from '@/features/onboarding/prof
 export default function SettingsHomeStateScreen() {
   const profile = useSessionStore((state) => state.profile);
   const refreshProfile = useSessionStore((state) => state.refreshProfile);
+  const queryClient = useQueryClient();
   const barHeight = useBottomBarHeight();
   const [selected, setSelected] = useState<string | null>(profile?.homeState ?? null);
   const [pending, setPending] = useState(false);
@@ -43,6 +45,8 @@ export default function SettingsHomeStateScreen() {
       }
 
       await refreshProfile();
+      // The State board is scoped by home_state, so drop every cached board before leaving.
+      await queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
       router.back();
     } catch (error) {
       Alert.alert(

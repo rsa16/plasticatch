@@ -1,25 +1,18 @@
 import { Image, type ImageSource, type ImageStyle } from 'expo-image';
 import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
-import {
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-  type StyleProp,
-  type TextInputProps,
-} from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View, type StyleProp } from 'react-native';
 
+import { ActionButton, AuthCard, AuthField } from '@/components/auth-form';
 import { Text } from '@/components/text';
-import { BottomTabInset, Brand, Spacing, TextStyles } from '@/constants/theme';
+import { BottomTabInset, Brand, Spacing } from '@/constants/theme';
 import {
   GOOGLE_ERROR,
   RESEND_NOTICE,
   RESET_NOTICE,
   UNAVAILABLE_ERROR,
   normalizeEmail,
+  postSignInRoute,
   useSessionStore,
   validateCredentials,
   type CredentialMode,
@@ -29,11 +22,6 @@ import { useOnboardingDraftStore } from '@/features/onboarding/draft';
 import { markAgeVerified } from '@/features/onboarding/profile-service';
 
 type AuthStage = 'form' | 'check-email';
-
-// `replace` keeps sign-in out of the history so users can't navigate back to it.
-function continueToOnboarding() {
-  router.replace('/profile');
-}
 
 export default function SignInScreen() {
   const signInWithGoogle = useSessionStore((state) => state.signInWithGoogle);
@@ -81,7 +69,10 @@ export default function SignInScreen() {
     }
 
     await refreshProfile();
-    continueToOnboarding();
+
+    // Send the player to the first step they still owe. A complete profile goes to the entry
+    // gate, which lands on the Map; a Google account that skipped onboarding resumes it here.
+    router.replace(postSignInRoute(useSessionStore.getState().profile));
   }
 
   function switchMode(next: CredentialMode) {
@@ -255,7 +246,7 @@ export default function SignInScreen() {
 
         <View style={styles.auth}>
           {stage === 'check-email' ? (
-            <View style={styles.card}>
+            <AuthCard>
               <Text variant="sectionTitle" accessibilityRole="header">
                 Check your email
               </Text>
@@ -287,7 +278,7 @@ export default function SignInScreen() {
                   Back to log in
                 </Text>
               </Pressable>
-            </View>
+            </AuthCard>
           ) : (
             <>
               <View style={styles.social}>
@@ -308,7 +299,7 @@ export default function SignInScreen() {
                 />
               </View>
 
-              <View style={styles.card}>
+              <AuthCard>
                 <View style={styles.segments}>
                   <Segment
                     label="Log in"
@@ -394,7 +385,7 @@ export default function SignInScreen() {
                     We&apos;ll email you a link to confirm your address.
                   </Text>
                 )}
-              </View>
+              </AuthCard>
             </>
           )}
         </View>
@@ -426,42 +417,6 @@ function Segment({
         {label}
       </Text>
     </Pressable>
-  );
-}
-
-function ActionButton({
-  label,
-  onPress,
-  disabled,
-}: {
-  label: string;
-  onPress: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ disabled, busy: disabled }}
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.action,
-        pressed && styles.pressed,
-        disabled && styles.disabled,
-      ]}
-    >
-      <Text variant="buttonLabel">{label}</Text>
-    </Pressable>
-  );
-}
-
-function AuthField({ style, ...rest }: TextInputProps) {
-  return (
-    <TextInput
-      placeholderTextColor={Brand.rowText}
-      {...rest}
-      style={[TextStyles.fieldText, styles.field, style]}
-    />
   );
 }
 
@@ -569,12 +524,6 @@ const styles = StyleSheet.create({
   social: {
     gap: Spacing.two,
   },
-  card: {
-    padding: Spacing.four,
-    borderRadius: 20,
-    backgroundColor: Brand.surface,
-    gap: Spacing.three,
-  },
   segments: {
     flexDirection: 'row',
     padding: Spacing.one,
@@ -590,19 +539,6 @@ const styles = StyleSheet.create({
   },
   segmentSelected: {
     backgroundColor: Brand.green,
-  },
-  field: {
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 15,
-    backgroundColor: Brand.field,
-  },
-  action: {
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 15,
-    backgroundColor: Brand.accent,
   },
   linkButton: {
     alignSelf: 'center',
