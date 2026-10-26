@@ -2,8 +2,8 @@ import Constants from 'expo-constants';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { useBottomBarHeight } from '@/components/bottom-menu';
-import { BackButton } from '@/components/ui/back-button';
 import { Text } from '@/components/text';
+import { BackButton } from '@/components/ui/back-button';
 import { Card } from '@/components/ui/card';
 import { Screen } from '@/components/ui/screen';
 import { supportEmail } from '@/constants/legal';
@@ -30,9 +30,6 @@ export default function AboutScreen() {
             <Card key={source.name} style={styles.card}>
               <Text variant="heading" accessibilityRole="header">
                 {source.name}
-              </Text>
-              <Text variant="caption" tone="accent">
-                {source.role}
               </Text>
               <Field label="Attribution" value={source.attribution} />
               <Field label="Snapshot" value={source.snapshot} />
@@ -97,7 +94,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     paddingTop: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
   },
   fieldLabel: {
     width: 88,

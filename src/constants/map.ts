@@ -119,28 +119,24 @@ export const UNKNOWN_SOURCE: SourceMeta = {
 export const DATA_SOURCES = [
   {
     name: 'Debris Tracker',
-    role: 'Ground-truth litter pins',
     attribution: 'Marine Debris Tracker (debristracker.org)',
     snapshot: 'Seeded snapshot: 26 October 2026',
     license: 'Demo use with attribution; written permission pending before public release.',
   },
   {
     name: 'OpenLitterMap',
-    role: 'Ground-truth pins, isolated under ODbL (own Map toggle)',
     attribution: 'OpenLitterMap (openlittermap.com)',
     snapshot: 'Seeded from demo-state bbox tiles at zoom 15 (26 October 2026)',
     license: 'ODbL 1.0 — share-alike. Its data stays isolated in a separate table and layer.',
   },
   {
     name: 'EPA Escaped Trash Risk Map',
-    role: 'Modeled risk layer, toggle-only and never clickable',
     attribution: 'US Environmental Protection Agency, Escaped Trash Risk Map (layer 19)',
     snapshot: EPA_RISK_LABEL,
     license: 'EPA public data; modeled estimate, not an observation.',
   },
   {
     name: 'Mapbox',
-    role: 'Map base style and rendering',
     attribution: '© Mapbox, © OpenStreetMap contributors',
     snapshot: `@rnmapbox/maps ${MAPBOX_MAPS_VERSION} · Mapbox Outdoors`,
     license: 'Mapbox Terms of Service and OpenStreetMap attribution apply.',
