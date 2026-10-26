@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ActionButton, AuthCard, AuthField } from '@/components/auth-form';
+import { BrandMark } from '@/components/brand-mark';
 import { Text } from '@/components/text';
 import { Screen } from '@/components/ui/screen';
 import {
@@ -232,11 +233,9 @@ export default function SignInScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.titleGroup}>
-          <Text variant="display" numberOfLines={1} adjustsFontSizeToFit style={styles.wordmark}>
-            PlastiCatch
-          </Text>
+          <BrandMark height={48} />
           <Text variant="caption" tone="muted" style={styles.tagline}>
-            Photograph litter. Bin it. Earn XP.
+            The more litter you collect, the more XP you get!
           </Text>
         </View>
 
@@ -467,9 +466,6 @@ const styles = StyleSheet.create({
     maxWidth: 342,
     alignItems: 'center',
     gap: 8,
-  },
-  wordmark: {
-    textAlign: 'center',
   },
   tagline: {
     textAlign: 'center',
