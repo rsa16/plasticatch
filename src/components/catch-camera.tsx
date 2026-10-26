@@ -258,20 +258,24 @@ export function CatchCamera({
           style={[styles.popupArea, { top: topBarHeight, bottom: controlsHeight }]}
           pointerEvents="box-none"
         >
-          <Pressable
-            accessibilityRole="alert"
-            accessibilityHint="Dismisses the message"
-            onPress={step.dismissFailure}
-            style={styles.popup}
-          >
-            <Text variant="buttonLabel" style={styles.popupText}>
-              {state.failure}
-            </Text>
+          <View style={styles.popupFrame}>
+            <Pressable
+              accessibilityRole="alert"
+              accessibilityHint="Dismisses the message"
+              onPress={step.dismissFailure}
+              style={styles.popup}
+            >
+              <Text variant="buttonLabel" style={styles.popupText}>
+                {state.failure}
+              </Text>
+            </Pressable>
+            {/* Sibling of the alert, not a child: iOS VoiceOver treats an accessible parent as
+                one element, so a nested button would never be reachable. */}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Close message"
               onPress={step.dismissFailure}
-              hitSlop={12}
+              hitSlop={14}
               style={({ pressed }) => [styles.popupClose, pressed && styles.pressed]}
             >
               <Image
@@ -281,7 +285,7 @@ export function CatchCamera({
                 contentFit="contain"
               />
             </Pressable>
-          </Pressable>
+          </View>
         </View>
       )}
 
@@ -438,9 +442,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  popup: {
+  popupFrame: {
     width: 301,
     maxWidth: '90%',
+  },
+  popup: {
+    width: '100%',
     minHeight: 146,
     justifyContent: 'center',
     paddingLeft: 30,
@@ -457,6 +464,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 12,
     right: 12,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   popupCloseIcon: {
     width: 16,
