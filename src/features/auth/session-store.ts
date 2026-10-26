@@ -2,7 +2,13 @@ import type { Session } from '@supabase/supabase-js';
 import { create } from 'zustand';
 
 import { OAUTH_REDIRECT_URL, outcomeFromRedirect, parseRedirectParams } from './oauth';
-import { PASSWORD_UPDATE_ERROR, SIGN_IN_ERROR, SIGN_UP_ERROR, UNAVAILABLE_ERROR } from './messages';
+import {
+  PASSWORD_UPDATE_ERROR,
+  REAUTH_DIFFERENT_ACCOUNT,
+  SIGN_IN_ERROR,
+  SIGN_UP_ERROR,
+  UNAVAILABLE_ERROR,
+} from './messages';
 import { isRecoveryRedirect, isRecoveryRedirectType } from './recovery';
 import {
   forgetRecoveryRequest,
@@ -16,6 +22,7 @@ import type {
   PasswordAuthOutcome,
   Profile,
   ReadProfile,
+  ReauthOutcome,
   SessionClient,
   SignInOutcome,
   UpdatePasswordOutcome,
@@ -41,6 +48,10 @@ export type SessionStore = {
   resetPassword: (email: string) => Promise<EmailActionOutcome>;
   /** Save a new password for the signed-in recovery session. */
   updatePassword: (password: string) => Promise<UpdatePasswordOutcome>;
+  /** Prove the current player's identity with their password, keeping the same account. */
+  reauthenticateWithPassword: (password: string) => Promise<ReauthOutcome>;
+  /** Re-run the Google provider flow and require the same account to come back. */
+  reauthenticateWithGoogle: () => Promise<ReauthOutcome>;
   /** Exchange a PKCE code from a redirect URL (used by the callback route). */
   completeOAuth: (url: string) => Promise<SignInOutcome>;
   /** End the session locally even when the network call fails. */
@@ -103,6 +114,49 @@ export function createSessionStore({
       }
     }
 
+    function clearLocalSession(): void {
+      set({ status: 'signed-out', session: null, profile: null, error: null });
+      onSignedOut?.();
+    }
+
+    async function runGoogleFlow(): Promise<SignInOutcome> {
+      set({ error: null });
+
+      let url: string | null = null;
+      let startError: unknown = null;
+
+      try {
+        const { data, error } = await getClient().auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: OAUTH_REDIRECT_URL, skipBrowserRedirect: true },
+        });
+        url = data.url;
+        startError = error;
+      } catch (error) {
+        startError = error;
+      }
+
+      if (startError || !url) {
+        const message = messageOf(startError, 'Could not start Google sign-in.');
+        set({ error: message });
+        return { status: 'error', message };
+      }
+
+      const result = await openAuth(url, OAUTH_REDIRECT_URL);
+
+      if (result.type === 'cancel' || result.type === 'dismiss') {
+        return { status: 'cancelled' };
+      }
+
+      if (result.type === 'error') {
+        const message = result.message ?? 'Google sign-in failed.';
+        set({ error: message });
+        return { status: 'error', message };
+      }
+
+      return get().completeOAuth(result.url);
+    }
+
     return {
       status: 'loading',
       session: null,
@@ -139,41 +193,44 @@ export function createSessionStore({
       },
 
       async signInWithGoogle() {
-        set({ error: null });
+        return runGoogleFlow();
+      },
 
-        let url: string | null = null;
-        let startError: unknown = null;
+      async reauthenticateWithGoogle() {
+        const expectedUserId = get().session?.user.id;
 
-        try {
-          const { data, error } = await getClient().auth.signInWithOAuth({
-            provider: 'google',
-            options: { redirectTo: OAUTH_REDIRECT_URL, skipBrowserRedirect: true },
-          });
-          url = data.url;
-          startError = error;
-        } catch (error) {
-          startError = error;
-        }
-
-        if (startError || !url) {
-          const message = messageOf(startError, 'Could not start Google sign-in.');
+        if (!expectedUserId) {
+          const message = 'Sign in again before deleting your account.';
           set({ error: message });
           return { status: 'error', message };
         }
 
-        const result = await openAuth(url, OAUTH_REDIRECT_URL);
+        const outcome = await runGoogleFlow();
 
-        if (result.type === 'cancel' || result.type === 'dismiss') {
-          return { status: 'cancelled' };
-        }
+        if (outcome.status === 'cancelled') return { status: 'cancelled' };
 
-        if (result.type === 'error') {
-          const message = result.message ?? 'Google sign-in failed.';
+        if (outcome.status === 'error') return { status: 'error', message: outcome.message };
+
+        if (outcome.status !== 'success') {
+          const message = 'Google did not finish signing you in. Try again.';
           set({ error: message });
           return { status: 'error', message };
         }
 
-        return get().completeOAuth(result.url);
+        // A provider sheet can sign in to a different account. Never let that account inherit
+        // the deletion the player intended for the original one.
+        if (get().session?.user.id !== expectedUserId) {
+          try {
+            await getClient().auth.signOut({ scope: 'local' });
+          } catch {
+            // Clearing local state is what matters; the stale network session expires anyway.
+          }
+          clearLocalSession();
+          set({ error: REAUTH_DIFFERENT_ACCOUNT });
+          return { status: 'error', message: REAUTH_DIFFERENT_ACCOUNT };
+        }
+
+        return { status: 'success' };
       },
 
       async signUpWithPassword(email, password) {
@@ -288,6 +345,47 @@ export function createSessionStore({
         } catch {
           set({ error: PASSWORD_UPDATE_ERROR });
           return { status: 'error', message: PASSWORD_UPDATE_ERROR };
+        }
+      },
+
+      async reauthenticateWithPassword(password) {
+        const current = get().session;
+        const email = current?.user.email;
+
+        if (!current || !email) {
+          const message = 'Sign in again before deleting your account.';
+          set({ error: message });
+          return { status: 'error', message };
+        }
+
+        set({ error: null });
+
+        try {
+          const { data, error } = await getClient().auth.signInWithPassword({ email, password });
+
+          if (error || !data.session) {
+            set({ error: SIGN_IN_ERROR });
+            return { status: 'error', message: SIGN_IN_ERROR };
+          }
+
+          // A re-authentication must land on the same account; otherwise the deletion would
+          // target someone else.
+          if (data.session.user.id !== current.user.id) {
+            try {
+              await getClient().auth.signOut({ scope: 'local' });
+            } catch {
+              // Local state is cleared below regardless.
+            }
+            clearLocalSession();
+            set({ error: REAUTH_DIFFERENT_ACCOUNT });
+            return { status: 'error', message: REAUTH_DIFFERENT_ACCOUNT };
+          }
+
+          await applySession(data.session);
+          return { status: 'success' };
+        } catch {
+          set({ error: UNAVAILABLE_ERROR });
+          return { status: 'error', message: UNAVAILABLE_ERROR };
         }
       },
 
