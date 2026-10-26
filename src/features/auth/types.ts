@@ -59,13 +59,23 @@ export function mapProfileRow(row: ProfileRow): Profile {
   };
 }
 
-/** Whether the player still needs to be sent through onboarding. */
+/**
+ * Whether the player still needs to be sent through onboarding.
+ *
+ * A profile is complete only once it has both a username and a home state; either one missing
+ * (or no profile row at all) sends the player back into the onboarding stack.
+ */
 export function needsOnboarding(profile: Profile | null): boolean {
-  return !profile || !profile.username;
+  return !profile || !profile.username || !profile.homeState;
+}
+
+/** The onboarding step to resume at; only meaningful when `needsOnboarding(profile)` is true. */
+export function onboardingStartRoute(profile: Profile | null): '/profile' | '/home-state' {
+  return profile?.username ? '/home-state' : '/profile';
 }
 
 /** A Supabase-shaped auth error, kept structural so fakes stay simple. */
-export type AuthErrorLike = { message: string } | null;
+export type AuthErrorLike = { message: string; code?: string | null } | null;
 
 /** The subset of the Supabase client the session store uses. */
 export type SessionClient = {
@@ -85,6 +95,27 @@ export type SessionClient = {
       code: string,
     ): Promise<{ data: { session: Session | null }; error: AuthErrorLike }>;
     signOut(options?: { scope?: 'global' | 'local' }): Promise<{ error: AuthErrorLike }>;
+    signUp(args: {
+      email: string;
+      password: string;
+      options: { emailRedirectTo: string };
+    }): Promise<{
+      data: { session: Session | null; user: { identities?: unknown[] } | null };
+      error: AuthErrorLike;
+    }>;
+    signInWithPassword(args: {
+      email: string;
+      password: string;
+    }): Promise<{ data: { session: Session | null }; error: AuthErrorLike }>;
+    resend(args: {
+      type: 'signup';
+      email: string;
+      options: { emailRedirectTo: string };
+    }): Promise<{ error: AuthErrorLike }>;
+    resetPasswordForEmail(
+      email: string,
+      options: { redirectTo: string },
+    ): Promise<{ error: AuthErrorLike }>;
   };
 };
 
@@ -104,3 +135,17 @@ export type OpenAuthSession = (url: string, redirectUrl: string) => Promise<OAut
 /** The outcome of starting (or finishing) the Google flow. */
 export type SignInOutcome =
   { status: 'success' } | { status: 'cancelled' } | { status: 'error'; message: string };
+
+/**
+ * The outcome of creating an account or logging in with email and password.
+ *
+ * `confirmation_required` means the project has email confirmation ON and no session exists
+ * yet: the same answer for a new address and an address that already has an account.
+ */
+export type PasswordAuthOutcome =
+  | { status: 'success' }
+  | { status: 'confirmation_required' }
+  | { status: 'error'; message: string };
+
+/** The outcome of an email that leaves the app (confirmation resend, password reset). */
+export type EmailActionOutcome = { status: 'success' } | { status: 'error'; message: string };

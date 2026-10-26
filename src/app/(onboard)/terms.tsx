@@ -50,7 +50,7 @@ export default function TermsScreen() {
 
   return (
     <OnboardingScreen
-      step={4}
+      step={5}
       onBack={() => router.back()}
       onNext={handleNext}
       nextDisabled={!complete || pending}

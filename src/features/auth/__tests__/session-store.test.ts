@@ -2,6 +2,7 @@ import type { Session } from '@supabase/supabase-js';
 
 import { OAUTH_REDIRECT_URL } from '@/features/auth/oauth';
 import { createSessionStore } from '@/features/auth/session-store';
+import { SIGN_IN_ERROR, SIGN_UP_ERROR, UNAVAILABLE_ERROR } from '@/features/auth/messages';
 import type { OAuthResult, Profile, SessionClient } from '@/features/auth/types';
 
 function fakeSession(userId: string): Session {
@@ -38,6 +39,16 @@ function makeClient(overrides: Partial<Record<keyof SessionClient['auth'], unkno
         error: null,
       })),
       signOut: jest.fn(async () => ({ error: null })),
+      signUp: jest.fn(async () => ({
+        data: { session: null, user: { identities: [{ id: 'identity-1' }] } },
+        error: null,
+      })),
+      signInWithPassword: jest.fn(async () => ({
+        data: { session: fakeSession('user-1') },
+        error: null,
+      })),
+      resend: jest.fn(async () => ({ error: null })),
+      resetPasswordForEmail: jest.fn(async () => ({ error: null })),
       ...overrides,
     },
   } as unknown as SessionClient;
@@ -218,5 +229,182 @@ describe('session store', () => {
 
     expect(store.getState().status).toBe('signed-in');
     expect(store.getState().error).toContain('profile_read_failed');
+  });
+});
+
+describe('email/password session store', () => {
+  it('signs up with confirmation required, without creating a session', async () => {
+    const client = makeClient({
+      signUp: jest.fn(async () => ({
+        data: { session: null, user: { identities: [{ id: 'identity-1' }] } },
+        error: null,
+      })),
+    });
+    const { store, readProfile } = makeStore({ client });
+
+    await store.getState().initialize();
+    const outcome = await store.getState().signUpWithPassword('player@example.com', 'secret123');
+
+    expect(outcome).toStrictEqual({ status: 'confirmation_required' });
+    expect(client.auth.signUp).toHaveBeenCalledWith({
+      email: 'player@example.com',
+      password: 'secret123',
+      options: { emailRedirectTo: OAUTH_REDIRECT_URL },
+    });
+    expect(store.getState().status).toBe('signed-out');
+    expect(store.getState().session).toBeNull();
+    expect(readProfile).not.toHaveBeenCalled();
+  });
+
+  it('treats an already-registered sign-up exactly like a new one', async () => {
+    // Supabase returns a user with no identities, and no session, for an address that already
+    // exists. The store must not let that difference show through.
+    const client = makeClient({
+      signUp: jest.fn(async () => ({
+        data: { session: null, user: { identities: [] } },
+        error: null,
+      })),
+    });
+    const { store } = makeStore({ client });
+
+    const outcome = await store.getState().signUpWithPassword('taken@example.com', 'secret123');
+
+    expect(outcome).toStrictEqual({ status: 'confirmation_required' });
+    expect(store.getState().error).toBeNull();
+  });
+
+  it('signs up straight into a session when the project does not require confirmation', async () => {
+    const client = makeClient({
+      signUp: jest.fn(async () => ({
+        data: { session: fakeSession('user-1'), user: { identities: [{ id: 'identity-1' }] } },
+        error: null,
+      })),
+    });
+    const { store } = makeStore({ client });
+
+    const outcome = await store.getState().signUpWithPassword('player@example.com', 'secret123');
+
+    expect(outcome).toStrictEqual({ status: 'success' });
+    expect(store.getState().status).toBe('signed-in');
+    expect(store.getState().profile?.id).toBe('user-1');
+  });
+
+  it('maps a sign-up error to one generic message, never the provider text', async () => {
+    const client = makeClient({
+      signUp: jest.fn(async () => ({
+        data: { session: null, user: null },
+        error: { message: 'User already registered' },
+      })),
+    });
+    const { store } = makeStore({ client });
+
+    await store.getState().initialize();
+    const outcome = await store.getState().signUpWithPassword('taken@example.com', 'secret123');
+
+    expect(outcome).toStrictEqual({ status: 'error', message: SIGN_UP_ERROR });
+    expect(SIGN_UP_ERROR).not.toContain('already');
+    expect(store.getState().error).toBe(SIGN_UP_ERROR);
+    expect(store.getState().status).toBe('signed-out');
+  });
+
+  it('logs in with a confirmed email and password', async () => {
+    const { store, readProfile } = makeStore();
+
+    const outcome = await store.getState().signInWithPassword('player@example.com', 'secret123');
+
+    expect(outcome).toStrictEqual({ status: 'success' });
+    expect(store.getState().status).toBe('signed-in');
+    expect(store.getState().session?.user.id).toBe('user-1');
+    expect(readProfile).toHaveBeenCalledWith('user-1');
+  });
+
+  it('maps invalid credentials to the generic sign-in message', async () => {
+    const client = makeClient({
+      signInWithPassword: jest.fn(async () => ({
+        data: { session: null },
+        error: { message: 'Invalid login credentials', code: 'invalid_credentials' },
+      })),
+    });
+    const { store } = makeStore({ client });
+
+    await store.getState().initialize();
+    const outcome = await store.getState().signInWithPassword('player@example.com', 'wrong');
+
+    expect(outcome).toStrictEqual({ status: 'error', message: SIGN_IN_ERROR });
+    expect(SIGN_IN_ERROR).not.toContain('credentials');
+    expect(store.getState().error).toBe(SIGN_IN_ERROR);
+    expect(store.getState().status).toBe('signed-out');
+  });
+
+  it('sends an unconfirmed player back to the check-email state', async () => {
+    const client = makeClient({
+      signInWithPassword: jest.fn(async () => ({
+        data: { session: null },
+        error: { message: 'Email not confirmed', code: 'email_not_confirmed' },
+      })),
+    });
+    const { store } = makeStore({ client });
+
+    const outcome = await store.getState().signInWithPassword('player@example.com', 'secret123');
+
+    expect(outcome).toStrictEqual({ status: 'confirmation_required' });
+    expect(store.getState().error).toBeNull();
+  });
+
+  it('reports a resend as successful even when the address is unknown', async () => {
+    const client = makeClient({
+      resend: jest.fn(async () => ({ error: { message: 'User not found' } })),
+    });
+    const { store } = makeStore({ client });
+
+    const outcome = await store.getState().resendConfirmation('nobody@example.com');
+
+    expect(outcome).toStrictEqual({ status: 'success' });
+    expect(store.getState().error).toBeNull();
+    expect(client.auth.resend).toHaveBeenCalledWith({
+      type: 'signup',
+      email: 'nobody@example.com',
+      options: { emailRedirectTo: OAUTH_REDIRECT_URL },
+    });
+  });
+
+  it('reports the reset flow as sent even when the address is unknown', async () => {
+    const client = makeClient({
+      resetPasswordForEmail: jest.fn(async () => ({ error: { message: 'User not found' } })),
+    });
+    const { store } = makeStore({ client });
+
+    const outcome = await store.getState().resetPassword('nobody@example.com');
+
+    expect(outcome).toStrictEqual({ status: 'success' });
+    expect(store.getState().error).toBeNull();
+    expect(client.auth.resetPasswordForEmail).toHaveBeenCalledWith('nobody@example.com', {
+      redirectTo: OAUTH_REDIRECT_URL,
+    });
+  });
+
+  it('reports missing configuration as a plain message instead of throwing', async () => {
+    const store = createSessionStore({
+      getClient: () => {
+        throw new Error('Supabase is not configured.');
+      },
+      openAuth: jest.fn(),
+      readProfile: jest.fn(),
+    });
+
+    await expect(store.getState().signUpWithPassword('a@b.co', 'secret123')).resolves.toStrictEqual(
+      { status: 'error', message: UNAVAILABLE_ERROR },
+    );
+    await expect(store.getState().signInWithPassword('a@b.co', 'secret123')).resolves.toStrictEqual(
+      { status: 'error', message: UNAVAILABLE_ERROR },
+    );
+    await expect(store.getState().resendConfirmation('a@b.co')).resolves.toStrictEqual({
+      status: 'error',
+      message: UNAVAILABLE_ERROR,
+    });
+    await expect(store.getState().resetPassword('a@b.co')).resolves.toStrictEqual({
+      status: 'error',
+      message: UNAVAILABLE_ERROR,
+    });
   });
 });

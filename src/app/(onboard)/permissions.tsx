@@ -35,7 +35,7 @@ export default function PermissionsScreen() {
 
   // Users can continue without these; features that need them should check again before use.
   return (
-    <OnboardingScreen step={3} onBack={() => router.back()} onNext={() => router.push('/terms')}>
+    <OnboardingScreen step={4} onBack={() => router.back()} onNext={() => router.push('/terms')}>
       <OnboardingHeading>Permissions</OnboardingHeading>
       <OnboardingPrompt>
         Please use the popups below to allow PlastiCatch to use your Camera and your Location.

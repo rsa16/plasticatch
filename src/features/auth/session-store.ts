@@ -2,9 +2,12 @@ import type { Session } from '@supabase/supabase-js';
 import { create } from 'zustand';
 
 import { OAUTH_REDIRECT_URL, outcomeFromRedirect, parseRedirectParams } from './oauth';
+import { SIGN_IN_ERROR, SIGN_UP_ERROR, UNAVAILABLE_ERROR } from './messages';
 import type {
   AuthStatus,
+  EmailActionOutcome,
   OpenAuthSession,
+  PasswordAuthOutcome,
   Profile,
   ReadProfile,
   SessionClient,
@@ -21,6 +24,14 @@ export type SessionStore = {
   initialize: () => Promise<void>;
   /** Start Google OAuth and finish it when the provider redirects back. */
   signInWithGoogle: () => Promise<SignInOutcome>;
+  /** Create an email/password account; confirmation ON returns `confirmation_required`. */
+  signUpWithPassword: (email: string, password: string) => Promise<PasswordAuthOutcome>;
+  /** Log in with an existing email/password account. */
+  signInWithPassword: (email: string, password: string) => Promise<PasswordAuthOutcome>;
+  /** Send another confirmation email. Never reveals whether the address has an account. */
+  resendConfirmation: (email: string) => Promise<EmailActionOutcome>;
+  /** Start the password reset email flow. Never reveals whether the address has an account. */
+  resetPassword: (email: string) => Promise<EmailActionOutcome>;
   /** Exchange a PKCE code from a redirect URL (used by the callback route). */
   completeOAuth: (url: string) => Promise<SignInOutcome>;
   /** End the session locally even when the network call fails. */
@@ -154,6 +165,99 @@ export function createSessionStore({
         }
 
         return get().completeOAuth(result.url);
+      },
+
+      async signUpWithPassword(email, password) {
+        set({ error: null });
+
+        try {
+          const { data, error } = await getClient().auth.signUp({
+            email,
+            password,
+            // Confirmation links come back through the same PKCE callback route as OAuth.
+            options: { emailRedirectTo: OAUTH_REDIRECT_URL },
+          });
+
+          if (error) {
+            set({ error: SIGN_UP_ERROR });
+            return { status: 'error', message: SIGN_UP_ERROR };
+          }
+
+          if (data.session) {
+            await applySession(data.session);
+            return { status: 'success' };
+          }
+
+          // Confirmation ON: no session until the emailed link is followed. Supabase answers
+          // an existing address with a user that has no identities and still no session, so
+          // "new" and "already registered" leave the store in exactly the same state.
+          return { status: 'confirmation_required' };
+        } catch {
+          set({ error: UNAVAILABLE_ERROR });
+          return { status: 'error', message: UNAVAILABLE_ERROR };
+        }
+      },
+
+      async signInWithPassword(email, password) {
+        set({ error: null });
+
+        try {
+          const { data, error } = await getClient().auth.signInWithPassword({ email, password });
+
+          if (error || !data.session) {
+            // A correct password on an unconfirmed account is the one failure worth naming.
+            // It is only reachable with valid credentials, so it reveals nothing an attacker
+            // did not already have; everything else collapses to the generic copy.
+            if (error?.code === 'email_not_confirmed') {
+              return { status: 'confirmation_required' };
+            }
+
+            set({ error: SIGN_IN_ERROR });
+            return { status: 'error', message: SIGN_IN_ERROR };
+          }
+
+          await applySession(data.session);
+          return { status: 'success' };
+        } catch {
+          set({ error: UNAVAILABLE_ERROR });
+          return { status: 'error', message: UNAVAILABLE_ERROR };
+        }
+      },
+
+      async resendConfirmation(email) {
+        set({ error: null });
+
+        try {
+          // The provider's answer is deliberately ignored: "user not found", a rate limit and
+          // a delivered email must look identical to the player. Only a missing client (no
+          // request was made at all) is reported as a failure.
+          await getClient().auth.resend({
+            type: 'signup',
+            email,
+            options: { emailRedirectTo: OAUTH_REDIRECT_URL },
+          });
+        } catch {
+          set({ error: UNAVAILABLE_ERROR });
+          return { status: 'error', message: UNAVAILABLE_ERROR };
+        }
+
+        return { status: 'success' };
+      },
+
+      async resetPassword(email) {
+        set({ error: null });
+
+        try {
+          // Same rule as the resend: an unknown address must not be distinguishable.
+          await getClient().auth.resetPasswordForEmail(email, {
+            redirectTo: OAUTH_REDIRECT_URL,
+          });
+        } catch {
+          set({ error: UNAVAILABLE_ERROR });
+          return { status: 'error', message: UNAVAILABLE_ERROR };
+        }
+
+        return { status: 'success' };
       },
 
       async completeOAuth(url) {
