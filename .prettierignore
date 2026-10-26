@@ -20,6 +20,9 @@ package-lock.json
 # noise between the repo and production.
 supabase/functions/
 
+# Supabase CLI state (machine-specific)
+supabase/.temp/
+
 # Prose and scratch notes are not code-formatted
 *.md
 .scratch/

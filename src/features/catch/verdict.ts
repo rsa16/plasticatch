@@ -1,9 +1,8 @@
 /**
- * The contract between the app and the photo-verification server.
+ * The contract between the app and the `verify-photo` Edge Function.
  *
- * Both sides import this module, so it holds only types and validation: no network, no SDK, no
- * secrets. Keeping the shape here means Phase 2 can move the server elsewhere without touching the
- * screens, as long as the new server answers the same request with the same verdict.
+ * The Deno function repeats this validation rather than importing it: Edge Functions deploy on
+ * their own and cannot reach `src/`. Keep the two in step when the shape changes.
  */
 
 /** Which camera step a photo belongs to. */

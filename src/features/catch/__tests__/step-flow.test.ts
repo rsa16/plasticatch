@@ -2,8 +2,8 @@ import { useCatchStore } from '@/features/catch';
 import { STEP_XP, verifyCatchPhoto } from '@/features/catch/lifecycle';
 import { createCatchStep, type CatchCameraAdapter } from '@/features/catch/step';
 
-// The placeholder verifier is still the production behaviour; pin its roll so the flow is
-// deterministic. No real camera, no uncontrolled time, no unpinned randomness.
+// The mock verifier is the default path when EXPO_PUBLIC_CATCH_VERIFIER is unset; pin its roll
+// so the flow is deterministic. No real camera, no uncontrolled time, no unpinned randomness.
 const verifiedPhoto = () => verifyCatchPhoto(() => 0);
 
 function fakeCamera(uri: string) {

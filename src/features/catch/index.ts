@@ -29,5 +29,5 @@ export {
   type VerifyCatchRequest,
   type VerifyStep,
 } from './verdict';
-export { requestCatchVerdict, VERIFY_CATCH_PATH } from './verify-request';
+export { requestCatchVerdict, VERIFY_PHOTO_FUNCTION } from './verify-request';
 export { verifyCatchStep } from './verify-client';

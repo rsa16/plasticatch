@@ -75,3 +75,7 @@ Thumbs.db
 
 # ---------- Local overrides ----------
 *.local
+
+# ---------- Supabase CLI state ----------
+# Written by `supabase link`; machine-specific and not part of the repo.
+supabase/.temp/
