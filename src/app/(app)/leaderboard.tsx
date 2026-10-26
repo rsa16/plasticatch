@@ -7,7 +7,13 @@ import { LeaderboardList } from '@/components/leaderboard';
 import { MenuScreen } from '@/components/menu-screen';
 import { Text } from '@/components/text';
 import { Spacing } from '@/constants/theme';
-import { COHORTS, board as buildBoard, defaultSource, type Cohort } from '@/features/leaderboard';
+import {
+  COHORTS,
+  EMPTY_STANDINGS,
+  board as buildBoard,
+  useLeaderboard,
+  type Cohort,
+} from '@/features/leaderboard';
 
 /** Space between the leaderboard and the raised Catch tab. */
 const LIST_BOTTOM_GAP = 18;
@@ -15,7 +21,9 @@ const LIST_BOTTOM_GAP = 18;
 export default function LeaderboardScreen() {
   const menuHeight = useBottomMenuHeight();
   const [cohort, setCohort] = useState<Cohort>('state');
-  const leaderboard = buildBoard(cohort, defaultSource);
+  // Ranks come from the RPC; the client only labels the cohort and splits the viewer's row.
+  const { data } = useLeaderboard(cohort);
+  const leaderboard = buildBoard(cohort, data ?? EMPTY_STANDINGS);
 
   const step = (delta: number) =>
     setCohort((current) => {
