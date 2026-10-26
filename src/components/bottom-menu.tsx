@@ -147,7 +147,9 @@ export function BottomMenu({ active, onSelect }: BottomMenuProps) {
               : 'Asks for camera and location access again'
             : undefined
         }
-        accessibilityState={{ selected: active === 'catch', disabled: readOnly.readOnly }}
+        // The press remains actionable in read-only mode so the player can re-prompt or open
+        // Settings; only the label and hint announce that Catch is unavailable.
+        accessibilityState={{ selected: active === 'catch' }}
         onPress={() => {
           void handleCatch();
         }}
