@@ -1,17 +1,11 @@
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-  type TextInputProps,
-} from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
+import { ActionButton, AuthCard, AuthField } from '@/components/auth-form';
 import { Text } from '@/components/text';
-import { BottomTabInset, Brand, Spacing, TextStyles } from '@/constants/theme';
+import { BottomTabInset, Brand, Spacing } from '@/constants/theme';
 import { PASSWORD_UPDATE_ERROR, useSessionStore, validateNewPassword } from '@/features/auth';
 
 type ResetStage = 'form' | 'success';
@@ -101,7 +95,7 @@ export default function ResetPasswordScreen() {
 
         <View style={styles.auth}>
           {linkExpired ? (
-            <View style={styles.card}>
+            <AuthCard>
               <Text variant="sectionTitle" accessibilityRole="header">
                 Request a new link
               </Text>
@@ -110,9 +104,9 @@ export default function ResetPasswordScreen() {
                 tap Forgot password? to request a new one.
               </Text>
               <ActionButton label="Back to sign in" onPress={() => router.replace('/sign-in')} />
-            </View>
+            </AuthCard>
           ) : stage === 'success' ? (
-            <View style={styles.card}>
+            <AuthCard>
               <Text variant="sectionTitle" accessibilityRole="header">
                 Password updated
               </Text>
@@ -120,9 +114,9 @@ export default function ResetPasswordScreen() {
                 Your new password is saved. Use it the next time you log in.
               </Text>
               <ActionButton label="Continue" onPress={() => router.replace('/')} />
-            </View>
+            </AuthCard>
           ) : (
-            <View style={styles.card}>
+            <AuthCard>
               <Text variant="sectionTitle" accessibilityRole="header">
                 Choose a new password
               </Text>
@@ -164,47 +158,11 @@ export default function ResetPasswordScreen() {
                 onPress={() => void handleSubmit()}
                 disabled={pending}
               />
-            </View>
+            </AuthCard>
           )}
         </View>
       </ScrollView>
     </View>
-  );
-}
-
-function ActionButton({
-  label,
-  onPress,
-  disabled,
-}: {
-  label: string;
-  onPress: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ disabled, busy: disabled }}
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.action,
-        pressed && styles.pressed,
-        disabled && styles.disabled,
-      ]}
-    >
-      <Text variant="buttonLabel">{label}</Text>
-    </Pressable>
-  );
-}
-
-function AuthField({ style, ...rest }: TextInputProps) {
-  return (
-    <TextInput
-      placeholderTextColor={Brand.rowText}
-      {...rest}
-      style={[TextStyles.fieldText, styles.field, style]}
-    />
   );
 }
 
@@ -243,30 +201,5 @@ const styles = StyleSheet.create({
     maxWidth: 342,
     marginTop: 40,
     gap: Spacing.three,
-  },
-  card: {
-    padding: Spacing.four,
-    borderRadius: 20,
-    backgroundColor: Brand.surface,
-    gap: Spacing.three,
-  },
-  field: {
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 15,
-    backgroundColor: Brand.field,
-  },
-  action: {
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 15,
-    backgroundColor: Brand.accent,
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  disabled: {
-    opacity: 0.5,
   },
 });

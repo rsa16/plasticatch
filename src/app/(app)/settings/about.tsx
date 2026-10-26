@@ -6,6 +6,7 @@ import { useBottomBarHeight } from '@/components/bottom-menu';
 import { MenuScreen } from '@/components/menu-screen';
 import { ScrollPane } from '@/components/scroll-pane';
 import { Text } from '@/components/text';
+import { supportEmail } from '@/constants/legal';
 import { DATA_SOURCES } from '@/constants/map';
 import { Brand, Spacing } from '@/constants/theme';
 
@@ -14,6 +15,7 @@ const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 /** Data sources / About: the attribution surface reachable from the map on every visit. */
 export default function AboutScreen() {
   const barHeight = useBottomBarHeight();
+  const support = supportEmail();
 
   return (
     <MenuScreen title="ABOUT">
@@ -47,6 +49,7 @@ export default function AboutScreen() {
               label="Build"
               value={`Expo ${Constants.expoConfig?.sdkVersion ?? 'SDK 58'} · React Native client`}
             />
+            {support && <Field label="Support" value={support} />}
             <Text variant="body">
               Debris Tracker data is demo-only until written attribution permission is confirmed.
               OpenLitterMap data is ODbL-licensed and kept in its own table and map layer.

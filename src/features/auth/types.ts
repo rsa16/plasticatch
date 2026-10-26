@@ -93,6 +93,17 @@ export function onboardingStartRoute(profile: Profile | null): '/profile' | '/ho
   return profile?.username ? '/home-state' : '/profile';
 }
 
+/**
+ * Where a successful sign-in should land.
+ *
+ * A complete profile goes to the entry gate, which resolves to the Map. An incomplete one
+ * resumes onboarding at the first missing step instead of assuming that every sign-in still
+ * needs a username.
+ */
+export function postSignInRoute(profile: Profile | null): '/' | '/profile' | '/home-state' {
+  return needsOnboarding(profile) ? onboardingStartRoute(profile) : '/';
+}
+
 /** A Supabase-shaped auth error, kept structural so fakes stay simple. */
 export type AuthErrorLike = { message: string; code?: string | null } | null;
 

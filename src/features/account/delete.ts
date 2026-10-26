@@ -6,13 +6,13 @@ import { canDeleteAccount, type DeleteGate } from './gate';
 export const DELETE_ACCOUNT_FUNCTION = 'delete-account';
 
 export const DELETE_NOT_READY_MESSAGE =
-  'Re-authenticate and type your username before deleting your account.';
+  'Re-authenticate and type the confirmation before deleting your account.';
 
 export const DELETE_REAUTH_REQUIRED_MESSAGE =
   'Your sign-in is no longer fresh. Re-authenticate and try again. Your account has not been deleted.';
 
 export const DELETE_CONFIRMATION_MISMATCH_MESSAGE =
-  "That doesn't match your username. Check the spelling and try again. Your account has not been deleted.";
+  "That doesn't match the confirmation. Check the spelling and try again. Your account has not been deleted.";
 
 export const DELETE_SESSION_INVALID_MESSAGE =
   'Your session has expired. Sign in again before deleting your account.';

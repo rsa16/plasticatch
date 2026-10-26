@@ -16,6 +16,7 @@ export {
 } from './delete';
 export {
   REAUTH_WINDOW_MS,
+  USERNAME_LESS_CONFIRMATION,
   canDeleteAccount,
   confirmationMatches,
   isReauthFresh,

@@ -79,10 +79,13 @@ describe('confirmationMatches', () => {
     expect(confirmationMatches('crypticcatch', 'cryptic catch')).toBe(false);
   });
 
-  it('never matches when the account has no username', () => {
+  it('requires the literal DELETE when the account has no username', () => {
+    expect(confirmationMatches(null, 'DELETE')).toBe(true);
+    expect(confirmationMatches(null, '  DELETE  ')).toBe(true);
+    expect(confirmationMatches('', 'DELETE')).toBe(true);
+    expect(confirmationMatches(null, 'delete')).toBe(false);
     expect(confirmationMatches(null, '')).toBe(false);
-    expect(confirmationMatches(null, 'DELETE')).toBe(false);
-    expect(confirmationMatches('', '')).toBe(false);
+    expect(confirmationMatches('', 'crypticcatch')).toBe(false);
   });
 });
 
@@ -131,6 +134,26 @@ describe('canDeleteAccount', () => {
       canDeleteAccount({
         username: 'crypticcatch',
         confirmation: 'crypticcatch',
+        reauthenticatedAt: null,
+        now,
+      }),
+    ).toBe(false);
+  });
+
+  it('opens for a username-less account only with DELETE and a fresh sign-in', () => {
+    expect(
+      canDeleteAccount({
+        username: null,
+        confirmation: 'DELETE',
+        reauthenticatedAt: fresh,
+        now,
+      }),
+    ).toBe(true);
+
+    expect(
+      canDeleteAccount({
+        username: null,
+        confirmation: 'DELETE',
         reauthenticatedAt: null,
         now,
       }),

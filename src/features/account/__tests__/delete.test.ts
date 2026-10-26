@@ -124,6 +124,22 @@ describe('deleteAccount', () => {
     expect(transport).toHaveBeenCalledWith('crypticcatch');
   });
 
+  it('lets a username-less account confirm with DELETE', async () => {
+    const transport = transportReturning(response(200, { success: true, account_deleted: true }));
+
+    const outcome = await deleteAccount(
+      {
+        username: null,
+        confirmation: 'DELETE',
+        reauthenticatedAt: FRESH,
+      },
+      { transport, now: () => NOW },
+    );
+
+    expect(outcome).toStrictEqual({ status: 'success' });
+    expect(transport).toHaveBeenCalledWith('DELETE');
+  });
+
   it('turns a transport failure into an error without throwing', async () => {
     const transport = jest.fn(async () => {
       throw new Error('network down');

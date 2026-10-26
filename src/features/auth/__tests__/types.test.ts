@@ -3,6 +3,7 @@ import {
   mapProfileRow,
   needsOnboarding,
   onboardingStartRoute,
+  postSignInRoute,
 } from '@/features/auth/types';
 
 const row = {
@@ -90,5 +91,17 @@ describe('onboardingStartRoute', () => {
     expect(onboardingStartRoute(null)).toBe('/profile');
     expect(onboardingStartRoute(mapProfileRow({ ...row, username: null }))).toBe('/profile');
     expect(onboardingStartRoute(mapProfileRow({ ...row, home_state: null }))).toBe('/home-state');
+  });
+});
+
+describe('postSignInRoute', () => {
+  it('sends a complete profile through the entry gate', () => {
+    expect(postSignInRoute(mapProfileRow(row))).toBe('/');
+  });
+
+  it('resumes onboarding at the first missing step', () => {
+    expect(postSignInRoute(null)).toBe('/profile');
+    expect(postSignInRoute(mapProfileRow({ ...row, username: null }))).toBe('/profile');
+    expect(postSignInRoute(mapProfileRow({ ...row, home_state: null }))).toBe('/home-state');
   });
 });

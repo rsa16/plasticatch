@@ -2,8 +2,9 @@
  * The client-side gate for permanent account deletion.
  *
  * The server independently enforces the same two conditions: a sign-in inside its 5-minute
- * `auth_time` window and a confirmation matching the stored username. These checks only decide
- * when the destructive control may be used; they never replace the server's checks.
+ * `auth_time` window and a confirmation matching the stored username (or the literal `DELETE`
+ * when the account has none). These checks only decide when the destructive control may be
+ * used; they never replace the server's checks.
  */
 
 /** Mirrors `MAX_AUTH_AGE_SECONDS` in the `delete-account` Edge Function. */
@@ -47,10 +48,20 @@ export function reauthMethodFor(user: AccountUser | null | undefined): ReauthMet
   return null;
 }
 
-/** Whether the typed confirmation is exactly the stored username, ignoring only stray spaces. */
+/** The literal word the server accepts when the account has no username to type. */
+export const USERNAME_LESS_CONFIRMATION = 'DELETE';
+
+/**
+ * Whether the typed confirmation proves intent.
+ *
+ * The server compares against the stored username, or the literal `DELETE` when the account has
+ * none (for example an account created before a username was claimed). Surrounding whitespace is
+ * ignored because the server trims it too.
+ */
 export function confirmationMatches(username: string | null | undefined, typed: string): boolean {
-  if (!username) return false;
-  return typed.trim() === username;
+  const confirmation = typed.trim();
+  if (!username) return confirmation === USERNAME_LESS_CONFIRMATION;
+  return confirmation === username;
 }
 
 /** Whether a successful re-authentication is still inside the server's 5-minute window. */
