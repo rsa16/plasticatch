@@ -8,11 +8,10 @@ import Mapbox, {
   type CircleLayerStyle,
   type MapState,
 } from '@rnmapbox/maps';
-import { Image } from 'expo-image';
 import { useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { storedAvatarHead } from '@/components/avatar-art';
+import { AvatarHead } from '@/components/avatar-head';
 import {
   MATERIAL_COLORS,
   MATERIAL_GROUPS,
@@ -123,11 +122,7 @@ export function MapCanvas({
             coordinate={[playerPosition.longitude, playerPosition.latitude]}
           >
             <View style={styles.marker}>
-              <Image
-                source={storedAvatarHead(avatar)}
-                style={styles.markerHead}
-                contentFit="cover"
-              />
+              <AvatarHead avatar={avatar} size={32} />
             </View>
           </PointAnnotation>
         )}
@@ -150,10 +145,5 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#ffffff',
     backgroundColor: '#378765',
-  },
-  markerHead: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
   },
 });

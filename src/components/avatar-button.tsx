@@ -1,8 +1,7 @@
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet } from 'react-native';
 
-import { storedAvatarHead } from '@/components/avatar-art';
+import { AvatarHead } from '@/components/avatar-head';
 import { Spacing } from '@/constants/theme';
 import { useSessionStore } from '@/features/auth';
 
@@ -35,7 +34,7 @@ export function AvatarButton({ top, side }: AvatarButtonProps) {
         pressed && styles.pressed,
       ]}
     >
-      <Image source={storedAvatarHead(avatar)} style={styles.head} contentFit="cover" />
+      <AvatarHead avatar={avatar} size={HEAD_SIZE} />
     </Pressable>
   );
 }
@@ -53,11 +52,6 @@ const styles = StyleSheet.create({
   },
   right: {
     right: Spacing.one,
-  },
-  head: {
-    width: HEAD_SIZE,
-    height: HEAD_SIZE,
-    borderRadius: HEAD_SIZE / 2,
   },
   pressed: {
     opacity: 0.7,

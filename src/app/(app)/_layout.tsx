@@ -46,6 +46,8 @@ export default function AppLayout() {
       {/* Settings account rows. Not tabs: the custom bar only lists APP_TABS. */}
       <Tabs.Screen name="settings/username" />
       <Tabs.Screen name="settings/home-state" />
+      {/* Avatar picker, reached from the Settings Avatar row. */}
+      <Tabs.Screen name="settings/avatar" />
     </Tabs>
   );
 }

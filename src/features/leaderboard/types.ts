@@ -9,6 +9,8 @@ export type LeaderboardEntry = {
   rank: number;
   username: string;
   xp: number;
+  /** The player's stored avatar; `null` renders the neutral head. */
+  avatar: Record<string, string> | null;
 };
 
 /** What a board source supplies for one cohort. */

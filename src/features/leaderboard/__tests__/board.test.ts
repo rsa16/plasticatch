@@ -28,9 +28,9 @@ describe('leaderboard cohorts', () => {
   it('drops a visible row whose rank is the viewer’s own rank', () => {
     const standings = board('state', {
       entries: [
-        { rank: 1, username: 'leader', xp: 90 },
-        { rank: 4, username: 'viewer', xp: 40 },
-        { rank: 5, username: 'next', xp: 35 },
+        { rank: 1, username: 'leader', xp: 90, avatar: null },
+        { rank: 4, username: 'viewer', xp: 40, avatar: null },
+        { rank: 5, username: 'next', xp: 35, avatar: null },
       ],
       ownRank: 4,
     });

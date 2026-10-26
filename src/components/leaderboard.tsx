@@ -1,9 +1,10 @@
-import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 
-import { Text } from '@/components/text';
+import { AvatarHead } from '@/components/avatar-head';
 import { ScrollPane } from '@/components/scroll-pane';
+import { Text } from '@/components/text';
 import { Brand } from '@/constants/theme';
+import { useSessionStore } from '@/features/auth';
 import type { LeaderboardEntry } from '@/features/leaderboard';
 
 type LeaderboardListProps = {
@@ -44,11 +45,7 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
         {entry.rank}
       </Text>
       <View style={styles.person}>
-        <Image
-          source={require('@/assets/images/leaderboard-avatar.png')}
-          style={styles.avatar}
-          contentFit="cover"
-        />
+        <AvatarHead avatar={entry.avatar} size={32} />
         <Text variant="body" style={styles.username} numberOfLines={1}>
           {entry.username}
         </Text>
@@ -60,6 +57,8 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
 
 /** The viewer's own rank, pinned below the visible rows so it is always on screen. */
 function OwnRankRow({ ownRank }: { ownRank: number }) {
+  const avatar = useSessionStore((state) => state.profile?.avatar ?? null);
+
   return (
     <View
       style={[styles.row, styles.rowCurrent]}
@@ -70,6 +69,7 @@ function OwnRankRow({ ownRank }: { ownRank: number }) {
         {ownRank}
       </Text>
       <View style={styles.person}>
+        <AvatarHead avatar={avatar} size={32} />
         <Text variant="body" color="rowTextStrong">
           Your rank
         </Text>
@@ -115,10 +115,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     marginLeft: 5,
-  },
-  avatar: {
-    width: 32,
-    height: 32,
   },
   username: {
     flexShrink: 1,

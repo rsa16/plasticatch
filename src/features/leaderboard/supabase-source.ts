@@ -1,4 +1,5 @@
 import { getSupabase } from '@/lib/supabase';
+import { avatarFromJson } from '@/features/auth';
 
 import type { BoardSource, BoardStandings, Cohort, LeaderboardRow } from './types';
 
@@ -17,6 +18,7 @@ export function standingsFromRows(rows: readonly LeaderboardRow[]): BoardStandin
       rank: Number(row.rank),
       username: row.username ?? 'Player',
       xp: Number(row.score),
+      avatar: avatarFromJson(row.avatar),
     }));
 
   return { entries, ownRank: viewer ? Number(viewer.rank) : null };

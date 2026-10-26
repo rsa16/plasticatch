@@ -24,9 +24,9 @@ describe('standingsFromRows', () => {
     ]);
 
     expect(standings.entries).toStrictEqual([
-      { rank: 1, username: 'alpha', xp: 90 },
-      { rank: 2, username: 'bravo', xp: 80 },
-      { rank: 7, username: 'charlie', xp: 20 },
+      { rank: 1, username: 'alpha', xp: 90, avatar: null },
+      { rank: 2, username: 'bravo', xp: 80, avatar: null },
+      { rank: 7, username: 'charlie', xp: 20, avatar: null },
     ]);
     expect(standings.ownRank).toBeNull();
   });
@@ -37,8 +37,24 @@ describe('standingsFromRows', () => {
       row({ rank: 124, username: 'me', is_viewer: true }),
     ]);
 
-    expect(standings.entries).toStrictEqual([{ rank: 1, username: 'alpha', xp: 100 }]);
+    expect(standings.entries).toStrictEqual([
+      { rank: 1, username: 'alpha', xp: 100, avatar: null },
+    ]);
     expect(standings.ownRank).toBe(124);
+  });
+
+  it('maps the stored avatar onto the row and keeps null for a missing one', () => {
+    const standings = standingsFromRows([
+      row({ rank: 1, avatar: { hair: 'hair_3', skin: 'skin_2', shirt: 'shirt_4' } }),
+      row({ rank: 2, avatar: 'not-json' }),
+    ]);
+
+    expect(standings.entries[0]?.avatar).toStrictEqual({
+      hair: 'hair_3',
+      skin: 'skin_2',
+      shirt: 'shirt_4',
+    });
+    expect(standings.entries[1]?.avatar).toBeNull();
   });
 
   it('substitutes a placeholder for a null username', () => {
