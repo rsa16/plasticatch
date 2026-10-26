@@ -53,6 +53,26 @@ npx supabase functions deploy delete-account
 npx supabase secrets set --env-file .env.local
 ```
 
+## Contracts
+
+### Gallery pagination cursor
+
+`gallery-feed` paginates on **`(verdict_at, id)`**, newest first. It does *not* use
+`(caught_at, id)`: `catches` has no `caught_at` column, and adding one would duplicate
+`verdict_at`. Clients treat `next_cursor` as opaque and must not construct cursors themselves.
+
+### Leaderboard tie-break
+
+`get_leaderboard('state')` orders by period XP, then by **when the final period score was first
+reached**, then lifetime XP, username and user id. The reach time is computed from running totals,
+not from the last event timestamp, so a zero-delta event after the final score cannot change ties.
+
+### Profile writes
+
+`profiles` has no client `UPDATE` policy. Writes go through `update_my_profile`, which only touches
+the caller's row and only the player-owned fields (home state, avatar, age/consent stamps). Trust,
+XP, level, streaks and username are unreachable from it.
+
 ## What is not in this repository
 
 - No `service_role` key, DB password, access token, or project secret.
