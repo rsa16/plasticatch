@@ -39,7 +39,8 @@ export default function AuthCallbackScreen() {
       .join('&');
 
     void completeOAuth(`${OAUTH_REDIRECT_URL}${query ? `?${query}` : ''}`).then((outcome) => {
-      router.replace(outcome.status === 'success' ? '/map' : '/sign-in');
+      // The entry gate decides between finishing onboarding and the map.
+      router.replace(outcome.status === 'success' ? '/' : '/sign-in');
     });
   }, [completeOAuth, params.code, params.error, params.error_description]);
 

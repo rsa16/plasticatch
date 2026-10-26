@@ -6,14 +6,18 @@ import { Alert, Pressable, StyleSheet, View, type StyleProp } from 'react-native
 import { Text } from '@/components/text';
 import { BottomTabInset, Brand, Spacing } from '@/constants/theme';
 import { useSessionStore } from '@/features/auth';
+import { admit } from '@/features/onboarding/age';
+import { useOnboardingDraftStore } from '@/features/onboarding/draft';
+import { markAgeVerified } from '@/features/onboarding/profile-service';
 
 // `replace` keeps sign-in out of the history so users can't navigate back to it.
 function continueToOnboarding() {
-  router.replace('/date-of-birth');
+  router.replace('/profile');
 }
 
 export default function SignInScreen() {
   const signInWithGoogle = useSessionStore((state) => state.signInWithGoogle);
+  const refreshProfile = useSessionStore((state) => state.refreshProfile);
   const [pending, setPending] = useState(false);
 
   // Google is the only configured provider. The age gate has already run by the time this
@@ -24,7 +28,16 @@ export default function SignInScreen() {
 
     try {
       const outcome = await signInWithGoogle();
-      if (outcome.status === 'success') continueToOnboarding();
+
+      if (outcome.status === 'success') {
+        // The age gate already ran, so stamp the account as verified and continue onboarding.
+        const { dateOfBirth } = useOnboardingDraftStore.getState();
+        if (dateOfBirth && admit(dateOfBirth, new Date())) {
+          await markAgeVerified().catch(() => undefined);
+        }
+        await refreshProfile();
+        continueToOnboarding();
+      }
       if (outcome.status === 'error') Alert.alert('Sign-in failed', outcome.message);
     } finally {
       setPending(false);
