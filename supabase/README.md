@@ -10,8 +10,9 @@ deployed state rather than from a replayed migration chain (see `migrations/READ
 
 ## Edge Functions
 
-Each function is committed verbatim from the deployed source. Do not hand-edit a deployed function
-without a matching deploy.
+Each of the three original functions (`verify-catch`, `gallery-feed`, `delete-account`) is committed
+verbatim from the deployed source. Do not hand-edit a deployed function without a matching deploy.
+`verify-photo` is the exception: it is authored in this repo and is **not deployed yet** (see below).
 
 | Function | Entry point | Auth | Purpose |
 | -------- | ----------- | ---- | ------- |
