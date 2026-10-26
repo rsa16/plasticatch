@@ -1,7 +1,7 @@
 import { MAP_PIN_PAGE_LIMIT } from '@/constants/map';
 
-import { fetchViewportPins, type PinsClient } from '../source';
-import type { LitterPinRow } from '../pin';
+import { fetchOlmViewportPins, fetchViewportPins, type PinsClient } from '../source';
+import type { LitterPinRow, OlmPinRow } from '../pin';
 
 const VIEWPORT = { west: -123, south: 45, east: -122, north: 46 };
 
@@ -104,5 +104,65 @@ describe('fetchViewportPins', () => {
     const page = await fetchViewportPins(client, { viewport: VIEWPORT, stateCode: null });
 
     expect(page.pins.map((pin) => pin.id)).toEqual([1]);
+  });
+});
+
+function olmRow(id: number): OlmPinRow {
+  return {
+    ...row(id),
+    source: 'openlittermap',
+    source_id: `olm-${id}`,
+    license: 'ODbL-1.0',
+    attribution: 'OpenLitterMap (openlittermap.com), ODbL 1.0',
+  };
+}
+
+describe('fetchOlmViewportPins', () => {
+  it('reads the isolated OLM table with the same bbox, active and state scope', async () => {
+    const { client, calls } = fakeClient([{ data: [olmRow(11)], error: null }]);
+
+    const page = await fetchOlmViewportPins(client, { viewport: VIEWPORT, stateCode: 'PA' });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe('get_olm_pins_in_viewport');
+    expect(calls[0].params).toMatchObject({
+      p_west: -123,
+      p_south: 45,
+      p_east: -122,
+      p_north: 46,
+      p_active_only: true,
+      p_state_code: 'PA',
+      p_limit: MAP_PIN_PAGE_LIMIT,
+    });
+    expect(page.pins[0]).toMatchObject({
+      source: 'openlittermap',
+      sourceLabel: 'OpenLitterMap',
+      license: 'ODbL-1.0',
+    });
+  });
+
+  it('follows the same two-page viewport cap as Debris Tracker', async () => {
+    const firstPage = Array.from({ length: MAP_PIN_PAGE_LIMIT }, (_, index) => olmRow(index + 1));
+    const secondPage = Array.from({ length: MAP_PIN_PAGE_LIMIT }, (_, index) =>
+      olmRow(MAP_PIN_PAGE_LIMIT + index + 1),
+    );
+    const { client, calls } = fakeClient([
+      { data: firstPage, error: null },
+      { data: secondPage, error: null },
+    ]);
+
+    const page = await fetchOlmViewportPins(client, { viewport: VIEWPORT, stateCode: null });
+
+    expect(calls).toHaveLength(2);
+    expect(page.pins).toHaveLength(MAP_PIN_PAGE_LIMIT * 2);
+    expect(page.truncated).toBe(true);
+  });
+
+  it('throws a readable error when the OLM RPC fails', async () => {
+    const { client } = fakeClient([{ data: null, error: { message: 'Invalid state code' } }]);
+
+    await expect(
+      fetchOlmViewportPins(client, { viewport: VIEWPORT, stateCode: 'ZZ' }),
+    ).rejects.toThrow('map_olm_pins_failed: Invalid state code');
   });
 });

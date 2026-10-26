@@ -1,11 +1,13 @@
 import Mapbox, {
   Camera,
   CircleLayer,
+  FillLayer,
   MapView,
   PointAnnotation,
   ShapeSource,
   StyleURL,
   type CircleLayerStyle,
+  type FillLayerStyle,
   type MapState,
 } from '@rnmapbox/maps';
 import { useRef } from 'react';
@@ -13,12 +15,16 @@ import { StyleSheet, View } from 'react-native';
 
 import { AvatarHead } from '@/components/avatar-head';
 import {
-  MATERIAL_COLORS,
-  MATERIAL_GROUPS,
+  EPA_RISK_COLORS,
+  EPA_RISK_OPACITY,
   MAP_DEFAULT_CENTER,
   MAP_DEFAULT_ZOOM,
+  MATERIAL_COLORS,
+  MATERIAL_GROUPS,
+  OLM_PIN_COLOR,
 } from '@/constants/map';
 import { pinFeatureCollection } from '@/features/map/pin';
+import { riskFeatureCollection } from '@/features/map/risk';
 import { MAPBOX_TOKEN } from '@/features/map/token';
 import { viewportFromVisibleBounds } from '@/features/map/viewport';
 
@@ -35,15 +41,29 @@ const PIN_COLOR_EXPRESSION = [
   MATERIAL_COLORS.other,
 ] as CircleLayerStyle['circleColor'];
 
+const RISK_COLOR_EXPRESSION = [
+  'interpolate',
+  ['linear'],
+  ['get', 'density'],
+  1.5,
+  EPA_RISK_COLORS.low,
+  3.5,
+  EPA_RISK_COLORS.mid,
+  6.2,
+  EPA_RISK_COLORS.high,
+] as FillLayerStyle['fillColor'];
+
 /**
  * The real Mapbox surface (iOS/Android).
  *
- * Kept in a `.native.tsx` file so the web export never bundles `@rnmapbox/maps`. It renders the
- * DT pins as one GeoJSON source with a material-keyed circle layer, and the player's avatar head
- * as a single point annotation.
+ * Kept in a `.native.tsx` file so the web export never bundles `@rnmapbox/maps`. Three layers are
+ * deliberately separate: EPA modeled cells sit at the bottom and are never interactive,
+ * OpenLitterMap pins sit above them under their own toggle, and Debris Tracker pins stay on top.
  */
 export function MapCanvas({
   pins,
+  olmPins,
+  riskCells,
   playerPosition,
   avatar,
   onViewportChange,
@@ -67,6 +87,13 @@ export function MapCanvas({
 
   function handleMapIdle(_state: MapState) {
     void reportViewport();
+  }
+
+  function handlePinPress(featureSource: 'debris_tracker' | 'openlittermap') {
+    return (event: { features: { properties?: Record<string, unknown> | null }[] }) => {
+      const id = Number(event.features[0]?.properties?.pin_id);
+      if (Number.isFinite(id)) onPinPress(id, featureSource);
+    };
   }
 
   return (
@@ -94,14 +121,45 @@ export function MapCanvas({
           }}
         />
 
+        {/* EPA modeled grid: a low-opacity density fill with no press handler anywhere. */}
+        {riskCells.length > 0 && (
+          <ShapeSource id="epa-risk" shape={riskFeatureCollection(riskCells)}>
+            <FillLayer
+              id="epa-risk-fill"
+              style={{
+                fillColor: RISK_COLOR_EXPRESSION,
+                fillOpacity: EPA_RISK_OPACITY,
+                fillOutlineColor: 'rgba(47, 125, 99, 0.18)',
+              }}
+            />
+          </ShapeSource>
+        )}
+
+        {/* ODbL-isolated OpenLitterMap pins: own source, own hue, own press target. */}
+        {olmPins.length > 0 && (
+          <ShapeSource
+            id="olm-pins"
+            shape={pinFeatureCollection(olmPins)}
+            onPress={handlePinPress('openlittermap')}
+          >
+            <CircleLayer
+              id="olm-pins-circles"
+              style={{
+                circleColor: OLM_PIN_COLOR,
+                circleRadius: 5,
+                circleStrokeColor: '#ffffff',
+                circleStrokeWidth: 1.25,
+                circleOpacity: 0.9,
+              }}
+            />
+          </ShapeSource>
+        )}
+
         {pins.length > 0 && (
           <ShapeSource
             id="litter-pins"
             shape={pinFeatureCollection(pins)}
-            onPress={(event) => {
-              const id = Number(event.features[0]?.properties?.pin_id);
-              if (Number.isFinite(id)) onPinPress(id);
-            }}
+            onPress={handlePinPress('debris_tracker')}
           >
             <CircleLayer
               id="litter-pins-circles"

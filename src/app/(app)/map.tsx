@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AvatarButton } from '@/components/avatar-button';
 import { useBottomBarHeight } from '@/components/bottom-menu';
@@ -10,18 +10,27 @@ import { MenuScreen } from '@/components/menu-screen';
 import { useMenuTitleTop } from '@/components/screen-frame';
 import { Text } from '@/components/text';
 import {
+  EPA_RISK_ATTRIBUTION,
+  EPA_RISK_LABEL,
   MATERIAL_COLORS,
   MATERIAL_GROUPS,
   MATERIAL_LABELS,
   MAPBOX_TOKEN_ENV,
+  SOURCE_META,
 } from '@/constants/map';
 import { Brand, Spacing } from '@/constants/theme';
 import { useSessionStore } from '@/features/auth';
 import {
+  DEFAULT_LAYERS,
   isSparsePinView,
+  toggleSecondaryLayer,
   useMapPins,
+  useOlmPins,
+  useRiskAreas,
   stateScope,
+  type LayerState,
   type MapPin,
+  type SecondaryLayer,
   type Viewport,
 } from '@/features/map';
 import { usePlayerLocation } from '@/features/map/location';
@@ -41,13 +50,16 @@ export default function MapScreen() {
 
   const [viewport, setViewport] = useState<Viewport | null>(null);
   const [myState, setMyState] = useState(true);
+  const [layers, setLayers] = useState<LayerState>(DEFAULT_LAYERS);
   const [layersOpen, setLayersOpen] = useState(false);
-  const [selectedPin, setSelectedPin] = useState<MapPin | null>(null);
+  const [selected, setSelected] = useState<{ pin: MapPin; source: string } | null>(null);
   const [mapError, setMapError] = useState(false);
   const [mapAttempt, setMapAttempt] = useState(0);
 
   const scope = stateScope(myState, profile?.homeState);
   const query = useMapPins(viewport, scope);
+  const olmQuery = useOlmPins(viewport, scope, layers);
+  const riskQuery = useRiskAreas(viewport, scope, layers);
 
   // Keep the last successful viewport on screen while a new one loads or after it fails.
   const [cache, setCache] = useState<{ page: typeof query.data; pins: MapPin[] }>({
@@ -59,6 +71,9 @@ export default function MapScreen() {
   }
 
   const pins = query.data?.pins ?? cache.pins;
+  const olmPins = layers.olm ? (olmQuery.data?.pins ?? []) : [];
+  const riskCells = layers.epa ? (riskQuery.data ?? []) : [];
+  const selectedPin = selected?.pin ?? null;
   const loading = Boolean(viewport) && query.isLoading;
   const failed = query.isError || mapError;
   const busy = loading || !tokenPresent;
@@ -74,8 +89,26 @@ export default function MapScreen() {
   }
 
   function toggleMyState() {
-    setSelectedPin(null);
+    setSelected(null);
     setMyState((enabled) => !enabled);
+  }
+
+  function toggleLayer(layer: SecondaryLayer) {
+    const next = toggleSecondaryLayer(layers, layer);
+
+    // Turning a layer off must also dismiss a sheet that belongs to it.
+    if (!next[layer]) {
+      const source = layer === 'olm' ? 'openlittermap' : 'epa';
+      if (selected?.source === source) setSelected(null);
+    }
+
+    setLayers(next);
+  }
+
+  function selectPin(pinId: number, source: string) {
+    const candidates = source === 'openlittermap' ? olmPins : pins;
+    const pin = candidates.find((candidate) => candidate.id === pinId);
+    if (pin) setSelected({ pin, source });
   }
 
   return (
@@ -89,14 +122,13 @@ export default function MapScreen() {
               <MapCanvas
                 key={mapAttempt}
                 pins={pins}
+                olmPins={olmPins}
+                riskCells={riskCells}
                 playerPosition={position}
                 avatar={profile?.avatar ?? null}
                 pinsLoading={busy}
                 onViewportChange={setViewport}
-                onPinPress={(pinId) => {
-                  const pin = pins.find((candidate) => candidate.id === pinId);
-                  if (pin) setSelectedPin(pin);
-                }}
+                onPinPress={selectPin}
                 onError={() => setMapError(true)}
               />
             ) : (
@@ -181,30 +213,57 @@ export default function MapScreen() {
             <Text variant="sectionTitle" accessibilityRole="header">
               Layers
             </Text>
-            <LayerRow title="Debris Tracker" detail="Active pins in this viewport" badge="ON" />
-            <LayerRow
-              title="OpenLitterMap"
-              detail="Own toggle — layer arrives with ticket 33"
-              badge="SOON"
-            />
-            <LayerRow
-              title="EPA risk"
-              detail="Modeled estimate — toggle-only, never clickable"
-              badge="SOON"
-            />
-            <View style={styles.legend}>
-              {MATERIAL_GROUPS.map((group) => (
-                <View key={group} style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: MATERIAL_COLORS[group] }]} />
-                  <Text variant="caption">{MATERIAL_LABELS[group]}</Text>
-                </View>
-              ))}
-            </View>
+            <ScrollView style={styles.layersScroll} contentContainerStyle={styles.layersList}>
+              <LayerRow
+                title="Debris Tracker"
+                detail="Active ground-truth pins in this viewport"
+                badge="ON"
+                attribution={SOURCE_META.debris_tracker.attribution}
+              />
+              <LayerToggle
+                title="OpenLitterMap"
+                detail="Ground truth — own toggle, ODbL-licensed"
+                enabled={layers.olm}
+                disabled={busy}
+                attribution={SOURCE_META.openlittermap.attribution}
+                note={
+                  layers.olm && olmQuery.isError
+                    ? "Couldn't load OpenLitterMap pins."
+                    : layers.olm && olmPins.length === 0
+                      ? 'No OpenLitterMap pins in this view.'
+                      : undefined
+                }
+                onToggle={() => toggleLayer('olm')}
+              />
+              <LayerToggle
+                title="EPA risk"
+                detail={EPA_RISK_LABEL}
+                enabled={layers.epa}
+                disabled={busy}
+                attribution={EPA_RISK_ATTRIBUTION}
+                note={
+                  layers.epa && riskQuery.isError
+                    ? "Couldn't load the EPA risk layer."
+                    : layers.epa && riskCells.length === 0
+                      ? 'No modeled EPA cells in this view.'
+                      : 'Toggle-only — never clickable.'
+                }
+                onToggle={() => toggleLayer('epa')}
+              />
+              <View style={styles.legend}>
+                {MATERIAL_GROUPS.map((group) => (
+                  <View key={group} style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: MATERIAL_COLORS[group] }]} />
+                    <Text variant="caption">{MATERIAL_LABELS[group]}</Text>
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
           </View>
         )}
 
         {selectedPin && (
-          <PinSheet pin={selectedPin} bottom={barHeight + 8} onClose={() => setSelectedPin(null)} />
+          <PinSheet pin={selectedPin} bottom={barHeight + 8} onClose={() => setSelected(null)} />
         )}
       </View>
       <AvatarButton top={titleTop + AVATAR_OFFSET} side="left" />
@@ -272,19 +331,84 @@ function StatusCard({
   );
 }
 
-function LayerRow({ title, detail, badge }: { title: string; detail: string; badge: string }) {
+function LayerRow({
+  title,
+  detail,
+  badge,
+  attribution,
+}: {
+  title: string;
+  detail: string;
+  badge: string;
+  attribution: string;
+}) {
   return (
-    <View style={styles.layerRow} accessible accessibilityLabel={`${title}. ${detail}. ${badge}`}>
+    <View
+      style={styles.layerRow}
+      accessible
+      accessibilityLabel={`${title}. ${detail}. ${badge}. ${attribution}`}
+    >
       <View style={styles.layerText}>
         <Text variant="caption" style={styles.layerTitle}>
           {title}
         </Text>
         <Text variant="body">{detail}</Text>
+        <Text variant="caption" style={styles.layerAttribution}>
+          {attribution}
+        </Text>
       </View>
       <View style={[styles.badge, badge === 'ON' && styles.badgeOn]}>
         <Text variant="caption">{badge}</Text>
       </View>
     </View>
+  );
+}
+
+function LayerToggle({
+  title,
+  detail,
+  enabled,
+  disabled,
+  attribution,
+  note,
+  onToggle,
+}: {
+  title: string;
+  detail: string;
+  enabled: boolean;
+  disabled: boolean;
+  attribution: string;
+  note?: string;
+  onToggle: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityLabel={`${title} layer`}
+      accessibilityHint={detail}
+      accessibilityState={{ checked: enabled, disabled }}
+      disabled={disabled}
+      onPress={onToggle}
+      style={({ pressed }) => [styles.layerRow, (pressed || disabled) && styles.dimmed]}
+    >
+      <View style={styles.layerText}>
+        <Text variant="caption" style={styles.layerTitle}>
+          {title}
+        </Text>
+        <Text variant="body">{detail}</Text>
+        <Text variant="caption" style={styles.layerAttribution}>
+          {attribution}
+        </Text>
+        {note && (
+          <Text variant="caption" style={styles.layerNote}>
+            {note}
+          </Text>
+        )}
+      </View>
+      <View style={[styles.badge, enabled && styles.badgeOn]}>
+        <Text variant="caption">{enabled ? 'ON' : 'OFF'}</Text>
+      </View>
+    </Pressable>
   );
 }
 
@@ -419,10 +543,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: Spacing.three,
     right: Spacing.three,
+    maxHeight: 420,
     gap: Spacing.two,
     padding: Spacing.four,
     borderRadius: 24,
     backgroundColor: 'rgba(247, 248, 247, 0.98)',
+  },
+  layersScroll: {
+    flexGrow: 0,
+  },
+  layersList: {
+    gap: Spacing.two,
   },
   layerRow: {
     flexDirection: 'row',
@@ -436,6 +567,12 @@ const styles = StyleSheet.create({
   },
   layerTitle: {
     fontWeight: '600',
+  },
+  layerAttribution: {
+    color: Brand.rowText,
+  },
+  layerNote: {
+    color: Brand.accent,
   },
   badge: {
     paddingHorizontal: Spacing.two,

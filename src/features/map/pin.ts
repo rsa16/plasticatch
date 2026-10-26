@@ -21,6 +21,13 @@ export type LitterPinRow = {
   confidence: number | string | null;
   state_code: string | null;
   is_active: boolean | null;
+  attribution?: string | null;
+  license?: string | null;
+};
+
+/** A row from `get_olm_pins_in_viewport`; the ODbL table carries its own verified count. */
+export type OlmPinRow = LitterPinRow & {
+  verified?: number | string | null;
 };
 
 /** The view model a pin marker and its detail sheet use. Coordinates stay in the layer payload. */
@@ -86,8 +93,8 @@ export function mapPinRow(row: LitterPinRow): MapPin | null {
     quantity: toNumber(row.quantity) ?? 1,
     confidence: toNumber(row.confidence),
     stateCode: row.state_code?.trim().toUpperCase() || null,
-    attribution: meta.attribution,
-    license: meta.license,
+    attribution: row.attribution?.trim() || meta.attribution,
+    license: row.license?.trim() || meta.license,
   };
 }
 
