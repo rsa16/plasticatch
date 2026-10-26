@@ -2,6 +2,7 @@ import {
   MIN_PASSWORD_LENGTH,
   normalizeEmail,
   validateCredentials,
+  validateNewPassword,
   type CredentialFields,
 } from '@/features/auth/credentials';
 
@@ -56,5 +57,33 @@ describe('validateCredentials', () => {
 
   it('normalises surrounding whitespace in the address', () => {
     expect(normalizeEmail('  player@example.com ')).toBe('player@example.com');
+  });
+});
+
+describe('validateNewPassword', () => {
+  it('accepts a matching password at the minimum length', () => {
+    const password = 'a'.repeat(MIN_PASSWORD_LENGTH);
+
+    expect(validateNewPassword({ password, confirmPassword: password })).toBeNull();
+  });
+
+  it('asks for a new password', () => {
+    expect(validateNewPassword({ password: '', confirmPassword: '' })).toBe(
+      'Enter a new password.',
+    );
+  });
+
+  it('rejects a password shorter than the minimum', () => {
+    const password = 'a'.repeat(MIN_PASSWORD_LENGTH - 1);
+
+    expect(validateNewPassword({ password, confirmPassword: password })).toBe(
+      `Use at least ${MIN_PASSWORD_LENGTH} characters for your password.`,
+    );
+  });
+
+  it('rejects a confirmation that does not match', () => {
+    expect(validateNewPassword({ password: 'secret123', confirmPassword: 'different' })).toBe(
+      "Those passwords don't match.",
+    );
   });
 });

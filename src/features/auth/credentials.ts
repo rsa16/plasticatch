@@ -11,6 +11,12 @@ export type CredentialFields = {
   confirmPassword: string;
 };
 
+/** The new-password fields on the reset screen. */
+export type NewPasswordFields = {
+  password: string;
+  confirmPassword: string;
+};
+
 /** Trim the address the player typed; the store sends exactly this. */
 export function normalizeEmail(email: string): string {
   return email.trim();
@@ -33,11 +39,29 @@ export function validateCredentials(
   if (!password) return 'Enter your password.';
 
   if (mode === 'create') {
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      return `Use at least ${MIN_PASSWORD_LENGTH} characters for your password.`;
-    }
-    if (password !== confirmPassword) return "Those passwords don't match.";
+    return validateNewPassword({ password, confirmPassword });
   }
+
+  return null;
+}
+
+/**
+ * The first local reason a new password cannot be saved, or `null` when it can.
+ *
+ * Same minimum and copy as account creation, so a password accepted here is accepted by the
+ * sign-up form too. Never reaches the network when it fails.
+ */
+export function validateNewPassword({
+  password,
+  confirmPassword,
+}: NewPasswordFields): string | null {
+  if (!password) return 'Enter a new password.';
+
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return `Use at least ${MIN_PASSWORD_LENGTH} characters for your password.`;
+  }
+
+  if (password !== confirmPassword) return "Those passwords don't match.";
 
   return null;
 }

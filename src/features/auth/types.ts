@@ -91,9 +91,10 @@ export type SessionClient = {
       provider: 'google';
       options: { redirectTo: string; skipBrowserRedirect: boolean };
     }): Promise<{ data: { url: string | null }; error: AuthErrorLike }>;
-    exchangeCodeForSession(
-      code: string,
-    ): Promise<{ data: { session: Session | null }; error: AuthErrorLike }>;
+    exchangeCodeForSession(code: string): Promise<{
+      data: { session: Session | null; redirectType?: string | null };
+      error: AuthErrorLike;
+    }>;
     signOut(options?: { scope?: 'global' | 'local' }): Promise<{ error: AuthErrorLike }>;
     signUp(args: {
       email: string;
@@ -116,6 +117,7 @@ export type SessionClient = {
       email: string,
       options: { redirectTo: string },
     ): Promise<{ error: AuthErrorLike }>;
+    updateUser(attributes: { password: string }): Promise<{ error: AuthErrorLike }>;
   };
 };
 
@@ -134,7 +136,15 @@ export type OpenAuthSession = (url: string, redirectUrl: string) => Promise<OAut
 
 /** The outcome of starting (or finishing) the Google flow. */
 export type SignInOutcome =
-  { status: 'success' } | { status: 'cancelled' } | { status: 'error'; message: string };
+  | { status: 'success' }
+  | { status: 'cancelled' }
+  | { status: 'error'; message: string }
+  /**
+   * A recovery link was exchanged; the player must choose a new password before entering the
+   * app. `recovery_expired` means the link was invalid, expired or already used.
+   */
+  | { status: 'recovery' }
+  | { status: 'recovery_expired' };
 
 /**
  * The outcome of creating an account or logging in with email and password.
@@ -149,3 +159,6 @@ export type PasswordAuthOutcome =
 
 /** The outcome of an email that leaves the app (confirmation resend, password reset). */
 export type EmailActionOutcome = { status: 'success' } | { status: 'error'; message: string };
+
+/** The outcome of saving a new password from a recovery session. */
+export type UpdatePasswordOutcome = { status: 'success' } | { status: 'error'; message: string };

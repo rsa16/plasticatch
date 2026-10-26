@@ -15,6 +15,9 @@ export const SIGN_UP_ERROR =
 export const UNAVAILABLE_ERROR =
   "We couldn't reach the sign-in service. Check your connection and try again.";
 
+export const PASSWORD_UPDATE_ERROR =
+  "We couldn't save your new password. Check your connection and try again.";
+
 export const GOOGLE_ERROR = "Google sign-in didn't complete. Check your connection and try again.";
 
 /** Shown after a resend, whether or not the address has an account. */
