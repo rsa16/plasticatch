@@ -2,6 +2,7 @@ import { Image, type ImageSource } from 'expo-image';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { TAB_LABELS, type BottomMenuItem, type TabMenuItem } from '@/components/bottom-menu-routes';
 import { Text } from '@/components/text';
 import { Brand } from '@/constants/theme';
 
@@ -27,31 +28,28 @@ export function useBottomMenuHeight() {
   return useBottomBarHeight() + CATCH_RISE;
 }
 
-export type BottomMenuItem = 'my-catches' | 'map' | 'catch' | 'rank' | 'settings';
+export type { BottomMenuItem } from '@/components/bottom-menu-routes';
 
 type MenuButton = {
-  key: Exclude<BottomMenuItem, 'catch'>;
-  label: string;
+  key: TabMenuItem;
   icon: ImageSource;
   /** Icon size; the icons don't all share the same frame in Figma. */
   size: number;
   /** Space between the icon and its label. */
   labelGap: number;
-  /** Extra space above the icon; Rank and Settings sit slightly lower than My Catches and Map. */
+  /** Extra space above the icon; the Leaderboard item sits slightly lower than the others. */
   offset?: number;
 };
 
 const LEFT_BUTTONS: readonly MenuButton[] = [
   {
     key: 'my-catches',
-    label: 'My Catches',
     icon: require('@/assets/images/menuIcons/gallery.png'),
     size: 44,
     labelGap: 12,
   },
   {
     key: 'map',
-    label: 'Map',
     icon: require('@/assets/images/menuIcons/map.png'),
     size: 42,
     labelGap: 16,
@@ -60,17 +58,8 @@ const LEFT_BUTTONS: readonly MenuButton[] = [
 
 const RIGHT_BUTTONS: readonly MenuButton[] = [
   {
-    key: 'rank',
-    label: 'Rank',
+    key: 'leaderboard',
     icon: require('@/assets/images/menuIcons/rank.png'),
-    size: 44,
-    labelGap: 9,
-    offset: 1.8,
-  },
-  {
-    key: 'settings',
-    label: 'Settings',
-    icon: require('@/assets/images/menuIcons/settings.png'),
     size: 44,
     labelGap: 9,
     offset: 1.8,
@@ -84,7 +73,7 @@ type BottomMenuProps = {
   onSelect?: (item: BottomMenuItem) => void;
 };
 
-/** The main app menu: My Catches, Map, a raised Catch button, Rank, and Settings. */
+/** The main app menu: My Catches, Map, a raised Catch button, and Leaderboard. */
 export function BottomMenu({ active, onSelect }: BottomMenuProps) {
   const barHeight = useBottomBarHeight();
   const renderButton = (button: MenuButton) => (
@@ -140,11 +129,12 @@ function MenuButtonView({
   onPress: () => void;
 }) {
   const color = active ? Brand.accent : Brand.icon;
+  const label = TAB_LABELS[button.key];
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={button.label}
+      accessibilityLabel={label}
       accessibilityState={{ selected: active }}
       onPress={onPress}
       style={({ pressed }) => [
@@ -159,8 +149,8 @@ function MenuButtonView({
         tintColor={color}
         contentFit="contain"
       />
-      <Text variant="caption" color={active ? 'accent' : undefined}>
-        {button.label}
+      <Text variant="caption" color={active ? 'accent' : undefined} numberOfLines={1}>
+        {label}
       </Text>
     </Pressable>
   );
