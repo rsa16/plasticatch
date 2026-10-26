@@ -44,7 +44,10 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location to record where you collect plastic."
+          "locationWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location to record where you collect plastic.",
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false,
+          "isAndroidForegroundServiceEnabled": false
         }
       ],
       "@rnmapbox/maps"

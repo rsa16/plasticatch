@@ -8,10 +8,12 @@ import { AppState, Linking, Platform, Pressable, StyleSheet, View } from 'react-
 import { OnboardingHeading, OnboardingPrompt, OnboardingScreen } from '@/components/onboarding';
 import { Text } from '@/components/text';
 import { Brand, Spacing } from '@/constants/theme';
+import { useReadOnlyStore } from '@/stores/read-only';
 
 export default function PermissionsScreen() {
   const [camera, requestCamera, getCamera] = useCameraPermissions();
   const [location, requestLocation, getLocation] = useForegroundPermissions();
+  const refreshReadOnly = useReadOnlyStore((state) => state.refresh);
 
   // Show the system prompts one after the other as soon as the step opens. The OS only
   // displays each prompt once; after that these calls just return the saved answer.
@@ -19,8 +21,11 @@ export default function PermissionsScreen() {
     (async () => {
       await requestCamera();
       await requestLocation();
+      // The app shell reads the same store, so the explainer's answers are already there when
+      // the player continues into the tabs.
+      await refreshReadOnly();
     })();
-  }, [requestCamera, requestLocation]);
+  }, [requestCamera, requestLocation, refreshReadOnly]);
 
   // Pick up changes made in the Settings app when the user switches back to us.
   useEffect(() => {
@@ -28,10 +33,11 @@ export default function PermissionsScreen() {
       if (state === 'active') {
         getCamera();
         getLocation();
+        void refreshReadOnly();
       }
     });
     return () => subscription.remove();
-  }, [getCamera, getLocation]);
+  }, [getCamera, getLocation, refreshReadOnly]);
 
   // Users can continue without these; features that need them should check again before use.
   return (

@@ -1,10 +1,18 @@
 import { Image, type ImageSource } from 'expo-image';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useEffect } from 'react';
+import { AppState, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TAB_LABELS, type BottomMenuItem, type TabMenuItem } from '@/components/bottom-menu-routes';
+import { ReadOnlyBanner } from '@/components/read-only-banner';
 import { Text } from '@/components/text';
 import { Brand } from '@/constants/theme';
+import {
+  deriveReadOnly,
+  readOnlyReason,
+  recoveryForReadOnly,
+} from '@/features/permissions/read-only';
+import { useReadOnlyStore } from '@/stores/read-only';
 
 /** Height of the menu bar above the bottom safe-area inset. */
 const BAR_HEIGHT = 95;
@@ -76,6 +84,29 @@ type BottomMenuProps = {
 /** The main app menu: My Catches, Map, a raised Catch button, and Leaderboard. */
 export function BottomMenu({ active, onSelect }: BottomMenuProps) {
   const barHeight = useBottomBarHeight();
+  const camera = useReadOnlyStore((state) => state.camera);
+  const location = useReadOnlyStore((state) => state.location);
+  const refresh = useReadOnlyStore((state) => state.refresh);
+  const request = useReadOnlyStore((state) => state.request);
+
+  // Re-check whenever the shell mounts and whenever the app returns from the OS Settings app, so
+  // a grant made outside the app clears read-only mode without a restart.
+  useEffect(() => {
+    void refresh();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void refresh();
+    });
+    return () => subscription.remove();
+  }, [refresh]);
+
+  const readOnly = deriveReadOnly(camera, location);
+  const reason = readOnlyReason(readOnly);
+  const recovery = recoveryForReadOnly(camera, location, {
+    settingsAvailable: Platform.OS !== 'web',
+  });
+  // Settings has no tab of its own; the banner would only link back to the screen showing it.
+  const showBanner = readOnly.readOnly && active !== undefined;
+
   const renderButton = (button: MenuButton) => (
     <MenuButtonView
       key={button.key}
@@ -85,16 +116,46 @@ export function BottomMenu({ active, onSelect }: BottomMenuProps) {
     />
   );
 
+  async function handleCatch() {
+    if (!readOnly.readOnly) {
+      onSelect?.('catch');
+      return;
+    }
+    // The OS prompt is the first recovery path while it is still allowed. If it is not, the only
+    // way back is the Settings app.
+    if (recovery === 'settings') {
+      void Linking.openSettings();
+      return;
+    }
+    const next = await request();
+    if (!deriveReadOnly(next.camera, next.location).readOnly) onSelect?.('catch');
+  }
+
   return (
     <View style={[styles.bar, { height: barHeight }]}>
+      {showBanner && <ReadOnlyBanner reason={reason} />}
+
       <View style={styles.group}>{LEFT_BUTTONS.map(renderButton)}</View>
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Catch"
-        accessibilityState={{ selected: active === 'catch' }}
-        onPress={() => onSelect?.('catch')}
-        style={({ pressed }) => [styles.catchTab, pressed && styles.pressed]}
+        accessibilityLabel={readOnly.readOnly ? `Catch unavailable. ${reason}` : 'Catch'}
+        accessibilityHint={
+          readOnly.readOnly
+            ? recovery === 'settings'
+              ? 'Opens Settings so you can allow camera and location access'
+              : 'Asks for camera and location access again'
+            : undefined
+        }
+        accessibilityState={{ selected: active === 'catch', disabled: readOnly.readOnly }}
+        onPress={() => {
+          void handleCatch();
+        }}
+        style={({ pressed }) => [
+          styles.catchTab,
+          readOnly.readOnly && styles.catchTabDisabled,
+          pressed && styles.pressed,
+        ]}
       >
         <View style={styles.catchButton}>
           <Image
@@ -196,6 +257,10 @@ const styles = StyleSheet.create({
     backgroundColor: Brand.catchTab,
     boxShadow:
       '4px 0px 4px 0px rgba(0, 0, 0, 0.25), -4px 0px 4px 0px rgba(0, 0, 0, 0.25), 0px -4px 4px 0px rgba(0, 0, 0, 0.25)',
+  },
+  // Read-only still accepts the press: it re-prompts or opens Settings.
+  catchTabDisabled: {
+    opacity: 0.55,
   },
   catchButton: {
     width: 87,
