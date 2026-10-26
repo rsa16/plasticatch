@@ -1,12 +1,15 @@
 import { Stack } from 'expo-router';
 
+import { useSessionStore } from '@/features/auth';
 import { canContinueOnboarding } from '@/features/onboarding/age';
 import { useOnboardingDraftStore } from '@/features/onboarding/draft';
 
 export default function OnboardLayout() {
   const draft = useOnboardingDraftStore();
-  // The date wheel and the dead end are the only steps reachable before the gate clears.
-  const admitted = canContinueOnboarding(draft, new Date());
+  const status = useSessionStore((state) => state.status);
+  // The date wheel and the dead end are the only steps reachable before the gate clears. A
+  // signed-in player returning to finish onboarding has already passed it.
+  const admitted = canContinueOnboarding(draft, new Date()) || status === 'signed-in';
 
   return (
     <Stack screenOptions={{ headerShown: false }}>

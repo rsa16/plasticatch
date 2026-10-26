@@ -2,25 +2,58 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { OnboardingHeading, OnboardingScreen } from '@/components/onboarding';
 import { FADE_HEIGHT, ScrollPane } from '@/components/scroll-pane';
 import { Text } from '@/components/text';
+import { PRIVACY_VERSION, TERMS_VERSION } from '@/constants/legal';
 import { Brand } from '@/constants/theme';
 import { TERMS_OF_SERVICE } from '@/constants/terms-of-service';
+import { acceptConsent } from '@/features/onboarding/profile-service';
 
 const THUMB_HEIGHT = 57;
 
 export default function TermsScreen() {
-  const [agreed, setAgreed] = useState(false);
+  // The backend records the two acceptances separately, so the screen asks for them separately.
+  const [agreedTerms, setAgreedTerms] = useState(false);
+  const [agreedPrivacy, setAgreedPrivacy] = useState(false);
+  const [pending, setPending] = useState(false);
+
+  const complete = agreedTerms && agreedPrivacy;
+
+  async function handleNext() {
+    if (!complete || pending) return;
+    setPending(true);
+
+    try {
+      const result = await acceptConsent({
+        termsVersion: TERMS_VERSION,
+        privacyVersion: PRIVACY_VERSION,
+      });
+
+      if (!result.success) {
+        Alert.alert('Could not save your consent', 'Check your connection and try again.');
+        return;
+      }
+
+      router.push('/all-set');
+    } catch (error) {
+      Alert.alert(
+        'Could not save your consent',
+        error instanceof Error ? error.message : 'Check your connection and try again.',
+      );
+    } finally {
+      setPending(false);
+    }
+  }
 
   return (
     <OnboardingScreen
       step={4}
       onBack={() => router.back()}
-      onNext={() => router.push('/all-set')}
-      nextDisabled={!agreed}
+      onNext={handleNext}
+      nextDisabled={!complete || pending}
     >
       <OnboardingHeading>Terms of Service</OnboardingHeading>
       <TermsText />
@@ -31,28 +64,49 @@ export default function TermsScreen() {
           style={styles.divider}
           contentFit="fill"
         />
-        <Pressable
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: agreed }}
-          onPress={() => setAgreed((value) => !value)}
-          style={styles.agreeRow}
-        >
-          <View style={[styles.checkbox, agreed && styles.checkboxChecked]}>
-            {agreed && (
-              <SymbolView
-                name={{ ios: 'checkmark', android: 'check', web: 'check' }}
-                tintColor={Brand.surface}
-                size={24}
-                weight="bold"
-              />
-            )}
-          </View>
-          <Text variant="legalConsent" style={styles.agreeLabel}>
-            I have read and agreed to the Terms of Service outlined above.
-          </Text>
-        </Pressable>
+        <AgreeRow
+          checked={agreedTerms}
+          onToggle={() => setAgreedTerms((value) => !value)}
+          label="I have read and agreed to the Terms of Service outlined above."
+        />
+        <AgreeRow
+          checked={agreedPrivacy}
+          onToggle={() => setAgreedPrivacy((value) => !value)}
+          label="I have read and agreed to the Privacy Policy."
+        />
       </View>
     </OnboardingScreen>
+  );
+}
+
+type AgreeRowProps = {
+  checked: boolean;
+  onToggle: () => void;
+  label: string;
+};
+
+function AgreeRow({ checked, onToggle, label }: AgreeRowProps) {
+  return (
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked }}
+      onPress={onToggle}
+      style={styles.agreeRow}
+    >
+      <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
+        {checked && (
+          <SymbolView
+            name={{ ios: 'checkmark', android: 'check', web: 'check' }}
+            tintColor={Brand.surface}
+            size={24}
+            weight="bold"
+          />
+        )}
+      </View>
+      <Text variant="legalConsent" style={styles.agreeLabel}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
