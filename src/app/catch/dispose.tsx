@@ -12,7 +12,7 @@ export default function DisposeScreen() {
 
   return (
     <CatchCamera
-      instruction="STEP 2: Point the camera at a trash can with you throwing the same piece of litter out."
+      instruction="Show the same litter going into a trash can."
       xp={0}
       failureMessage="Catch failed. Please show the litter going into the trash can."
       find={find}

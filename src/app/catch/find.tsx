@@ -11,7 +11,7 @@ export default function FindScreen() {
 
   return (
     <CatchCamera
-      instruction="STEP 1: Point the camera at a piece of litter."
+      instruction="Point the camera at a piece of litter."
       xp={0}
       failureMessage="Catch failed. Please make sure the litter is clearly in view."
       prepare={prepareCapture}

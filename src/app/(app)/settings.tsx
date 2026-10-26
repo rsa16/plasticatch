@@ -1,15 +1,19 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useFocusEffect } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useCallback, type ReactNode } from 'react';
-import { Linking, Pressable, StyleSheet, View } from 'react-native';
+import { useCallback } from 'react';
+import { Linking, StyleSheet, View } from 'react-native';
 
-import { CATCH_RISE, useBottomBarHeight } from '@/components/bottom-menu';
-import { MenuScreen } from '@/components/menu-screen';
+import { useBottomBarHeight } from '@/components/bottom-menu';
+import { PlayerChip } from '@/components/player-chip';
 import { ScrollPane } from '@/components/scroll-pane';
 import { Text } from '@/components/text';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Chip } from '@/components/ui/chip';
+import { ListGroup, ListRow } from '@/components/ui/list-row';
+import { Screen } from '@/components/ui/screen';
 import { privacyUrl, supportEmail } from '@/constants/legal';
-import { Brand, Spacing } from '@/constants/theme';
 import { usStateName } from '@/constants/us-states';
 import { useSessionStore } from '@/features/auth';
 import {
@@ -18,8 +22,15 @@ import {
   useUsernameCooldown,
   usernameCooldownSummary,
 } from '@/features/profile';
+import { useTheme, useThemeMode, type ThemeMode } from '@/theme';
 
 const NOT_LOADED = '—';
+
+const APPEARANCE: { mode: ThemeMode; label: string }[] = [
+  { mode: 'system', label: 'System' },
+  { mode: 'light', label: 'Light' },
+  { mode: 'dark', label: 'Dark' },
+];
 
 function statistic(value: number | null | undefined): string {
   return typeof value === 'number' && Number.isFinite(value) ? String(value) : NOT_LOADED;
@@ -32,6 +43,8 @@ function statistic(value: number | null | undefined): string {
  * their destinations are provisioned.
  */
 export default function SettingsScreen() {
+  const theme = useTheme();
+  const { mode, setMode } = useThemeMode();
   const profile = useSessionStore((state) => state.profile);
   const status = useSessionStore((state) => state.status);
   const signOutSession = useSessionStore((state) => state.signOut);
@@ -65,31 +78,31 @@ export default function SettingsScreen() {
   }
 
   return (
-    <MenuScreen title="SETTINGS">
-      {/* The form scrolls underneath the raised Catch tab, so the list stops at the bar. */}
-      <View style={[styles.settings, { marginBottom: barHeight }]}>
+    <Screen title="Profile" actions={<PlayerChip />}>
+      <View style={[styles.body, { marginBottom: barHeight }]}>
         <ScrollPane
-          thumbHeight={104}
+          thumbHeight={64}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-          <Section title="Profile">
-            <Row
-              label="Avatar"
-              value="Preset head"
-              actionLabel="Change"
+          <ListGroup title="Profile">
+            <ListRow
+              title="Avatar"
+              subtitle="Preset head"
+              value="Change"
+              divider
               accessibilityHint="Opens the avatar picker"
               onPress={() => router.push('/settings/avatar')}
             />
-            <Row
-              label="Username"
-              value={profile?.username ?? 'Not set'}
-              note={
+            <ListRow
+              title="Username"
+              subtitle={
                 cooldown.active
                   ? usernameCooldownSummary(profile?.usernameChangedAt ?? null)
-                  : undefined
+                  : (profile?.username ?? 'Not set')
               }
-              actionLabel={cooldown.active ? undefined : 'Change'}
+              value={cooldown.active ? undefined : 'Change'}
+              divider
               disabled={cooldown.active}
               accessibilityHint={
                 cooldown.active
@@ -98,42 +111,63 @@ export default function SettingsScreen() {
               }
               onPress={() => router.push('/settings/username')}
             />
-            <Row
-              label="Home state"
-              value={usStateName(profile?.homeState) ?? profile?.homeState ?? 'Not set'}
-              actionLabel="Change"
+            <ListRow
+              title="Home state"
+              subtitle={usStateName(profile?.homeState) ?? profile?.homeState ?? 'Not set'}
+              value="Change"
               accessibilityHint="Opens the home state picker"
               onPress={() => router.push('/settings/home-state')}
             />
-          </Section>
+          </ListGroup>
 
-          <Section title="Stats">
-            <Stat label="Total XP" value={statistic(profile?.totalXp)} />
-            <Stat label="Level" value={statistic(profile?.level)} />
-            <Stat label="Current streak" value={statistic(profile?.currentStreak)} />
-            <Stat
-              label="Verified catches"
+          <ListGroup title="Stats">
+            <ListRow title="Total XP" value={statistic(profile?.totalXp)} divider />
+            <ListRow title="Level" value={statistic(profile?.level)} divider />
+            <ListRow title="Current streak" value={statistic(profile?.currentStreak)} divider />
+            <ListRow
+              title="Verified catches"
               value={catchCount.isError ? NOT_LOADED : statistic(catchCount.data)}
             />
-            {catchCount.isError && (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Retry loading your catch count"
-                onPress={() => void catchCount.refetch()}
-                style={({ pressed }) => [styles.retry, pressed && styles.pressed]}
-              >
-                <Text variant="body" color="accent">
-                  Could not load your catch count. Retry
-                </Text>
-              </Pressable>
-            )}
-          </Section>
+          </ListGroup>
 
-          <Section title="Support">
+          {catchCount.isError && (
+            <Button
+              label="Retry loading catch count"
+              variant="secondary"
+              onPress={() => {
+                void catchCount.refetch();
+              }}
+            />
+          )}
+
+          <View style={styles.appearance}>
+            <Text variant="heading">Appearance</Text>
+            <Card style={styles.appearanceCard}>
+              <Text variant="caption" tone="muted">
+                Follow the device, or lock the app to one theme.
+              </Text>
+              <View style={styles.appearanceRow} accessibilityRole="radiogroup">
+                {APPEARANCE.map((option) => (
+                  <Chip
+                    key={option.mode}
+                    label={option.label}
+                    selected={mode === option.mode}
+                    onPress={() => setMode(option.mode)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${option.label} theme`}
+                    style={styles.appearanceChip}
+                  />
+                ))}
+              </View>
+            </Card>
+          </View>
+
+          <ListGroup title="Support">
             {email && (
-              <Row
-                label="Contact support"
-                value={email}
+              <ListRow
+                title="Contact support"
+                subtitle={email}
+                divider
                 accessibilityHint="Opens your email app"
                 onPress={() => {
                   Linking.openURL(`mailto:${email}`).catch(() => undefined);
@@ -141,179 +175,65 @@ export default function SettingsScreen() {
               />
             )}
             {privacy && (
-              <Row
-                label="Privacy Policy"
-                value="Open"
+              <ListRow
+                title="Privacy Policy"
+                subtitle="Open in browser"
+                divider
                 accessibilityHint="Opens the published Privacy Policy in a browser"
                 onPress={() => {
                   WebBrowser.openBrowserAsync(privacy).catch(() => undefined);
                 }}
               />
             )}
-            <Row
-              label="Data sources / About"
-              value="Attribution"
-              actionLabel="Open"
+            <ListRow
+              title="Data sources / About"
+              subtitle="Attribution"
               accessibilityHint="Opens the data sources and app version screen"
               onPress={() => router.push('/settings/about')}
             />
-          </Section>
+          </ListGroup>
 
-          <Section title="Account">
-            <Row
-              label="Delete account"
-              value="Permanent"
-              actionLabel="Delete"
+          <ListGroup title="Account">
+            <ListRow
+              title="Delete account"
+              titleTone="danger"
               accessibilityHint="Opens the account deletion screen"
               onPress={() => router.push('/settings/delete')}
             />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Log out"
-              onPress={signOut}
-              style={({ pressed }) => [styles.logOut, pressed && styles.pressed]}
-            >
-              <Text variant="buttonLabel">LOG OUT</Text>
-            </Pressable>
-          </Section>
+          </ListGroup>
+
+          <Button label="Log out" variant="secondary" onPress={signOut} />
         </ScrollPane>
       </View>
-    </MenuScreen>
-  );
-}
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <View style={styles.section}>
-      <Text variant="sectionTitle" accessibilityRole="header">
-        {title}
-      </Text>
-      {children}
-    </View>
-  );
-}
-
-type RowProps = {
-  label: string;
-  value: string;
-  note?: string;
-  actionLabel?: string;
-  accessibilityHint?: string;
-  disabled?: boolean;
-  onPress?: () => void;
-};
-
-/** One navigable Settings row. The whole row is the 44 pt target. */
-function Row({
-  label,
-  value,
-  note,
-  actionLabel,
-  accessibilityHint,
-  disabled = false,
-  onPress,
-}: RowProps) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${label}: ${value}${note ? `. ${note}` : ''}`}
-      accessibilityHint={accessibilityHint}
-      accessibilityState={{ disabled }}
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.row,
-        disabled && styles.rowDisabled,
-        pressed && styles.pressed,
-      ]}
-    >
-      <View style={styles.rowText}>
-        <Text variant="caption" color="accent">
-          {label}
-        </Text>
-        <Text variant="body" color="onSurface">
-          {value}
-        </Text>
-        {note && (
-          <Text variant="caption" color="accent">
-            {note}
-          </Text>
-        )}
-      </View>
-      {actionLabel && (
-        <Text variant="caption" color="accent">
-          {actionLabel}
-        </Text>
-      )}
-    </Pressable>
-  );
-}
-
-/** A read-only stat. It is not a button, so it carries one combined screen-reader label. */
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.row} accessible accessibilityLabel={`${label}: ${value}`}>
-      <Text variant="caption" color="accent">
-        {label}
-      </Text>
-      <Text variant="body" color="onSurface">
-        {value}
-      </Text>
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  settings: {
+  body: {
     flex: 1,
-    marginTop: Spacing.four,
-    paddingLeft: 18,
-    paddingRight: 10,
+    paddingTop: 16,
+    paddingHorizontal: 20,
   },
   content: {
-    width: 358,
-    gap: Spacing.five,
-    paddingBottom: CATCH_RISE + Spacing.three,
+    gap: 24,
+    paddingBottom: 48,
   },
-  section: {
-    alignSelf: 'stretch',
-    gap: Spacing.two,
+  appearance: {
+    gap: 8,
   },
-  row: {
-    minHeight: 44,
+  appearanceCard: {
+    gap: 12,
+  },
+  appearanceRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.three,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 15,
-    backgroundColor: Brand.field,
+    gap: 8,
   },
-  rowDisabled: {
-    opacity: 0.65,
-  },
-  rowText: {
+  appearanceChip: {
     flex: 1,
-    gap: 2,
-  },
-  retry: {
-    minHeight: 44,
     justifyContent: 'center',
-    paddingHorizontal: 4,
   },
-  logOut: {
-    alignSelf: 'center',
-    minWidth: 185,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 15,
-    backgroundColor: Brand.accent,
-  },
-  pressed: {
-    opacity: 0.7,
+  version: {
+    textAlign: 'center',
   },
 });

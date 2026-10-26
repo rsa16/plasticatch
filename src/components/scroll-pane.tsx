@@ -1,27 +1,16 @@
-import { useRef, useState, type ReactNode } from 'react';
-import {
-  StyleSheet,
-  useWindowDimensions,
-  View,
-  type ScrollViewProps,
-  type StyleProp,
-  type ViewInstance,
-  type ViewStyle,
-} from 'react-native';
+import { useState, type ReactNode } from 'react';
+import { View, type ScrollViewProps, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, {
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
 } from 'react-native-reanimated';
 
-import { colorAt } from '@/components/backdrop';
-import { Brand } from '@/constants/theme';
+import { makeStyles, useTheme } from '@/theme';
 
-const THUMB_WIDTH = 13;
-/** Space between the scrolling content and the thumb. */
-const THUMB_GAP = 9;
-/** Height of the edge fades drawn over fading panes. */
-export const FADE_HEIGHT = 48;
+const THUMB_WIDTH = 4;
+const THUMB_GAP = 8;
+export const FADE_HEIGHT = 32;
 
 type ThumbOffsetInput = {
   /** How far the content has scrolled, which can sit outside 0…max scroll while bouncing. */
@@ -49,17 +38,28 @@ export function thumbOffset({
   return progress * travel;
 }
 
-type Box = { top: number; height: number };
+/** A solid-to-clear edge fade in `hex`, for panes that blend into the screen background. */
+export function fadeGradient(hex: string, toBottom: boolean) {
+  const { r, g, b } = rgb(hex);
+  const solid = `rgba(${r}, ${g}, ${b}, 1)`;
+  const clear = `rgba(${r}, ${g}, ${b}, 0)`;
+  return `linear-gradient(to bottom, ${toBottom ? clear : solid}, ${toBottom ? solid : clear})`;
+}
+
+function rgb(hex: string) {
+  const value = hex.replace('#', '');
+  return {
+    r: parseInt(value.slice(0, 2), 16),
+    g: parseInt(value.slice(2, 4), 16),
+    b: parseInt(value.slice(4, 6), 16),
+  };
+}
 
 type ScrollPaneProps = {
   children: ReactNode;
-  /** Height of the green thumb; the designs size it per screen. */
+  /** Height of the accent thumb; the designs size it per screen. */
   thumbHeight: number;
-  /**
-   * Blend the pane's top and bottom edges into the backdrop behind it. A fading pane only shows
-   * the thumb and fades while its content overflows; the lists keep the thumb at the top when
-   * their content fits, so fading is opt-in.
-   */
+  /** Blend the pane's top and bottom edges into the screen background. */
   fade?: boolean;
   style?: StyleProp<ViewStyle>;
   contentContainerStyle?: StyleProp<ViewStyle>;
@@ -67,8 +67,8 @@ type ScrollPaneProps = {
 };
 
 /**
- * A vertical ScrollView with the app's green scroll thumb to its right instead of the platform
- * indicator, and optional fades that match the backdrop behind the pane.
+ * A vertical ScrollView with a slim themed thumb instead of the platform indicator, and optional
+ * fades that match the background behind the pane.
  */
 export function ScrollPane({
   children,
@@ -78,20 +78,13 @@ export function ScrollPane({
   contentContainerStyle,
   keyboardShouldPersistTaps,
 }: ScrollPaneProps) {
-  const { height: windowHeight } = useWindowDimensions();
-  const boxRef = useRef<ViewInstance>(null);
+  const theme = useTheme();
+  const styles = useStyles();
   const [viewportHeight, setViewportHeight] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
-  const [box, setBox] = useState<Box | null>(null);
   const scrollY = useSharedValue(0);
 
   const scrollable = contentHeight > viewportHeight;
-
-  // Window position, not layout position, is what matches the fades to the full-screen backdrop.
-  const measure = () => {
-    if (!fade) return;
-    boxRef.current?.measureInWindow((_x, top, _w, height) => setBox({ top, height }));
-  };
 
   const onScroll = useAnimatedScrollHandler((event) => {
     scrollY.value = event.contentOffset.y;
@@ -111,12 +104,8 @@ export function ScrollPane({
 
   return (
     <View
-      ref={boxRef}
       style={[styles.container, style]}
-      onLayout={(event) => {
-        setViewportHeight(event.nativeEvent.layout.height);
-        measure();
-      }}
+      onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}
     >
       <Animated.ScrollView
         style={styles.scroll}
@@ -131,13 +120,13 @@ export function ScrollPane({
         {children}
       </Animated.ScrollView>
 
-      {fade && scrollable && box !== null && (
+      {fade && scrollable && (
         <>
           <View
             style={[
               styles.fade,
               styles.fadeTop,
-              { experimental_backgroundImage: fadeGradient(box.top / windowHeight, false) },
+              { experimental_backgroundImage: fadeGradient(theme.color.bg, false) },
             ]}
             pointerEvents="none"
           />
@@ -145,12 +134,7 @@ export function ScrollPane({
             style={[
               styles.fade,
               styles.fadeBottom,
-              {
-                experimental_backgroundImage: fadeGradient(
-                  (box.top + box.height) / windowHeight,
-                  true,
-                ),
-              },
+              { experimental_backgroundImage: fadeGradient(theme.color.bg, true) },
             ]}
             pointerEvents="none"
           />
@@ -166,21 +150,12 @@ export function ScrollPane({
   );
 }
 
-/** A solid-to-clear edge fade in the backdrop colour at `fraction` of the way down the window. */
-export function fadeGradient(fraction: number, toBottom: boolean) {
-  const { r, g, b } = colorAt(fraction);
-  const solid = `rgba(${r}, ${g}, ${b}, 1)`;
-  const clear = `rgba(${r}, ${g}, ${b}, 0)`;
-  return `linear-gradient(to bottom, ${toBottom ? clear : solid}, ${toBottom ? solid : clear})`;
-}
-
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => ({
   container: {
     flex: 1,
   },
   scroll: {
     flex: 1,
-    // Leave room for the thumb, which sits over the right edge of the container.
     marginRight: THUMB_WIDTH + THUMB_GAP,
   },
   track: {
@@ -192,10 +167,9 @@ const styles = StyleSheet.create({
   },
   thumb: {
     width: THUMB_WIDTH,
-    borderRadius: 15,
-    backgroundColor: Brand.accent,
+    borderRadius: t.radius.pill,
+    backgroundColor: t.color.line,
   },
-  // The fades cover the scrolling content only, not the thumb's column.
   fade: {
     position: 'absolute',
     left: 0,
@@ -208,4 +182,4 @@ const styles = StyleSheet.create({
   fadeBottom: {
     bottom: 0,
   },
-});
+}));

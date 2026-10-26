@@ -1,35 +1,44 @@
-import { Image, type ImageSource } from 'expo-image';
+import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { useEffect } from 'react';
-import { AppState, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { AppState, Linking, Platform, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TAB_LABELS, type BottomMenuItem, type TabMenuItem } from '@/components/bottom-menu-routes';
 import { ReadOnlyBanner } from '@/components/read-only-banner';
 import { Text } from '@/components/text';
-import { Brand } from '@/constants/theme';
+import { MenuIcon } from '@/components/ui/menu-icon';
 import {
   deriveReadOnly,
   readOnlyReason,
   recoveryForReadOnly,
 } from '@/features/permissions/read-only';
 import { useReadOnlyStore } from '@/stores/read-only';
+import { makeStyles, useTheme } from '@/theme';
 
 /** Height of the menu bar above the bottom safe-area inset. */
-const BAR_HEIGHT = 95;
+const BAR_HEIGHT = 72;
 /** The labels need some room below them on devices without a home indicator. */
-const MIN_BOTTOM_INSET = 16;
+const MIN_BOTTOM_INSET = 12;
 
-/** How far the Catch tab rises above the top of the bar. */
-export const CATCH_RISE = 52.74;
+/** How far the Catch action rises above the top of the bar. */
+export const CATCH_RISE = 30;
 
-/** Height of the menu bar itself, not counting the raised Catch tab. */
+const ICONS: Record<BottomMenuItem, SymbolViewProps['name']> = {
+  'my-catches': { ios: 'photo.on.rectangle', android: 'photo_library', web: 'photo_library' },
+  map: { ios: 'map.fill', android: 'map', web: 'map' },
+  leaderboard: { ios: 'trophy.fill', android: 'emoji_events', web: 'emoji_events' },
+  catch: { ios: 'camera.fill', android: 'photo_camera', web: 'photo_camera' },
+  profile: { ios: 'person.crop.circle.fill', android: 'account_circle', web: 'account_circle' },
+};
+
+/** Height of the menu bar itself, not counting the raised Catch action. */
 export function useBottomBarHeight() {
   const insets = useSafeAreaInsets();
   return BAR_HEIGHT + Math.max(insets.bottom, MIN_BOTTOM_INSET);
 }
 
 /**
- * Total space the menu (including the raised Catch tab) covers at the bottom of the screen, so
+ * Total space the menu (including the raised Catch action) covers at the bottom of the screen, so
  * screens can keep their content clear of it.
  */
 export function useBottomMenuHeight() {
@@ -38,42 +47,6 @@ export function useBottomMenuHeight() {
 
 export type { BottomMenuItem } from '@/components/bottom-menu-routes';
 
-type MenuButton = {
-  key: TabMenuItem;
-  icon: ImageSource;
-  /** Icon size; the icons don't all share the same frame in Figma. */
-  size: number;
-  /** Space between the icon and its label. */
-  labelGap: number;
-  /** Extra space above the icon; the Leaderboard item sits slightly lower than the others. */
-  offset?: number;
-};
-
-const LEFT_BUTTONS: readonly MenuButton[] = [
-  {
-    key: 'my-catches',
-    icon: require('@/assets/images/menuIcons/gallery.png'),
-    size: 44,
-    labelGap: 12,
-  },
-  {
-    key: 'map',
-    icon: require('@/assets/images/menuIcons/map.png'),
-    size: 42,
-    labelGap: 16,
-  },
-];
-
-const RIGHT_BUTTONS: readonly MenuButton[] = [
-  {
-    key: 'leaderboard',
-    icon: require('@/assets/images/menuIcons/rank.png'),
-    size: 44,
-    labelGap: 9,
-    offset: 1.8,
-  },
-];
-
 type BottomMenuProps = {
   /** The item to highlight, or `undefined` when the current route has no menu item. */
   active?: BottomMenuItem;
@@ -81,8 +54,13 @@ type BottomMenuProps = {
   onSelect?: (item: BottomMenuItem) => void;
 };
 
-/** The main app menu: My Catches, Map, a raised Catch button, and Leaderboard. */
+/**
+ * The main app menu: Gallery, Map, the raised Catch action, Leaderboard and Profile. Two tabs
+ * sit either side of the action, so the bar stays balanced.
+ */
 export function BottomMenu({ active, onSelect }: BottomMenuProps) {
+  const theme = useTheme();
+  const styles = useStyles();
   const barHeight = useBottomBarHeight();
   const camera = useReadOnlyStore((state) => state.camera);
   const location = useReadOnlyStore((state) => state.location);
@@ -107,15 +85,6 @@ export function BottomMenu({ active, onSelect }: BottomMenuProps) {
   // Settings has no tab of its own; the banner would only link back to the screen showing it.
   const showBanner = readOnly.readOnly && active !== undefined;
 
-  const renderButton = (button: MenuButton) => (
-    <MenuButtonView
-      key={button.key}
-      button={button}
-      active={button.key === active}
-      onPress={() => onSelect?.(button.key)}
-    />
-  );
-
   async function handleCatch() {
     if (!readOnly.readOnly) {
       onSelect?.('catch');
@@ -131,95 +100,76 @@ export function BottomMenu({ active, onSelect }: BottomMenuProps) {
     if (!deriveReadOnly(next.camera, next.location).readOnly) onSelect?.('catch');
   }
 
+  const tab = (key: Exclude<TabMenuItem, 'catch'>) => (
+    <MenuIcon
+      key={key}
+      label={TAB_LABELS[key]}
+      active={key === active}
+      onPress={() => onSelect?.(key)}
+    >
+      <SymbolView
+        name={ICONS[key]}
+        size={24}
+        tintColor={key === active ? theme.color.accent : theme.color.inkMuted}
+        weight="semibold"
+      />
+    </MenuIcon>
+  );
+
   return (
     <View style={[styles.bar, { height: barHeight }]}>
       {showBanner && <ReadOnlyBanner reason={reason} />}
 
-      <View style={styles.group}>{LEFT_BUTTONS.map(renderButton)}</View>
+      {/* Five equal slots: four tabs and the raised action, evenly spaced from edge to edge. */}
+      <View style={styles.slot}>{tab('my-catches')}</View>
+      <View style={styles.slot}>{tab('map')}</View>
+      <View style={styles.slot} pointerEvents="none" />
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={readOnly.readOnly ? `Catch unavailable. ${reason}` : 'Catch'}
-        accessibilityHint={
-          readOnly.readOnly
-            ? recovery === 'settings'
-              ? 'Opens Settings so you can allow camera and location access'
-              : 'Asks for camera and location access again'
-            : undefined
-        }
-        // The press remains actionable in read-only mode so the player can re-prompt or open
-        // Settings; only the label and hint announce that Catch is unavailable.
-        accessibilityState={{ selected: active === 'catch' }}
-        onPress={() => {
-          void handleCatch();
-        }}
-        style={({ pressed }) => [
-          styles.catchTab,
-          readOnly.readOnly && styles.catchTabDisabled,
-          pressed && styles.pressed,
-        ]}
-      >
-        <View style={styles.catchButton}>
-          <Image
-            source={require('@/assets/images/menuIcons/catch-circle.svg')}
-            style={StyleSheet.absoluteFill}
-            contentFit="fill"
-          />
-          <Image
-            source={require('@/assets/images/menuIcons/catch.png')}
-            style={styles.catchIcon}
-            tintColor={Brand.accent}
-            contentFit="contain"
-          />
-        </View>
-        <Text variant="buttonLabel" style={styles.catchLabel}>
-          CATCH
-        </Text>
-      </Pressable>
+      {/* The raised action is centred on the screen, not on the unequal tab groups. */}
+      <View style={styles.catchSlot} pointerEvents="box-none">
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={readOnly.readOnly ? `Catch unavailable. ${reason}` : 'Catch'}
+          accessibilityHint={
+            readOnly.readOnly
+              ? recovery === 'settings'
+                ? 'Opens Settings so you can allow camera and location access'
+                : 'Asks for camera and location access again'
+              : undefined
+          }
+          // The press remains actionable in read-only mode so the player can re-prompt or open
+          // Settings; only the label and hint announce that Catch is unavailable.
+          accessibilityState={{ selected: active === 'catch' }}
+          onPress={() => {
+            void handleCatch();
+          }}
+          style={({ pressed }) => [
+            styles.catchTab,
+            readOnly.readOnly && styles.catchTabDisabled,
+            pressed && styles.pressed,
+          ]}
+        >
+          <View style={styles.catchButton}>
+            <SymbolView
+              name={ICONS.catch}
+              size={28}
+              tintColor={theme.color.onAccent}
+              weight="semibold"
+            />
+          </View>
+          <Text variant="caption" style={styles.catchLabel}>
+            Catch
+          </Text>
+        </Pressable>
+      </View>
 
-      <View style={styles.group}>{RIGHT_BUTTONS.map(renderButton)}</View>
+      <View style={styles.slot}>{tab('leaderboard')}</View>
+      <View style={styles.slot}>{tab('profile')}</View>
     </View>
   );
 }
 
-function MenuButtonView({
-  button,
-  active,
-  onPress,
-}: {
-  button: MenuButton;
-  active: boolean;
-  onPress: () => void;
-}) {
-  const color = active ? Brand.accent : Brand.icon;
-  const label = TAB_LABELS[button.key];
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ selected: active }}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.button,
-        { marginTop: button.offset },
-        pressed && styles.pressed,
-      ]}
-    >
-      <Image
-        source={button.icon}
-        style={{ width: button.size, height: button.size, marginBottom: button.labelGap }}
-        tintColor={color}
-        contentFit="contain"
-      />
-      <Text variant="caption" color={active ? 'accent' : undefined} numberOfLines={1}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => ({
   bar: {
     position: 'absolute',
     left: 0,
@@ -227,58 +177,42 @@ const styles = StyleSheet.create({
     bottom: 0,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    paddingLeft: 18,
-    paddingRight: 15,
-    borderTopLeftRadius: 15,
-    borderTopRightRadius: 15,
-    backgroundColor: Brand.surface,
-    boxShadow: '0px -5px 4px 0px rgba(0, 0, 0, 0.25)',
+    paddingHorizontal: t.space.md,
+    paddingTop: t.space.sm,
+    backgroundColor: t.color.surface,
   },
-  group: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 13,
-    paddingTop: 24.6,
-  },
-  button: {
+  slot: {
+    flex: 1,
     alignItems: 'center',
   },
-  pressed: {
-    opacity: 0.7,
+  catchSlot: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: -CATCH_RISE,
+    alignItems: 'center',
   },
   catchTab: {
-    // Centred on the screen, not on the unequal left/right button groups.
-    position: 'absolute',
-    left: '50%',
-    width: 125,
-    marginLeft: -62.5,
-    // Rises above the bar and runs past the bottom edge of the screen.
-    top: -CATCH_RISE,
-    bottom: -6,
-    zIndex: 1,
+    width: 96,
     alignItems: 'center',
-    paddingTop: 28,
-    borderRadius: 15,
-    backgroundColor: Brand.catchTab,
-    boxShadow:
-      '4px 0px 4px 0px rgba(0, 0, 0, 0.25), -4px 0px 4px 0px rgba(0, 0, 0, 0.25), 0px -4px 4px 0px rgba(0, 0, 0, 0.25)',
+    gap: 2,
   },
-  // Read-only still accepts the press: it re-prompts or opens Settings.
+  catchButton: {
+    width: 64,
+    height: 64,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: t.radius.pill,
+    backgroundColor: t.color.accent,
+    ...t.elevation.floating,
+  },
+  catchLabel: {
+    marginTop: 2,
+  },
   catchTabDisabled: {
     opacity: 0.55,
   },
-  catchButton: {
-    width: 87,
-    height: 87,
-    alignItems: 'center',
-    justifyContent: 'center',
+  pressed: {
+    opacity: 0.8,
   },
-  catchIcon: {
-    width: 66.7,
-    height: 66.7,
-  },
-  catchLabel: {
-    marginTop: 3,
-  },
-});
+}));

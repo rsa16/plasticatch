@@ -3,15 +3,18 @@ import { useForegroundPermissions } from 'expo-location';
 import { router } from 'expo-router';
 import type { PermissionResponse } from 'expo';
 import { useEffect } from 'react';
-import { AppState, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { AppState, Linking, Platform, StyleSheet, View } from 'react-native';
 
 import { OnboardingHeading, OnboardingPrompt, OnboardingScreen } from '@/components/onboarding';
 import { Text } from '@/components/text';
-import { Brand, Spacing } from '@/constants/theme';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { goBackOr } from '@/features/onboarding/back';
 import { useReadOnlyStore } from '@/stores/read-only';
+import { useTheme } from '@/theme';
 
 export default function PermissionsScreen() {
+  const theme = useTheme();
   const [camera, requestCamera, getCamera] = useCameraPermissions();
   const [location, requestLocation, getLocation] = useForegroundPermissions();
   const refreshReadOnly = useReadOnlyStore((state) => state.refresh);
@@ -43,19 +46,28 @@ export default function PermissionsScreen() {
   // Users can continue without these; features that need them should check again before use.
   return (
     <OnboardingScreen
-      step={4}
+      step={5}
       onBack={() => goBackOr('/home-state')}
       onNext={() => router.push('/terms')}
     >
       <OnboardingHeading>Permissions</OnboardingHeading>
       <OnboardingPrompt>
-        Please use the popups below to allow PlastiCatch to use your Camera and your Location.
+        PlastiCatch needs your camera and location to verify a catch. Use the system prompts to
+        allow them.
       </OnboardingPrompt>
 
       <View style={styles.list}>
         <PermissionRow label="Camera" permission={camera} onRequest={requestCamera} />
         <PermissionRow label="Location" permission={location} onRequest={requestLocation} />
       </View>
+
+      <Card sunken>
+        <Text variant="caption" tone="muted">
+          You can continue without these. Catch and the map will explain what is missing, and you
+          can allow them later from the device settings.
+        </Text>
+      </Card>
+      <View style={{ height: theme.space.sm }} />
     </OnboardingScreen>
   );
 }
@@ -82,64 +94,39 @@ function PermissionRow({ label, permission, onRequest }: PermissionRowProps) {
       ? null
       : permission.canAskAgain || Platform.OS === 'web'
         ? { label: 'Allow', onPress: onRequest }
-        : { label: 'Open Settings', onPress: () => Linking.openSettings() };
+        : { label: 'Open settings', onPress: () => Linking.openSettings() };
 
   return (
-    <View style={styles.row}>
+    <Card style={styles.row}>
       <View style={styles.rowText}>
-        <Text variant="wheelItem">{label}</Text>
-        <Text
-          variant="statusText"
-          color={permission?.granted ? 'accent' : undefined}
-          style={[styles.rowStatus, permission?.granted && styles.rowStatusGranted]}
-        >
+        <Text variant="label">{label}</Text>
+        <Text variant="caption" tone={permission?.granted ? 'accent' : 'muted'}>
           {status}
         </Text>
       </View>
       {action && (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`${action.label}: ${label}`}
+        <Button
+          label={action.label}
+          variant="secondary"
           onPress={action.onPress}
-          style={({ pressed }) => [styles.action, pressed && styles.pressed]}
-        >
-          <Text variant="compactButtonLabel">{action.label}</Text>
-        </Pressable>
+          accessibilityLabel={`${action.label}: ${label}`}
+        />
       )}
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   list: {
-    marginTop: Spacing.two,
-    gap: Spacing.three,
+    gap: 8,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.three,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 15,
-    backgroundColor: Brand.field,
+    gap: 12,
   },
   rowText: {
     flex: 1,
-  },
-  rowStatus: {
-    opacity: 0.6,
-  },
-  rowStatusGranted: {
-    opacity: 1,
-  },
-  action: {
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    borderRadius: 15,
-    backgroundColor: Brand.accent,
-  },
-  pressed: {
-    opacity: 0.7,
+    gap: 2,
   },
 });

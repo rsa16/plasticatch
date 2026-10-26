@@ -2,41 +2,101 @@ import { Image } from 'expo-image';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { CATCH_RISE, useBottomBarHeight } from '@/components/bottom-menu';
-import { MenuScreen } from '@/components/menu-screen';
-import { Text } from '@/components/text';
+import { useBottomBarHeight } from '@/components/bottom-menu';
+import { PlayerChip } from '@/components/player-chip';
 import { ScrollPane } from '@/components/scroll-pane';
-import { Spacing } from '@/constants/theme';
+import { Text } from '@/components/text';
+import { Button } from '@/components/ui/button';
+import { Screen } from '@/components/ui/screen';
 import { useMyCatches, type CatchRecord } from '@/features/my-catches';
+import { useTheme } from '@/theme';
 
-export default function MyCatchesScreen() {
+export default function GalleryScreen() {
+  const theme = useTheme();
   const barHeight = useBottomBarHeight();
-  const { data: catches = [] } = useMyCatches();
+  // `useMyCatches` seeds the cache with an empty array while the feed loads, so length alone
+  // cannot tell "still fetching" from "genuinely empty". The fetch flag can.
+  const { data: catches = [], isError, isFetching, refetch } = useMyCatches();
+  const loading = isFetching && catches.length === 0;
 
   return (
-    <MenuScreen title="MY CATCHES">
-      {/* The photos scroll underneath the raised Catch tab, so the list stops at the bar. */}
+    <Screen title="Gallery" actions={<PlayerChip />}>
       <View style={[styles.list, { marginBottom: barHeight }]}>
-        {catches.length === 0 ? (
-          <View style={[styles.empty, { paddingBottom: CATCH_RISE }]}>
-            <Text variant="fieldText" style={styles.emptyText}>
-              No catches yet. Tap CATCH to photograph your first piece of litter.
+        {loading ? (
+          <GallerySkeleton />
+        ) : isError ? (
+          <View style={styles.empty}>
+            <Text variant="heading" style={styles.emptyTitle}>
+              Couldn&apos;t load your catches
+            </Text>
+            <Text variant="body" tone="muted" style={styles.emptyText}>
+              Your catches are safe. Check your connection and try again.
+            </Text>
+            <Button
+              label="Try again"
+              variant="secondary"
+              onPress={() => {
+                void refetch();
+              }}
+            />
+          </View>
+        ) : catches.length === 0 ? (
+          <View style={styles.empty}>
+            <Text variant="heading" style={styles.emptyTitle}>
+              No catches yet
+            </Text>
+            <Text variant="body" tone="muted" style={styles.emptyText}>
+              Tap Catch to photograph your first piece of litter. Verified catches appear here.
             </Text>
           </View>
         ) : (
-          <ScrollPane thumbHeight={49} contentContainerStyle={styles.grid}>
+          <ScrollPane
+            thumbHeight={40}
+            contentContainerStyle={styles.grid}
+            keyboardShouldPersistTaps="handled"
+          >
             {catches.map((item) => (
               <CatchCard key={item.id} item={item} />
             ))}
+            <View style={{ width: '100%', height: theme.space.huge }} />
           </ScrollPane>
         )}
       </View>
-    </MenuScreen>
+    </Screen>
+  );
+}
+
+/**
+ * Placeholder cards in the real grid shape, so the screen keeps its layout while the feed loads
+ * instead of flashing the empty state.
+ */
+function GallerySkeleton() {
+  const theme = useTheme();
+  const block = { backgroundColor: theme.color.surfaceSunken, borderColor: theme.color.bg };
+
+  return (
+    <View
+      style={styles.grid}
+      accessibilityRole="progressbar"
+      accessibilityLabel="Loading your catches"
+      accessibilityLiveRegion="polite"
+    >
+      {[0, 1, 2, 3].map((slot) => (
+        <View key={slot} style={styles.card}>
+          <View style={styles.photoStack}>
+            <View style={[styles.skeletonPhoto, styles.photoBack, block]} />
+            <View style={[styles.skeletonPhoto, styles.photoFront, block]} />
+          </View>
+          <View style={[styles.skeletonDate, block]} />
+        </View>
+      ))}
+    </View>
   );
 }
 
 /** One catch: its two photos stacked with the shared date label underneath. Tap to swap. */
 function CatchCard({ item }: { item: CatchRecord }) {
+  const theme = useTheme();
   // The litter photo starts in front; the trash-can photo sits behind it.
   const [disposeInFront, setDisposeInFront] = useState(false);
   const front = disposeInFront ? item.disposePhoto : item.findPhoto;
@@ -51,14 +111,26 @@ function CatchCard({ item }: { item: CatchRecord }) {
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
       <View style={styles.photoStack}>
-        <Image source={{ uri: back }} style={[styles.photo, styles.photoBack]} contentFit="cover" />
+        <Image
+          source={{ uri: back }}
+          style={[
+            styles.photo,
+            styles.photoBack,
+            { borderColor: theme.color.surface, backgroundColor: theme.color.surfaceSunken },
+          ]}
+          contentFit="cover"
+        />
         <Image
           source={{ uri: front }}
-          style={[styles.photo, styles.photoFront]}
+          style={[
+            styles.photo,
+            styles.photoFront,
+            { borderColor: theme.color.surface, backgroundColor: theme.color.surfaceSunken },
+          ]}
           contentFit="cover"
         />
       </View>
-      <Text variant="fieldText" style={styles.date}>
+      <Text variant="caption" tone="muted" style={styles.date}>
         {item.dateLabel}
       </Text>
     </Pressable>
@@ -68,51 +140,69 @@ function CatchCard({ item }: { item: CatchRecord }) {
 const styles = StyleSheet.create({
   list: {
     flex: 1,
-    marginTop: 30,
-    paddingLeft: 31,
-    paddingRight: 9,
+    paddingTop: 16,
+    paddingHorizontal: 20,
   },
   empty: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    // Centre the message under the title rather than under the scroll thumb's column.
-    marginRight: 22,
+    gap: 8,
+    paddingBottom: 56,
+  },
+  emptyTitle: {
+    textAlign: 'center',
   },
   emptyText: {
     maxWidth: 300,
+    marginBottom: 8,
     textAlign: 'center',
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 21,
-    paddingBottom: CATCH_RISE + Spacing.three,
+    justifyContent: 'space-between',
+    rowGap: 20,
+    paddingBottom: 24,
   },
   card: {
-    width: 155,
-    alignItems: 'center',
-    gap: 21,
+    width: '48%',
+    gap: 8,
   },
   pressed: {
     opacity: 0.85,
   },
   photoStack: {
-    width: 155,
-    height: 199,
+    width: '100%',
+    aspectRatio: 0.8,
   },
   photo: {
     position: 'absolute',
-    width: 132,
-    height: 176,
+    width: '86%',
+    height: '86%',
+    borderRadius: 12,
   },
   photoBack: {
     top: 0,
-    left: 23,
+    right: 0,
+    transform: [{ rotate: '4deg' }],
   },
   photoFront: {
-    top: 23,
+    bottom: 0,
     left: 0,
+    transform: [{ rotate: '-3deg' }],
+  },
+  skeletonPhoto: {
+    position: 'absolute',
+    width: '86%',
+    height: '86%',
+    borderRadius: 12,
+  },
+  skeletonDate: {
+    alignSelf: 'center',
+    width: '60%',
+    height: 12,
+    borderRadius: 6,
   },
   date: {
     textAlign: 'center',

@@ -49,7 +49,7 @@ export default function ProfileScreen() {
 
       setUsername(candidate);
       await refreshProfile();
-      router.push('/home-state');
+      router.push('/avatar');
     } catch (error) {
       Alert.alert(
         'Could not save username',

@@ -1,5 +1,5 @@
-import { Image } from 'expo-image';
 import { useFocusEffect } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { SymbolView } from 'expo-symbols';
 import {
   useCallback,
@@ -22,17 +22,17 @@ import {
 } from 'react-native-vision-camera';
 
 import { Text } from '@/components/text';
-import { Brand, Spacing } from '@/constants/theme';
-import type { CatchCapture } from '@/features/catch/lifecycle';
-import { createCatchStep, createVisionCameraAdapter } from '@/features/catch';
 import { useCaptureLocation } from '@/features/capture/use-capture-location';
+import { createCatchStep, createVisionCameraAdapter } from '@/features/catch';
+import type { CatchCapture } from '@/features/catch/lifecycle';
 import { MAX_GPS_ACCURACY_M } from '@/features/verification/constants';
 import type { CaptureMetadata } from '@/features/verification/types';
+import { HudTheme, makeStyles, useTheme } from '@/theme';
 
 /** Height of the instruction bar below the status-bar inset. */
-const TOP_BAR_BELOW_INSET = 87;
+const TOP_BAR_BELOW_INSET = 96;
 /** Height of the controls panel above the home-indicator inset. */
-const CONTROLS_ABOVE_INSET = 186;
+const CONTROLS_ABOVE_INSET = 188;
 
 /** Zoom presets, as VisionCamera's zoom factor (1 = neutral). */
 const ZOOM_PRESETS = [
@@ -41,7 +41,7 @@ const ZOOM_PRESETS = [
 ] as const;
 
 type CatchCameraProps = {
-  /** The step's instruction, shown in the bar across the top. */
+  /** The step's instruction, without a "STEP n" prefix. */
   instruction: string;
   /** XP earned so far in this catch. */
   xp: number;
@@ -141,7 +141,16 @@ function distanceMeters(a: CaptureMetadata, b: CaptureMetadata): number {
 }
 
 /** A full-screen camera for one catch step: instruction, XP, controls and the failure popup. */
-export function CatchCamera({
+export function CatchCamera(props: CatchCameraProps) {
+  return (
+    <HudTheme>
+      <StatusBar style="light" />
+      <CatchCameraBody {...props} />
+    </HudTheme>
+  );
+}
+
+function CatchCameraBody({
   instruction,
   xp,
   failureMessage,
@@ -150,6 +159,8 @@ export function CatchCamera({
   onClose,
   find,
 }: CatchCameraProps) {
+  const theme = useTheme();
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const permission = useCameraPermission();
   const [facing, setFacing] = useState<TargetCameraPosition>('back');
@@ -220,6 +231,7 @@ export function CatchCamera({
   const zoom = ZOOM_PRESETS[zoomIndex];
   const ready = state.status === 'ready' && location.ready;
   const capturing = state.status === 'capturing' || state.status === 'verifying';
+  const stepNumber = find ? 2 : 1;
 
   const hint = useMemo(() => {
     if (!find || !location.fix) return null;
@@ -237,7 +249,7 @@ export function CatchCamera({
       <View
         style={[styles.permission, { paddingTop: topBarHeight, paddingBottom: controlsHeight }]}
       >
-        <Text variant="buttonLabel" style={styles.centered}>
+        <Text variant="heading" style={styles.centered}>
           PlastiCatch needs your camera to photograph the litter you catch.
         </Text>
         <Pressable
@@ -251,8 +263,8 @@ export function CatchCamera({
           }}
           style={({ pressed }) => [styles.permissionButton, pressed && styles.pressed]}
         >
-          <Text variant="buttonLabel">
-            {permission.canRequestPermission ? 'ALLOW CAMERA' : 'OPEN SETTINGS'}
+          <Text variant="label" tone="onAccent">
+            {permission.canRequestPermission ? 'Allow camera' : 'Open settings'}
           </Text>
         </Pressable>
       </View>
@@ -281,21 +293,24 @@ export function CatchCamera({
         <View
           style={[
             styles.instructionBar,
-            { minHeight: topBarHeight, paddingTop: Math.max(insets.top - 22, Spacing.three) },
+            { minHeight: topBarHeight, paddingTop: Math.max(insets.top - 22, theme.space.lg) },
           ]}
         >
-          <Text variant="buttonLabel" style={styles.instruction} accessibilityRole="header">
+          <Text variant="caption" tone="inverse" style={styles.stepChip}>
+            Step {stepNumber} of 2
+          </Text>
+          <Text variant="heading" style={styles.instruction} accessibilityRole="header">
             {instruction}
           </Text>
         </View>
         <View style={styles.pills}>
-          <View style={styles.xpPill}>
-            <Text variant="buttonLabel" accessibilityLabel={`${xp} XP earned`}>
-              XP: {xp}
+          <View style={styles.pill}>
+            <Text variant="label" tone="gold" accessibilityLabel={`${xp} XP earned`}>
+              {xp} XP
             </Text>
           </View>
-          <View style={styles.gpsPill}>
-            <Text variant="compactButtonLabel">
+          <View style={styles.pill}>
+            <Text variant="caption">
               {location.ready
                 ? 'GPS ready'
                 : location.state === 'unavailable'
@@ -304,16 +319,23 @@ export function CatchCamera({
             </Text>
           </View>
           {hint && (
-            <View style={styles.gpsPill}>
-              <Text variant="compactButtonLabel">{hint}</Text>
+            <View style={styles.pill}>
+              <Text variant="caption">{hint}</Text>
             </View>
           )}
         </View>
         {!location.ready && location.state !== 'unavailable' && (
-          <Text variant="compactButtonLabel" style={styles.gpsHint}>
+          <Text variant="caption" tone="muted" style={styles.gpsHint}>
             Waiting for a GPS fix within {MAX_GPS_ACCURACY_M} m.
           </Text>
         )}
+      </View>
+
+      <View style={styles.reticle} pointerEvents="none">
+        <View style={[styles.corner, styles.cornerTopLeft]} />
+        <View style={[styles.corner, styles.cornerTopRight]} />
+        <View style={[styles.corner, styles.cornerBottomLeft]} />
+        <View style={[styles.corner, styles.cornerBottomRight]} />
       </View>
 
       {state.status === 'verifying' && (
@@ -322,9 +344,7 @@ export function CatchCamera({
           pointerEvents="none"
         >
           <View style={styles.popup} accessibilityLiveRegion="polite">
-            <Text variant="buttonLabel" style={styles.popupText}>
-              Checking your photo…
-            </Text>
+            <Text variant="label">Checking your photo…</Text>
           </View>
         </View>
       )}
@@ -341,7 +361,7 @@ export function CatchCamera({
               onPress={step.dismissFailure}
               style={styles.popup}
             >
-              <Text variant="buttonLabel" style={styles.popupText}>
+              <Text variant="label" style={styles.popupText}>
                 {state.failure}
               </Text>
             </Pressable>
@@ -352,11 +372,11 @@ export function CatchCamera({
               hitSlop={14}
               style={({ pressed }) => [styles.popupClose, pressed && styles.pressed]}
             >
-              <Image
-                source={require('@/assets/images/catch-close.png')}
-                style={styles.popupCloseIcon}
-                tintColor={Brand.surface}
-                contentFit="contain"
+              <SymbolView
+                name={{ ios: 'xmark', android: 'close', web: 'close' }}
+                tintColor={theme.color.ink}
+                size={18}
+                weight="semibold"
               />
             </Pressable>
           </View>
@@ -364,14 +384,14 @@ export function CatchCamera({
       )}
 
       <View
-        style={[styles.controls, { height: controlsHeight, paddingBottom: insets.bottom + 35 }]}
+        style={[styles.controls, { height: controlsHeight, paddingBottom: insets.bottom + 28 }]}
       >
         <View style={styles.row}>
           <CircleButton
             label={`Zoom ${zoom.label}`}
             onPress={() => setZoomIndex((i) => (i + 1) % ZOOM_PRESETS.length)}
           >
-            <Text variant="wheelItem" color="surface">
+            <Text variant="label" tone="inverse">
               {zoom.label}
             </Text>
           </CircleButton>
@@ -385,7 +405,7 @@ export function CatchCamera({
                   ? { ios: 'bolt.fill', android: 'flash_on', web: 'flash_on' }
                   : { ios: 'bolt.slash.fill', android: 'flash_off', web: 'flash_off' }
               }
-              tintColor={Brand.surface}
+              tintColor={theme.color.onBrand}
               size={22}
             />
           </CircleButton>
@@ -400,11 +420,11 @@ export function CatchCamera({
             }}
             style={styles.closeButton}
           >
-            <Image
-              source={require('@/assets/images/catch-close.png')}
-              style={styles.closeIcon}
-              tintColor={Brand.surface}
-              contentFit="contain"
+            <SymbolView
+              name={{ ios: 'xmark', android: 'close', web: 'close' }}
+              tintColor={theme.color.onBrand}
+              size={22}
+              weight="semibold"
             />
           </CircleButton>
           <Pressable
@@ -421,11 +441,9 @@ export function CatchCamera({
               !ready && styles.disabled,
             ]}
           >
-            <Image
-              source={require('@/assets/images/catch-shutter.svg')}
-              style={styles.shutter}
-              contentFit="fill"
-            />
+            <View style={styles.shutterRing}>
+              <View style={styles.shutterCore} />
+            </View>
           </Pressable>
           <CircleButton
             label="Switch camera"
@@ -438,7 +456,7 @@ export function CatchCamera({
                 android: 'cameraswitch',
                 web: 'cameraswitch',
               }}
-              tintColor={Brand.surface}
+              tintColor={theme.color.onBrand}
               size={22}
             />
           </CircleButton>
@@ -459,6 +477,8 @@ function CircleButton({
   style?: StyleProp<ViewStyle>;
   children: ReactNode;
 }) {
+  const styles = useStyles();
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -466,20 +486,15 @@ function CircleButton({
       onPress={onPress}
       style={({ pressed }) => [styles.circle, style, pressed && styles.pressed]}
     >
-      <Image
-        source={require('@/assets/images/catch-button.svg')}
-        style={StyleSheet.absoluteFill}
-        contentFit="fill"
-      />
       {children}
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => ({
   screen: {
     flex: 1,
-    backgroundColor: Brand.icon,
+    backgroundColor: '#050B07',
   },
   top: {
     position: 'absolute',
@@ -488,42 +503,82 @@ const styles = StyleSheet.create({
     right: 0,
   },
   instructionBar: {
-    justifyContent: 'center',
-    paddingLeft: 38,
-    paddingRight: 37,
-    paddingBottom: 20,
-    backgroundColor: Brand.scrim,
+    justifyContent: 'flex-end',
+    gap: t.space.sm,
+    paddingLeft: 20,
+    paddingRight: 20,
+    paddingBottom: t.space.lg,
+    backgroundColor: t.color.scrim,
+  },
+  stepChip: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: t.space.sm,
+    paddingVertical: 2,
+    borderRadius: t.radius.pill,
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+    letterSpacing: 0.6,
   },
   instruction: {
-    maxWidth: 318,
+    maxWidth: 320,
   },
   pills: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two,
-    marginTop: 7,
-    marginLeft: 14,
+    gap: t.space.sm,
+    marginTop: t.space.sm,
+    paddingHorizontal: 20,
   },
-  xpPill: {
-    minWidth: 110,
-    height: 50,
-    alignItems: 'center',
+  pill: {
+    minHeight: 32,
     justifyContent: 'center',
-    paddingHorizontal: 15,
-    borderRadius: 20,
-    backgroundColor: Brand.scrim,
-  },
-  gpsPill: {
-    minHeight: 50,
-    justifyContent: 'center',
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    backgroundColor: Brand.scrim,
+    paddingHorizontal: t.space.md,
+    borderRadius: t.radius.pill,
+    backgroundColor: t.color.hudSurface,
   },
   gpsHint: {
-    marginTop: 7,
-    marginLeft: 14,
-    color: Brand.surface,
+    marginTop: t.space.xs,
+    paddingHorizontal: 20,
+  },
+  reticle: {
+    position: 'absolute',
+    top: '34%',
+    left: '18%',
+    right: '18%',
+    aspectRatio: 1,
+  },
+  corner: {
+    position: 'absolute',
+    width: 28,
+    height: 28,
+    borderColor: 'rgba(255, 255, 255, 0.72)',
+  },
+  cornerTopLeft: {
+    top: 0,
+    left: 0,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderTopLeftRadius: 4,
+  },
+  cornerTopRight: {
+    top: 0,
+    right: 0,
+    borderTopWidth: 2,
+    borderRightWidth: 2,
+    borderTopRightRadius: 4,
+  },
+  cornerBottomLeft: {
+    bottom: 0,
+    left: 0,
+    borderBottomWidth: 2,
+    borderLeftWidth: 2,
+    borderBottomLeftRadius: 4,
+  },
+  cornerBottomRight: {
+    bottom: 0,
+    right: 0,
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderBottomRightRadius: 4,
   },
   popupArea: {
     position: 'absolute',
@@ -533,44 +588,40 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   popupFrame: {
-    width: 301,
-    maxWidth: '90%',
+    width: 320,
+    maxWidth: '88%',
   },
   popup: {
     width: '100%',
-    minHeight: 146,
+    minHeight: 120,
     justifyContent: 'center',
-    paddingLeft: 30,
-    paddingRight: 44,
-    paddingVertical: Spacing.four,
-    borderRadius: 20,
-    backgroundColor: Brand.scrim,
+    paddingHorizontal: t.space.xl,
+    paddingVertical: t.space.xl,
+    borderRadius: t.radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
+    backgroundColor: t.color.hudSurface,
   },
   popupText: {
-    maxWidth: 244,
+    maxWidth: 250,
   },
   popupClose: {
     position: 'absolute',
-    top: 12,
-    right: 12,
+    top: 8,
+    right: 8,
     width: 44,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  popupCloseIcon: {
-    width: 16,
-    height: 16,
   },
   controls: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    paddingTop: 21,
-    paddingLeft: 21,
-    paddingRight: 20,
-    backgroundColor: Brand.scrim,
+    paddingTop: t.space.md,
+    paddingHorizontal: 20,
+    backgroundColor: t.color.scrim,
   },
   row: {
     flexDirection: 'row',
@@ -578,7 +629,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   shutterRow: {
-    marginTop: 10,
+    marginTop: t.space.sm,
+    alignItems: 'center',
   },
   closeButton: {
     marginTop: 18,
@@ -591,37 +643,54 @@ const styles = StyleSheet.create({
     height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  closeIcon: {
-    width: 22,
-    height: 22,
+    borderRadius: t.radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.24)',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
   },
   shutter: {
+    width: 76,
+    height: 76,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shutterRing: {
     width: 72,
     height: 72,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: t.radius.pill,
+    borderWidth: 4,
+    borderColor: t.color.onBrand,
+  },
+  shutterCore: {
+    width: 58,
+    height: 58,
+    borderRadius: t.radius.pill,
+    backgroundColor: t.color.onBrand,
   },
   permission: {
     ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 38,
-    gap: Spacing.four,
-    backgroundColor: Brand.icon,
+    paddingHorizontal: 32,
+    gap: t.space.xl,
+    backgroundColor: t.color.bg,
   },
   centered: {
     textAlign: 'center',
   },
   permissionButton: {
-    minHeight: 44,
+    minHeight: 48,
     justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
-    borderRadius: Spacing.two,
-    backgroundColor: Brand.accent,
+    paddingHorizontal: t.space.xl,
+    borderRadius: t.radius.md,
+    backgroundColor: t.color.accent,
   },
   pressed: {
     opacity: 0.7,
   },
   disabled: {
-    opacity: 0.5,
+    opacity: 0.4,
   },
-});
+}));

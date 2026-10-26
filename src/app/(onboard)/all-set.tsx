@@ -1,105 +1,117 @@
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { SymbolView, type SymbolViewProps } from 'expo-symbols';
+import { View } from 'react-native';
 
-import { ALL_SET_BACKDROP_STOPS } from '@/components/backdrop';
 import { ONBOARDING_STEPS } from '@/components/onboarding';
 import { OnboardingProgress } from '@/components/onboarding-progress';
-import { ScreenFrame } from '@/components/screen-frame';
 import { Text } from '@/components/text';
-import { Brand } from '@/constants/theme';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Screen } from '@/components/ui/screen';
+import { makeStyles, useTheme } from '@/theme';
+
+const TIPS: { icon: SymbolViewProps['name']; title: string; body: string }[] = [
+  {
+    icon: { ios: 'camera.fill', android: 'photo_camera', web: 'photo_camera' },
+    title: 'Catch it',
+    body: 'Photograph a piece of litter where you find it.',
+  },
+  {
+    icon: { ios: 'arrow.right.circle.fill', android: 'arrow_forward', web: 'arrow_forward' },
+    title: 'Dispose of it',
+    body: 'Carry it to a bin and photograph the same litter going in.',
+  },
+  {
+    icon: { ios: 'trophy.fill', android: 'emoji_events', web: 'emoji_events' },
+    title: 'Earn XP',
+    body: 'Verified catches build your streak and move you up the leaderboard.',
+  },
+];
 
 export default function AllSetScreen() {
+  const theme = useTheme();
+  const styles = useStyles();
+
   return (
-    <ScreenFrame
-      top="step"
-      stops={ALL_SET_BACKDROP_STOPS}
-      backdropOverBackground
-      contentStyle={styles.content}
-      header={<OnboardingProgress step={ONBOARDING_STEPS} total={ONBOARDING_STEPS} />}
-      background={
-        <View style={styles.map} pointerEvents="none">
-          <Image
-            source={require('@/assets/images/all-set-map.png')}
-            style={styles.mapImage}
-            contentFit="fill"
-          />
-          <View style={styles.mapFade} />
+    <Screen header={<OnboardingProgress step={ONBOARDING_STEPS} total={ONBOARDING_STEPS} />}>
+      <View style={styles.body}>
+        <View style={styles.message}>
+          <Text variant="display" style={styles.title} accessibilityRole="header">
+            You&apos;re all set!
+          </Text>
+          <Text variant="body" tone="muted" style={styles.copy}>
+            Your account is ready. Time to clean up your corner of the map.
+          </Text>
         </View>
-      }
-    >
-      <View style={styles.message}>
-        <Text variant="pageTitle" style={styles.title}>
-          You’re all set!
-        </Text>
-        <Image
-          source={require('@/assets/images/all-set-divider.svg')}
-          style={styles.divider}
-          contentFit="fill"
-        />
-        <Pressable
-          accessibilityRole="button"
+
+        <Card style={styles.tips}>
+          {TIPS.map((tip, index) => (
+            <View key={tip.title} style={styles.tip}>
+              <View style={[styles.tipIcon, { backgroundColor: theme.color.accentTint }]}>
+                <SymbolView name={tip.icon} size={20} tintColor={theme.color.accent} />
+              </View>
+              <View style={styles.tipText}>
+                <Text variant="label">{tip.title}</Text>
+                <Text variant="caption" tone="muted">
+                  {tip.body}
+                </Text>
+              </View>
+              <Text variant="caption" tone="muted">
+                {index + 1}
+              </Text>
+            </View>
+          ))}
+        </Card>
+
+        <Button
+          label="Start catching"
+          size="lg"
           // Onboarding is finished, so drop it from history and land in the app shell.
           onPress={() => router.replace('/map')}
-          style={({ pressed }) => [styles.button, pressed && styles.pressed]}
-        >
-          <Text variant="buttonLabel">BEGIN CATCHING</Text>
-        </Pressable>
+          style={styles.button}
+        />
       </View>
-    </ScreenFrame>
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  // The map frame is 45pt wider than the screen on each side and pinned to the bottom.
-  map: {
-    position: 'absolute',
-    left: -45,
-    right: -45,
-    bottom: 0,
-    aspectRatio: 483 / 453,
-    overflow: 'hidden',
-  },
-  mapImage: {
-    position: 'absolute',
-    left: '-79.53%',
-    top: '-81.55%',
-    width: '285.65%',
-    height: '194.5%',
-  },
-  mapFade: {
-    ...StyleSheet.absoluteFill,
-    experimental_backgroundImage: `linear-gradient(to bottom, ${Brand.surface} 2.07%, rgba(247, 248, 247, 0) 92.28%)`,
-  },
-  content: {
-    paddingHorizontal: 28,
+const useStyles = makeStyles((t) => ({
+  body: {
+    flex: 1,
+    justifyContent: 'center',
+    gap: t.space.xxl,
+    paddingHorizontal: 20,
+    paddingBottom: 32,
   },
   message: {
-    alignSelf: 'center',
-    width: '100%',
-    maxWidth: 324,
-    marginTop: 214,
-    alignItems: 'center',
-    gap: 20,
+    gap: t.space.sm,
   },
   title: {
     textAlign: 'center',
   },
-  divider: {
-    width: 324,
-    height: 5,
-    maxWidth: '100%',
-    // Figma lays the 5px stroke out in a 1px slot; keep the surrounding spacing the same.
-    marginVertical: -2,
-    transform: [{ rotate: '-0.18deg' }],
+  copy: {
+    textAlign: 'center',
+  },
+  tips: {
+    gap: t.space.lg,
+  },
+  tip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: t.space.md,
+  },
+  tipIcon: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: t.radius.pill,
+  },
+  tipText: {
+    flex: 1,
+    gap: 2,
   },
   button: {
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 15,
-    backgroundColor: Brand.accent,
+    alignSelf: 'stretch',
   },
-  pressed: {
-    opacity: 0.7,
-  },
-});
+}));

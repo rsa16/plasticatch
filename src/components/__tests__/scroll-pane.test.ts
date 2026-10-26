@@ -37,13 +37,12 @@ describe('thumbOffset', () => {
 });
 
 describe('fadeGradient', () => {
-  it('fades the backdrop colour at that window fraction into the pane', () => {
-    // colorAt(0) is the backdrop's top colour (pinned in backdrop.test.ts).
-    expect(fadeGradient(0, false)).toBe(
-      'linear-gradient(to bottom, rgba(130, 179, 158, 1), rgba(130, 179, 158, 0))',
+  it('fades the given background colour into the pane', () => {
+    expect(fadeGradient('#F4F7F2', false)).toBe(
+      'linear-gradient(to bottom, rgba(244, 247, 242, 1), rgba(244, 247, 242, 0))',
     );
-    expect(fadeGradient(0, true)).toBe(
-      'linear-gradient(to bottom, rgba(130, 179, 158, 0), rgba(130, 179, 158, 1))',
+    expect(fadeGradient('#F4F7F2', true)).toBe(
+      'linear-gradient(to bottom, rgba(244, 247, 242, 0), rgba(244, 247, 242, 1))',
     );
   });
 });

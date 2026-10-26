@@ -2,10 +2,7 @@ import { router } from 'expo-router';
 import { Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/text';
-import { Brand, Spacing } from '@/constants/theme';
-
-/** The minimum comfortable touch target for the banner's Settings action. */
-const ACTION_MIN_SIZE = 44;
+import { makeStyles } from '@/theme';
 
 type ReadOnlyBannerProps = {
   /** Which permissions are missing, in plain language. */
@@ -17,6 +14,8 @@ type ReadOnlyBannerProps = {
  * switch, repeats the reason, and deep-links to the place where the permissions can be changed.
  */
 export function ReadOnlyBanner({ reason }: ReadOnlyBannerProps) {
+  const styles = useStyles();
+
   function openSettings() {
     // Only the OS settings app can change an already-denied permission on mobile. The browser
     // has no equivalent, so web falls back to the app's own Settings screen.
@@ -30,10 +29,8 @@ export function ReadOnlyBanner({ reason }: ReadOnlyBannerProps) {
   return (
     <View style={styles.banner} testID="read-only-banner">
       <View style={styles.copy}>
-        <Text variant="caption" style={styles.title}>
-          You&apos;re in read-only mode
-        </Text>
-        <Text variant="caption" style={styles.reason}>
+        <Text variant="label">Read-only mode</Text>
+        <Text variant="caption" tone="muted">
           {reason}
         </Text>
       </View>
@@ -44,7 +41,7 @@ export function ReadOnlyBanner({ reason }: ReadOnlyBannerProps) {
         onPress={openSettings}
         style={({ pressed }) => [styles.action, pressed && styles.pressed]}
       >
-        <Text variant="caption" style={styles.actionLabel}>
+        <Text variant="caption" tone="accent">
           Settings
         </Text>
       </Pressable>
@@ -52,48 +49,40 @@ export function ReadOnlyBanner({ reason }: ReadOnlyBannerProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => ({
   banner: {
     position: 'absolute',
-    left: Spacing.three,
-    right: Spacing.three,
+    left: t.space.md,
+    right: t.space.md,
     // The tab bar is the positioning parent; `100%` is its top edge.
     bottom: '100%',
-    marginBottom: Spacing.two,
-    minHeight: ACTION_MIN_SIZE,
+    marginBottom: t.space.sm,
+    minHeight: 52,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.three,
-    paddingLeft: Spacing.three,
-    paddingVertical: Spacing.two,
-    paddingRight: Spacing.two,
-    borderRadius: 15,
-    backgroundColor: Brand.surface,
-    boxShadow: '0px 2px 6px 0px rgba(0, 0, 0, 0.25)',
+    gap: t.space.md,
+    paddingLeft: t.space.lg,
+    paddingVertical: t.space.sm,
+    paddingRight: t.space.sm,
+    borderRadius: t.radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: t.color.line,
+    backgroundColor: t.color.surface,
+    ...t.elevation.floating,
   },
   copy: {
     flex: 1,
-    gap: Spacing.half,
-  },
-  title: {
-    fontWeight: '700',
-  },
-  reason: {
-    color: Brand.rowText,
+    gap: 2,
   },
   action: {
-    minWidth: ACTION_MIN_SIZE,
-    minHeight: ACTION_MIN_SIZE,
+    minWidth: 44,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.three,
-    borderRadius: 15,
-    backgroundColor: Brand.accent,
-  },
-  actionLabel: {
-    color: Brand.surface,
+    paddingHorizontal: t.space.md,
+    borderRadius: t.radius.sm,
   },
   pressed: {
     opacity: 0.7,
   },
-});
+}));

@@ -1,11 +1,11 @@
-import { Image, type ImageSource, type ImageStyle } from 'expo-image';
+import { Image } from 'expo-image';
 import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View, type StyleProp } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ActionButton, AuthCard, AuthField } from '@/components/auth-form';
 import { Text } from '@/components/text';
-import { BottomTabInset, Brand, Spacing } from '@/constants/theme';
+import { Screen } from '@/components/ui/screen';
 import {
   GOOGLE_ERROR,
   RESEND_NOTICE,
@@ -20,6 +20,7 @@ import {
 import { admit, canContinueOnboarding } from '@/features/onboarding/age';
 import { useOnboardingDraftStore } from '@/features/onboarding/draft';
 import { markAgeVerified } from '@/features/onboarding/profile-service';
+import { darkTheme } from '@/theme/tokens';
 
 type AuthStage = 'form' | 'check-email';
 
@@ -211,19 +212,19 @@ export default function SignInScreen() {
   }
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.hero} pointerEvents="none">
-        <View style={styles.heroImageFrame}>
+    <Screen
+      hud
+      background={
+        <View style={styles.hero}>
           <Image
             source={require('@/assets/images/catch-hero.png')}
-            style={styles.heroImage}
-            contentFit="fill"
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
           />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(7, 16, 11, 0.72)' }]} />
         </View>
-        <View style={styles.heroScrim} />
-      </View>
-      <View style={styles.bottomFade} pointerEvents="none" />
-
+      }
+    >
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
@@ -231,35 +232,30 @@ export default function SignInScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.titleGroup}>
-          <Text variant="displayTitle" numberOfLines={1} adjustsFontSizeToFit>
+          <Text variant="display" numberOfLines={1} adjustsFontSizeToFit style={styles.wordmark}>
             PlastiCatch
           </Text>
-          <Image
-            source={require('@/assets/images/catch-divider.svg')}
-            style={styles.divider}
-            contentFit="fill"
-          />
-          <Text variant="displayTagline" style={styles.welcome}>
-            - WELCOME -
+          <Text variant="caption" tone="muted" style={styles.tagline}>
+            Photograph litter. Bin it. Earn XP.
           </Text>
         </View>
 
         <View style={styles.auth}>
           {stage === 'check-email' ? (
             <AuthCard>
-              <Text variant="sectionTitle" accessibilityRole="header">
+              <Text variant="heading" accessibilityRole="header">
                 Check your email
               </Text>
-              <Text variant="caption">
+              <Text variant="caption" tone="muted">
                 {`We sent a confirmation link to ${normalizeEmail(email)}. Open the link to finish signing in.`}
               </Text>
               {formError ? (
-                <Text variant="caption" color="danger" accessibilityRole="alert">
+                <Text variant="caption" tone="danger" accessibilityRole="alert">
                   {formError}
                 </Text>
               ) : null}
               {notice ? (
-                <Text variant="caption" color="accent">
+                <Text variant="caption" tone="accent">
                   {notice}
                 </Text>
               ) : null}
@@ -274,7 +270,7 @@ export default function SignInScreen() {
                 onPress={backToLogin}
                 style={styles.linkButton}
               >
-                <Text variant="caption" color="accent">
+                <Text variant="caption" tone="accent">
                   Back to log in
                 </Text>
               </Pressable>
@@ -282,18 +278,18 @@ export default function SignInScreen() {
           ) : (
             <>
               <View style={styles.social}>
-                <SignInButton
+                <SocialButton
                   label="Sign in with Google"
                   icon={require('@/assets/images/google-logo.png')}
-                  iconStyle={styles.googleIcon}
+                  iconSize={22}
                   onPress={() => void handleGoogle()}
                   disabled={pending}
                 />
                 {/* Apple is not configured on the project, so the button stays visual-only. */}
-                <SignInButton
+                <SocialButton
                   label="Sign in with Apple"
                   icon={require('@/assets/images/apple-logo.png')}
-                  iconStyle={styles.appleIcon}
+                  iconSize={24}
                   disabled
                   hint="Apple sign-in is not available yet."
                 />
@@ -353,12 +349,12 @@ export default function SignInScreen() {
                 ) : null}
 
                 {formError ? (
-                  <Text variant="caption" color="danger" accessibilityRole="alert">
+                  <Text variant="caption" tone="danger" accessibilityRole="alert">
                     {formError}
                   </Text>
                 ) : null}
                 {notice ? (
-                  <Text variant="caption" color="accent">
+                  <Text variant="caption" tone="accent">
                     {notice}
                   </Text>
                 ) : null}
@@ -376,12 +372,12 @@ export default function SignInScreen() {
                     onPress={() => void handleForgotPassword()}
                     style={styles.linkButton}
                   >
-                    <Text variant="caption" color="accent">
+                    <Text variant="caption" tone="accent">
                       Forgot password?
                     </Text>
                   </Pressable>
                 ) : (
-                  <Text variant="caption">
+                  <Text variant="caption" tone="muted">
                     We&apos;ll email you a link to confirm your address.
                   </Text>
                 )}
@@ -390,7 +386,7 @@ export default function SignInScreen() {
           )}
         </View>
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
@@ -411,32 +407,30 @@ function Segment({
       accessibilityState={{ selected, disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={[styles.segment, selected && styles.segmentSelected]}
+      style={[styles.segment, selected && { backgroundColor: darkTheme.color.accent }]}
     >
-      <Text variant="secondaryButtonLabel" color={selected ? 'surface' : 'onSurface'}>
+      <Text variant="label" tone={selected ? 'onAccent' : 'muted'}>
         {label}
       </Text>
     </Pressable>
   );
 }
 
-type SignInButtonProps = {
-  label: string;
-  icon: ImageSource;
-  iconStyle: StyleProp<ImageStyle>;
-  onPress?: () => void;
-  disabled?: boolean;
-  hint?: string;
-};
-
-function SignInButton({
+function SocialButton({
   label,
   icon,
-  iconStyle,
+  iconSize,
   onPress,
   disabled = false,
   hint,
-}: SignInButtonProps) {
+}: {
+  label: string;
+  icon: number;
+  iconSize: number;
+  onPress?: () => void;
+  disabled?: boolean;
+  hint?: string;
+}) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -445,126 +439,83 @@ function SignInButton({
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
-        styles.button,
+        styles.socialButton,
         disabled && styles.disabled,
         pressed && styles.pressed,
       ]}
     >
-      <Image source={icon} style={iconStyle} contentFit="cover" />
-      <Text variant="secondaryButtonLabel">{label}</Text>
+      <Image source={icon} style={{ width: iconSize, height: iconSize }} contentFit="contain" />
+      <Text variant="label">{label}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: Brand.green,
-  },
   hero: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    aspectRatio: 393 / 416,
-  },
-  heroImageFrame: {
-    width: '100%',
-    aspectRatio: 393 / 411,
-    overflow: 'hidden',
-  },
-  heroImage: {
-    position: 'absolute',
-    left: '-30.51%',
-    top: '-18.25%',
-    width: '185.65%',
-    height: '118.25%',
-  },
-  heroScrim: {
-    ...StyleSheet.absoluteFill,
-    experimental_backgroundImage: `linear-gradient(177.39deg, rgba(25, 51, 40, 0.44) 7.72%, rgba(25, 51, 40, 0.44) 53.69%, ${Brand.green} 97.93%)`,
-  },
-  bottomFade: {
-    position: 'absolute',
-    top: 424,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    experimental_backgroundImage: `linear-gradient(to bottom, rgba(25, 51, 40, 0) 0%, ${Brand.greenDeep} 100%)`,
+    flex: 1,
   },
   content: {
+    flexGrow: 1,
     alignItems: 'center',
-    paddingTop: 273,
-    paddingHorizontal: Spacing.four,
-    paddingBottom: BottomTabInset + Spacing.five,
+    justifyContent: 'center',
+    paddingVertical: 32,
+    paddingHorizontal: 20,
+    gap: 24,
   },
   titleGroup: {
     width: '100%',
     maxWidth: 342,
     alignItems: 'center',
-    gap: 20,
+    gap: 8,
   },
-  divider: {
-    width: 324.002,
-    height: 5,
-    maxWidth: '100%',
-    // Figma lays the 5px stroke out in a 1px slot; keep the surrounding spacing the same.
-    marginVertical: -2,
-    transform: [{ rotate: '-0.18deg' }],
+  wordmark: {
+    textAlign: 'center',
   },
-  welcome: {
+  tagline: {
     textAlign: 'center',
   },
   auth: {
     width: '100%',
     maxWidth: 342,
-    marginTop: 40,
-    gap: Spacing.three,
+    gap: 12,
   },
   social: {
-    gap: Spacing.two,
+    gap: 8,
+  },
+  socialButton: {
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: darkTheme.color.line,
+    backgroundColor: darkTheme.color.surface,
   },
   segments: {
     flexDirection: 'row',
-    padding: Spacing.one,
+    gap: 4,
+    padding: 4,
     borderRadius: 12,
-    backgroundColor: Brand.field,
-    gap: Spacing.one,
+    backgroundColor: darkTheme.color.surfaceSunken,
   },
   segment: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: Spacing.two,
+    justifyContent: 'center',
+    minHeight: 36,
     borderRadius: 10,
-  },
-  segmentSelected: {
-    backgroundColor: Brand.green,
   },
   linkButton: {
     alignSelf: 'center',
-    paddingVertical: Spacing.one,
-  },
-  button: {
-    height: 60,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 40,
-    padding: 10,
-    borderRadius: 15,
-    backgroundColor: Brand.surface,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   pressed: {
-    opacity: 0.7,
+    opacity: 0.75,
   },
   disabled: {
-    opacity: 0.5,
-  },
-  googleIcon: {
-    width: 36,
-    height: 36,
-  },
-  appleIcon: {
-    width: 36,
-    height: 42,
+    opacity: 0.45,
   },
 });

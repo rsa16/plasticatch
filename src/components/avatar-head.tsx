@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 
 import { avatarHeadLayers, DEFAULT_AVATAR_SOURCE } from '@/components/avatar-art';
+import { useTheme } from '@/theme';
 
 type AvatarHeadProps = {
   /** The stored `{ hair, skin, shirt }` object; missing or unknown parts use the default preset. */
@@ -20,6 +21,7 @@ type AvatarHeadProps = {
  * an empty circle.
  */
 export function AvatarHead({ avatar, size, label }: AvatarHeadProps) {
+  const theme = useTheme();
   const layers = avatarHeadLayers(avatar);
   const frame = { width: size, height: size, borderRadius: size / 2 };
 
@@ -28,7 +30,7 @@ export function AvatarHead({ avatar, size, label }: AvatarHeadProps) {
       accessible={label !== undefined}
       accessibilityRole={label === undefined ? undefined : 'image'}
       accessibilityLabel={label}
-      style={[styles.frame, frame]}
+      style={[styles.frame, frame, { backgroundColor: theme.color.surfaceSunken }]}
     >
       {layers ? (
         <>
@@ -46,6 +48,5 @@ export function AvatarHead({ avatar, size, label }: AvatarHeadProps) {
 const styles = StyleSheet.create({
   frame: {
     overflow: 'hidden',
-    backgroundColor: '#d9e0d9',
   },
 });

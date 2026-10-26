@@ -1,6 +1,6 @@
-import { StyleSheet, View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
 
-import { Brand } from '@/constants/theme';
+import { makeStyles } from '@/theme';
 
 type OnboardingProgressProps = {
   /** 1-based index of the current step. */
@@ -8,10 +8,17 @@ type OnboardingProgressProps = {
   total: number;
 };
 
+/** How far below the safe area the step bar sits, as a fraction of the screen height. */
+const TOP_GAP_RATIO = 0.07;
+
+/** A segmented step indicator: completed segments accent, the rest sunken. */
 export function OnboardingProgress({ step, total }: OnboardingProgressProps) {
+  const styles = useStyles();
+  const { height } = useWindowDimensions();
+
   return (
     <View
-      style={styles.row}
+      style={[styles.row, { paddingTop: Math.round(height * TOP_GAP_RATIO) }]}
       accessibilityRole="progressbar"
       accessibilityValue={{ min: 1, max: total, now: step }}
     >
@@ -22,19 +29,20 @@ export function OnboardingProgress({ step, total }: OnboardingProgressProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => ({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 13,
+    gap: t.space.xs,
+    paddingHorizontal: 20,
   },
   segment: {
-    width: 57,
-    height: 13,
-    borderRadius: 15,
-    backgroundColor: Brand.accentMuted,
+    flex: 1,
+    height: 4,
+    borderRadius: t.radius.pill,
+    backgroundColor: t.color.surfaceSunken,
   },
   segmentDone: {
-    backgroundColor: Brand.accent,
+    backgroundColor: t.color.accent,
   },
-});
+}));

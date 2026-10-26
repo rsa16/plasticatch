@@ -26,6 +26,7 @@ import {
 import { pinFeatureCollection } from '@/features/map/pin';
 import { riskFeatureCollection } from '@/features/map/risk';
 import { MAPBOX_TOKEN } from '@/features/map/token';
+import { useTheme } from '@/theme';
 import { viewportFromVisibleBounds } from '@/features/map/viewport';
 
 import type { MapCanvasProps } from './map-canvas';
@@ -72,6 +73,7 @@ export function MapCanvas({
   onError,
   pinsLoading = false,
 }: MapCanvasProps) {
+  const theme = useTheme();
   const mapRef = useRef<Mapbox.MapView>(null);
 
   async function reportViewport() {
@@ -101,7 +103,8 @@ export function MapCanvas({
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFill}
-        styleURL={StyleURL.Outdoors}
+        styleURL={theme.scheme === 'dark' ? StyleURL.Dark : StyleURL.Outdoors}
+        key={theme.scheme}
         logoEnabled
         attributionEnabled
         compassEnabled={false}
@@ -146,9 +149,9 @@ export function MapCanvas({
               id="olm-pins-circles"
               style={{
                 circleColor: OLM_PIN_COLOR,
-                circleRadius: 5,
+                circleRadius: 7,
                 circleStrokeColor: '#ffffff',
-                circleStrokeWidth: 1.25,
+                circleStrokeWidth: 2,
                 circleOpacity: 0.9,
               }}
             />
@@ -165,9 +168,9 @@ export function MapCanvas({
               id="litter-pins-circles"
               style={{
                 circleColor: PIN_COLOR_EXPRESSION,
-                circleRadius: 6,
+                circleRadius: 7,
                 circleStrokeColor: '#ffffff',
-                circleStrokeWidth: 1.5,
+                circleStrokeWidth: 2,
                 circleOpacity: 0.92,
               }}
             />
@@ -202,6 +205,6 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     borderWidth: 2,
     borderColor: '#ffffff',
-    backgroundColor: '#378765',
+    backgroundColor: '#2C7250',
   },
 });

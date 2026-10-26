@@ -32,7 +32,7 @@ export default function DateOfBirthScreen() {
       }}
     >
       <OnboardingHeading>Date of Birth</OnboardingHeading>
-      <OnboardingPrompt>Scroll to select your birthday:</OnboardingPrompt>
+      <OnboardingPrompt>Select your birthday:</OnboardingPrompt>
       <DateWheel value={dateOfBirth} onChange={setDateOfBirth} />
     </OnboardingScreen>
   );

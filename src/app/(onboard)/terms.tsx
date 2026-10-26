@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
@@ -7,15 +6,15 @@ import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { OnboardingHeading, OnboardingScreen } from '@/components/onboarding';
 import { FADE_HEIGHT, ScrollPane } from '@/components/scroll-pane';
 import { Text } from '@/components/text';
+import { Card } from '@/components/ui/card';
 import { PRIVACY_VERSION, TERMS_VERSION } from '@/constants/legal';
-import { Brand } from '@/constants/theme';
 import { TERMS_OF_SERVICE } from '@/constants/terms-of-service';
 import { goBackOr } from '@/features/onboarding/back';
 import { acceptConsent } from '@/features/onboarding/profile-service';
-
-const THUMB_HEIGHT = 57;
+import { useTheme } from '@/theme';
 
 export default function TermsScreen() {
+  const theme = useTheme();
   // The backend records the two acceptances separately, so the screen asks for them separately.
   const [agreedTerms, setAgreedTerms] = useState(false);
   const [agreedPrivacy, setAgreedPrivacy] = useState(false);
@@ -51,24 +50,29 @@ export default function TermsScreen() {
 
   return (
     <OnboardingScreen
-      step={5}
+      step={6}
       onBack={() => goBackOr('/permissions')}
       onNext={handleNext}
       nextDisabled={!complete || pending}
     >
       <OnboardingHeading>Terms of Service</OnboardingHeading>
-      <TermsText />
+      <Text variant="body" tone="muted">
+        Read the terms and privacy policy, then confirm both below.
+      </Text>
+
+      <Card padded={false} style={styles.terms}>
+        <View style={styles.termsInner}>
+          <ScrollPane fade thumbHeight={48} contentContainerStyle={styles.termsContent}>
+            <Text variant="body">{TERMS_OF_SERVICE}</Text>
+          </ScrollPane>
+        </View>
+      </Card>
 
       <View style={styles.agreeSection}>
-        <Image
-          source={require('@/assets/images/onboarding-divider.svg')}
-          style={styles.divider}
-          contentFit="fill"
-        />
         <AgreeRow
           checked={agreedTerms}
           onToggle={() => setAgreedTerms((value) => !value)}
-          label="I have read and agreed to the Terms of Service outlined above."
+          label="I have read and agreed to the Terms of Service above."
         />
         <AgreeRow
           checked={agreedPrivacy}
@@ -76,6 +80,7 @@ export default function TermsScreen() {
           label="I have read and agreed to the Privacy Policy."
         />
       </View>
+      <View style={{ height: theme.space.sm }} />
     </OnboardingScreen>
   );
 }
@@ -87,6 +92,8 @@ type AgreeRowProps = {
 };
 
 function AgreeRow({ checked, onToggle, label }: AgreeRowProps) {
+  const theme = useTheme();
+
   return (
     <Pressable
       accessibilityRole="checkbox"
@@ -94,63 +101,58 @@ function AgreeRow({ checked, onToggle, label }: AgreeRowProps) {
       onPress={onToggle}
       style={styles.agreeRow}
     >
-      <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
+      <View
+        style={[
+          styles.checkbox,
+          {
+            borderColor: theme.color.accent,
+            backgroundColor: checked ? theme.color.accent : 'transparent',
+          },
+        ]}
+      >
         {checked && (
           <SymbolView
             name={{ ios: 'checkmark', android: 'check', web: 'check' }}
-            tintColor={Brand.surface}
-            size={24}
+            tintColor={theme.color.onAccent}
+            size={18}
             weight="bold"
           />
         )}
       </View>
-      <Text variant="legalConsent" style={styles.agreeLabel}>
+      <Text variant="caption" style={styles.agreeLabel}>
         {label}
       </Text>
     </Pressable>
   );
 }
 
-/** The terms, scrollable with the shared pane's faded edges and thumb. */
-function TermsText() {
-  return (
-    <ScrollPane fade thumbHeight={THUMB_HEIGHT} contentContainerStyle={styles.termsContent}>
-      <Text variant="legalText">{TERMS_OF_SERVICE}</Text>
-    </ScrollPane>
-  );
-}
-
 const styles = StyleSheet.create({
+  terms: {
+    flex: 1,
+    minHeight: 180,
+  },
+  termsInner: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
   termsContent: {
     paddingVertical: FADE_HEIGHT / 2,
   },
   agreeSection: {
-    marginLeft: -9,
-    gap: 19,
-  },
-  divider: {
-    width: 324.002,
-    height: 5,
-    maxWidth: '100%',
-    marginVertical: -2,
-    transform: [{ rotate: '-0.18deg' }],
+    gap: 12,
   },
   agreeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 18,
+    gap: 12,
   },
   checkbox: {
-    width: 43,
-    height: 43,
-    borderWidth: 5,
-    borderRadius: 10,
-    borderColor: Brand.accent,
+    width: 28,
+    height: 28,
+    borderWidth: 2,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: Brand.accent,
   },
   agreeLabel: {
     flex: 1,

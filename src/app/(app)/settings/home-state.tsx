@@ -5,17 +5,21 @@ import { SymbolView } from 'expo-symbols';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { useBottomBarHeight } from '@/components/bottom-menu';
-import { MenuScreen } from '@/components/menu-screen';
+import { BackButton } from '@/components/ui/back-button';
 import { ScrollPane } from '@/components/scroll-pane';
 import { Text } from '@/components/text';
-import { Brand, Spacing } from '@/constants/theme';
+import { Button } from '@/components/ui/button';
+import { Card, Divider } from '@/components/ui/card';
+import { Screen } from '@/components/ui/screen';
 import { US_STATES } from '@/constants/us-states';
 import { useSessionStore } from '@/features/auth';
 import { canSubmitHomeState } from '@/features/onboarding/home-state';
 import { homeStateErrorMessage, saveHomeState } from '@/features/onboarding/profile-service';
+import { useTheme } from '@/theme';
 
 /** Change the explicit home state that scopes the leaderboard and map filter. */
 export default function SettingsHomeStateScreen() {
+  const theme = useTheme();
   const profile = useSessionStore((state) => state.profile);
   const refreshProfile = useSessionStore((state) => state.refreshProfile);
   const queryClient = useQueryClient();
@@ -59,114 +63,82 @@ export default function SettingsHomeStateScreen() {
   }
 
   return (
-    <MenuScreen title="HOME STATE">
+    <Screen title="Home state" actions={<BackButton />}>
       <View style={[styles.screen, { marginBottom: barHeight }]}>
         <View style={styles.content}>
-          <Text variant="prompt">Choose the state you catch litter in:</Text>
+          <Text variant="body" tone="muted">
+            Choose the state you catch litter in:
+          </Text>
 
-          <View style={styles.list} accessibilityRole="radiogroup">
-            <ScrollPane thumbHeight={57}>
-              {US_STATES.map((state) => {
+          <Card padded={false} style={styles.list}>
+            <ScrollPane thumbHeight={48}>
+              {US_STATES.map((state, index) => {
                 const isSelected = state.code === selected;
                 return (
-                  <Pressable
-                    key={state.code}
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: isSelected }}
-                    accessibilityLabel={state.name}
-                    onPress={() => setSelected(state.code)}
-                    style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-                  >
-                    <Text variant="wheelItem" color={isSelected ? 'accent' : 'onSurface'}>
-                      {state.name}
-                    </Text>
-                    {isSelected && (
-                      <SymbolView
-                        name={{ ios: 'checkmark', android: 'check', web: 'check' }}
-                        tintColor={Brand.accent}
-                        size={22}
-                        weight="bold"
-                      />
-                    )}
-                  </Pressable>
+                  <View key={state.code}>
+                    {index > 0 && <Divider />}
+                    <Pressable
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: isSelected }}
+                      accessibilityLabel={state.name}
+                      onPress={() => setSelected(state.code)}
+                      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+                    >
+                      <Text variant="body" tone={isSelected ? 'accent' : 'default'}>
+                        {state.name}
+                      </Text>
+                      {isSelected && (
+                        <SymbolView
+                          name={{ ios: 'checkmark', android: 'check', web: 'check' }}
+                          tintColor={theme.color.accent}
+                          size={20}
+                          weight="bold"
+                        />
+                      )}
+                    </Pressable>
+                  </View>
                 );
               })}
             </ScrollPane>
-          </View>
+          </Card>
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Save home state"
-            accessibilityState={{ disabled: pending || !canSubmitHomeState(selected) }}
-            disabled={pending || !canSubmitHomeState(selected)}
+          <Button
+            label={pending ? 'Saving…' : 'Save home state'}
+            size="lg"
             onPress={save}
-            style={({ pressed }) => [
-              styles.save,
-              (pending || !canSubmitHomeState(selected)) && styles.disabled,
-              pressed && styles.pressed,
-            ]}
-          >
-            <Text variant="buttonLabel">{pending ? 'SAVING…' : 'SAVE'}</Text>
-          </Pressable>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Back to settings"
-            onPress={() => router.back()}
-            style={({ pressed }) => [styles.back, pressed && styles.pressed]}
-          >
-            <Text variant="caption" color="accent">
-              Back to Settings
-            </Text>
-          </Pressable>
+            disabled={pending || !canSubmitHomeState(selected)}
+          />
+          <Button label="Back to Settings" variant="ghost" onPress={() => router.back()} />
         </View>
       </View>
-    </MenuScreen>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    marginTop: Spacing.four,
   },
   content: {
     flex: 1,
-    gap: Spacing.three,
-    paddingHorizontal: 18,
-    paddingRight: 28,
+    gap: 16,
+    paddingTop: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
   },
   list: {
     flex: 1,
+    paddingHorizontal: 16,
   },
   row: {
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 44,
+    gap: 12,
     paddingVertical: 8,
-    paddingRight: 8,
-  },
-  save: {
-    alignSelf: 'center',
-    minWidth: 160,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: 15,
-    backgroundColor: Brand.accent,
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-  back: {
-    alignSelf: 'center',
-    minHeight: 44,
-    justifyContent: 'center',
   },
   pressed: {
-    opacity: 0.6,
+    opacity: 0.7,
   },
 });

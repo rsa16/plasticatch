@@ -1,16 +1,21 @@
-import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/text';
-import { Brand, Spacing } from '@/constants/theme';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Screen } from '@/components/ui/screen';
 import { useSessionStore } from '@/features/auth';
 import { useCatchStore } from '@/features/catch';
 import { MY_CATCHES_QUERY_KEY } from '@/features/my-catches';
+import { VERIFIED_CATCHES_QUERY_KEY } from '@/features/profile';
 import { rejectionFor } from '@/features/verification/rejection';
 import { submitCatch } from '@/features/verification/submit';
+import { useTheme } from '@/theme';
+import { darkTheme } from '@/theme/tokens';
 
 /**
  * The synchronous verification screen. The server owns the verdict and the XP ledger; this screen
@@ -20,7 +25,6 @@ import { submitCatch } from '@/features/verification/submit';
  * the request is in flight.
  */
 export default function VerifyingScreen() {
-  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const find = useCatchStore((state) => state.find);
   const dispose = useCatchStore((state) => state.dispose);
@@ -49,6 +53,11 @@ export default function VerifyingScreen() {
       if (result.verdict === 'verified') {
         verified(result);
         void queryClient.invalidateQueries({ queryKey: MY_CATCHES_QUERY_KEY });
+        // The session profile is loaded at sign-in and the award happens on the server, so the
+        // Settings stats would otherwise keep showing the XP, level and streak from before the
+        // catch. Refresh both the profile and the Settings verified-catch count.
+        void useSessionStore.getState().refreshProfile();
+        void queryClient.invalidateQueries({ queryKey: VERIFIED_CATCHES_QUERY_KEY });
         router.replace('/catch/success');
       } else {
         rejected(rejectionFor(result.rejectionCode, result.reason, result.retry));
@@ -72,105 +81,109 @@ export default function VerifyingScreen() {
   }, [run]);
 
   return (
-    <View style={[styles.screen, { paddingBottom: insets.bottom + Spacing.four }]}>
-      <View style={styles.body}>
-        {failure ? (
-          <>
-            <Text
-              variant="sectionTitle"
-              color="surface"
-              style={styles.title}
-              accessibilityRole="alert"
-            >
-              Couldn&apos;t check your catch
-            </Text>
-            <Text variant="fieldText" color="surface" style={styles.copy}>
-              {failure}
-            </Text>
-            <View style={styles.actions}>
-              <Pressable
-                accessibilityRole="button"
-                disabled={submitting}
-                onPress={() => {
-                  void run();
-                }}
-                style={({ pressed }) => [styles.primary, pressed && styles.pressed]}
-              >
-                <Text variant="buttonLabel">TRY AGAIN</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => {
-                  reset();
-                  router.dismissTo('/map');
-                }}
-                style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
-              >
-                <Text variant="buttonLabel">CLOSE</Text>
-              </Pressable>
-            </View>
-          </>
-        ) : (
-          <>
-            <ActivityIndicator size="large" color={Brand.surface} />
-            <Text
-              variant="sectionTitle"
-              color="surface"
-              style={styles.title}
-              accessibilityRole="header"
-            >
-              Verifying…
-            </Text>
-            <Text variant="fieldText" color="surface" style={styles.copy}>
-              Checking your two photos and adding up your XP.
-            </Text>
-          </>
-        )}
-      </View>
+    <Screen hud contentStyle={styles.content}>
+      <StatusBar style="light" />
+
+      {failure ? (
+        <Card style={styles.card}>
+          <Text variant="display" accessibilityRole="alert" style={styles.title}>
+            Couldn&apos;t check your catch
+          </Text>
+          <Text variant="body" tone="muted">
+            {failure}
+          </Text>
+          <View style={styles.actions}>
+            <Button
+              label="Try again"
+              size="lg"
+              onPress={() => {
+                void run();
+              }}
+              disabled={submitting}
+            />
+            <Button
+              label="Close"
+              variant="ghost"
+              onPress={() => {
+                reset();
+                router.dismissTo('/map');
+              }}
+            />
+          </View>
+        </Card>
+      ) : (
+        <View style={styles.verifying}>
+          <ActivityIndicator size="large" color={darkTheme.color.accent} />
+          <Text variant="title" accessibilityRole="header" style={styles.title}>
+            Verifying your catch
+          </Text>
+          <Text variant="body" tone="muted" style={styles.copy}>
+            Checking both photos and adding up your XP. This takes a moment.
+          </Text>
+          <View style={styles.steps}>
+            <Step done label="Catch photo uploaded" />
+            <Step done label="Trash photo uploaded" />
+            <Step label="Waiting for verification" />
+          </View>
+        </View>
+      )}
+    </Screen>
+  );
+}
+
+function Step({ label, done = false }: { label: string; done?: boolean }) {
+  const theme = useTheme();
+  return (
+    <View style={styles.step}>
+      <View
+        style={[
+          styles.stepDot,
+          { backgroundColor: done ? theme.color.accent : theme.color.surfaceSunken },
+        ]}
+      />
+      <Text variant="caption" tone={done ? 'default' : 'muted'}>
+        {label}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: Brand.green,
+  content: {
     justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
+    gap: 16,
+    paddingVertical: 32,
   },
-  body: {
+  card: {
+    gap: 16,
+  },
+  verifying: {
     alignItems: 'center',
-    gap: Spacing.three,
+    gap: 12,
   },
   title: {
     textAlign: 'center',
   },
   copy: {
     textAlign: 'center',
-    maxWidth: 320,
+    maxWidth: 300,
+  },
+  steps: {
+    marginTop: 12,
+    gap: 8,
+    alignItems: 'flex-start',
+  },
+  step: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  stepDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   actions: {
-    marginTop: Spacing.three,
-    gap: Spacing.two,
-    alignItems: 'center',
-  },
-  primary: {
-    minWidth: 220,
-    minHeight: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
-    borderRadius: 15,
-    backgroundColor: Brand.accent,
-  },
-  secondary: {
-    minWidth: 220,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
-  },
-  pressed: {
-    opacity: 0.7,
+    gap: 8,
   },
 });

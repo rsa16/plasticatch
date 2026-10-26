@@ -1,12 +1,13 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { useBottomBarHeight } from '@/components/bottom-menu';
-import { MenuScreen } from '@/components/menu-screen';
-import { ScrollPane } from '@/components/scroll-pane';
 import { Text } from '@/components/text';
-import { Brand, Spacing, TextStyles } from '@/constants/theme';
+import { BackButton } from '@/components/ui/back-button';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Screen } from '@/components/ui/screen';
 import { useSessionStore } from '@/features/auth';
 import {
   checkUsernameAvailable,
@@ -14,6 +15,7 @@ import {
   usernameErrorMessage,
 } from '@/features/onboarding/profile-service';
 import { usernameToSave, useUsernameCooldown } from '@/features/profile';
+import { useTheme } from '@/theme';
 
 /** How long the field must sit still before asking the server about availability. */
 const AVAILABILITY_DEBOUNCE_MS = 400;
@@ -27,6 +29,7 @@ type CheckedAvailability = { candidate: string; availability: Availability };
 
 /** Edit the public username through the server's policy, uniqueness and cooldown. */
 export default function UsernameScreen() {
+  const theme = useTheme();
   const profile = useSessionStore((state) => state.profile);
   const refreshProfile = useSessionStore((state) => state.refreshProfile);
   const barHeight = useBottomBarHeight();
@@ -114,67 +117,56 @@ export default function UsernameScreen() {
   }
 
   return (
-    <MenuScreen title="USERNAME">
+    <Screen title="Username" actions={<BackButton />}>
       <View style={[styles.screen, { marginBottom: barHeight }]}>
-        <ScrollPane
-          thumbHeight={104}
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text variant="prompt">Your username is public and unique.</Text>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <Text variant="body" tone="muted">
+            Your username is public and unique.
+          </Text>
 
-          <View style={styles.field}>
-            <TextInput
-              value={username}
-              onChangeText={setUsername}
-              onSubmitEditing={save}
-              editable={!pending && !cooldown.active}
-              style={[TextStyles.fieldText, styles.input]}
-              accessibilityLabel="Username"
-              autoComplete="username"
-              textContentType="username"
-              autoCapitalize="none"
-              autoCorrect={false}
-              returnKeyType="done"
-            />
-          </View>
+          <TextInput
+            value={username}
+            onChangeText={setUsername}
+            onSubmitEditing={save}
+            editable={!pending && !cooldown.active}
+            style={[
+              theme.type.body,
+              styles.input,
+              {
+                color: theme.color.ink,
+                backgroundColor: theme.color.surfaceSunken,
+                borderColor: theme.color.line,
+              },
+            ]}
+            placeholderTextColor={theme.color.inkMuted}
+            accessibilityLabel="Username"
+            autoComplete="username"
+            textContentType="username"
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="done"
+          />
 
           <AvailabilityNote availability={availability} candidate={candidate !== null} />
 
           {cooldown.label && (
-            <Text variant="body" style={styles.cooldown} accessibilityLiveRegion="polite">
-              {cooldown.label}
-            </Text>
+            <Card sunken>
+              <Text variant="caption" tone="muted" accessibilityLiveRegion="polite">
+                {cooldown.label}
+              </Text>
+            </Card>
           )}
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Save username"
-            accessibilityState={{ disabled: !canSave }}
-            disabled={!canSave}
+          <Button
+            label={pending ? 'Saving…' : 'Save username'}
+            size="lg"
             onPress={save}
-            style={({ pressed }) => [
-              styles.save,
-              !canSave && styles.disabled,
-              pressed && styles.pressed,
-            ]}
-          >
-            <Text variant="buttonLabel">{pending ? 'SAVING…' : 'SAVE'}</Text>
-          </Pressable>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Back to settings"
-            onPress={() => router.back()}
-            style={({ pressed }) => [styles.back, pressed && styles.pressed]}
-          >
-            <Text variant="caption" color="accent">
-              Back to Settings
-            </Text>
-          </Pressable>
-        </ScrollPane>
+            disabled={!canSave}
+          />
+          <Button label="Back to Settings" variant="ghost" onPress={() => router.back()} />
+        </ScrollView>
       </View>
-    </MenuScreen>
+    </Screen>
   );
 }
 
@@ -190,7 +182,7 @@ function AvailabilityNote({
 
   if (availability.state === 'checking') {
     return (
-      <Text variant="body" accessibilityLiveRegion="polite">
+      <Text variant="caption" tone="muted" accessibilityLiveRegion="polite">
         Checking availability…
       </Text>
     );
@@ -198,7 +190,7 @@ function AvailabilityNote({
 
   if (availability.state === 'available') {
     return (
-      <Text variant="body" color="accent" accessibilityLiveRegion="polite">
+      <Text variant="caption" tone="accent" accessibilityLiveRegion="polite">
         That username is available.
       </Text>
     );
@@ -206,7 +198,7 @@ function AvailabilityNote({
 
   if (availability.state === 'error') {
     return (
-      <Text variant="body" color="danger" accessibilityLiveRegion="polite">
+      <Text variant="caption" tone="danger" accessibilityLiveRegion="polite">
         Could not check availability. Check your connection and try again.
       </Text>
     );
@@ -215,7 +207,7 @@ function AvailabilityNote({
   if (availability.state !== 'unavailable') return null;
 
   return (
-    <Text variant="body" color="danger" accessibilityLiveRegion="polite">
+    <Text variant="caption" tone="danger" accessibilityLiveRegion="polite">
       {usernameErrorMessage(availability.code) ?? 'That username is not available.'}
     </Text>
   );
@@ -224,47 +216,17 @@ function AvailabilityNote({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    marginTop: Spacing.four,
   },
   content: {
-    gap: Spacing.three,
-    paddingHorizontal: 18,
-    paddingRight: 28,
-    paddingBottom: Spacing.six,
-  },
-  field: {
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: 15,
-    borderRadius: 15,
-    backgroundColor: Brand.field,
+    gap: 16,
+    paddingTop: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 48,
   },
   input: {
-    paddingVertical: 10,
-  },
-  cooldown: {
-    color: Brand.accent,
-  },
-  save: {
-    alignSelf: 'center',
-    minWidth: 160,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: 15,
-    backgroundColor: Brand.accent,
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-  back: {
-    alignSelf: 'center',
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  pressed: {
-    opacity: 0.7,
+    minHeight: 52,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 14,
   },
 });

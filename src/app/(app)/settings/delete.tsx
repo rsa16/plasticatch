@@ -1,14 +1,15 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { useBottomBarHeight } from '@/components/bottom-menu';
-import { MenuScreen } from '@/components/menu-screen';
-import { ScrollPane } from '@/components/scroll-pane';
 import { Text } from '@/components/text';
+import { BackButton } from '@/components/ui/back-button';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Screen } from '@/components/ui/screen';
 import { supportEmail } from '@/constants/legal';
-import { Brand, Spacing, TextStyles } from '@/constants/theme';
 import {
   REAUTH_WINDOW_MS,
   USERNAME_LESS_CONFIRMATION,
@@ -19,6 +20,7 @@ import {
   reauthMethodFor,
 } from '@/features/account';
 import { useSessionStore } from '@/features/auth';
+import { useTheme } from '@/theme';
 
 /**
  * Permanently delete the account.
@@ -28,6 +30,7 @@ import { useSessionStore } from '@/features/auth';
  * Any failure leaves the player signed in, and Cancel never mutates anything.
  */
 export default function DeleteAccountScreen() {
+  const theme = useTheme();
   const profile = useSessionStore((state) => state.profile);
   const session = useSessionStore((state) => state.session);
   const signOut = useSessionStore((state) => state.signOut);
@@ -127,225 +130,154 @@ export default function DeleteAccountScreen() {
     }
   }
 
-  return (
-    <MenuScreen title="DELETE ACCOUNT">
-      <View style={[styles.screen, { marginBottom: barHeight }]}>
-        <ScrollPane
-          thumbHeight={104}
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text variant="prompt">This permanently deletes your account.</Text>
+  const inputStyle = [
+    theme.type.body,
+    styles.input,
+    {
+      color: theme.color.ink,
+      backgroundColor: theme.color.surfaceSunken,
+      borderColor: theme.color.line,
+    },
+  ];
 
-          <View style={styles.copy}>
-            <Text variant="body">
+  return (
+    <Screen title="Delete account" actions={<BackButton />}>
+      <View style={[styles.screen, { marginBottom: barHeight }]}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <Card>
+            <Text variant="heading">This permanently deletes your account</Text>
+            <Text variant="body" tone="muted">
               Your profile, catches, photos and XP are removed. The photos are deleted from storage
               too. This happens immediately: there is no grace period and no undo.
             </Text>
-            <Text variant="body">
+            <Text variant="body" tone="muted">
               {support
                 ? `There is no self-serve export. Email ${support} before deleting if you want a copy of your data.`
                 : 'There is no self-serve export. Email support before deleting if you want a copy of your data.'}
             </Text>
-            <Text variant="body">If you cancel, nothing is removed and you stay signed in.</Text>
-          </View>
+            <Text variant="caption" tone="muted">
+              If you cancel, nothing is removed and you stay signed in.
+            </Text>
+          </Card>
 
-          <Text variant="sectionTitle" accessibilityRole="header">
+          <Text variant="heading" accessibilityRole="header">
             1. Re-authenticate
           </Text>
 
           {reauthFresh ? (
-            <Text variant="body" color="accent" accessibilityLiveRegion="polite">
+            <Text variant="caption" tone="accent" accessibilityLiveRegion="polite">
               Signed in again. Ready to delete for the next 5 minutes.
             </Text>
           ) : method === 'password' ? (
             <>
-              <Text variant="body">Confirm your password to prove it is still you.</Text>
-              <View style={styles.field}>
-                <TextInput
-                  value={password}
-                  onChangeText={setPassword}
-                  editable={!reauthPending}
-                  secureTextEntry
-                  style={[TextStyles.fieldText, styles.input]}
-                  accessibilityLabel="Password"
-                  autoComplete="current-password"
-                  textContentType="password"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  returnKeyType="done"
-                />
-              </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Re-authenticate with password"
-                accessibilityState={{ disabled: reauthPending }}
-                disabled={reauthPending}
+              <Text variant="body" tone="muted">
+                Confirm your password to prove it is still you.
+              </Text>
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                editable={!reauthPending}
+                secureTextEntry
+                style={inputStyle}
+                accessibilityLabel="Password"
+                autoComplete="current-password"
+                textContentType="password"
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="done"
+              />
+              <Button
+                label={reauthPending ? 'Checking…' : 'Re-authenticate'}
+                variant="secondary"
                 onPress={reauthenticate}
-                style={({ pressed }) => [
-                  styles.secondaryButton,
-                  reauthPending && styles.disabled,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Text variant="buttonLabel">{reauthPending ? 'CHECKING…' : 'RE-AUTHENTICATE'}</Text>
-              </Pressable>
+                disabled={reauthPending}
+              />
             </>
           ) : method === 'google' ? (
             <>
-              <Text variant="body">
+              <Text variant="body" tone="muted">
                 Sign in with Google again so the server sees a fresh sign-in.
               </Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Re-authenticate with Google"
-                accessibilityState={{ disabled: reauthPending }}
-                disabled={reauthPending}
+              <Button
+                label={reauthPending ? 'Waiting…' : 'Continue with Google'}
+                variant="secondary"
                 onPress={reauthenticate}
-                style={({ pressed }) => [
-                  styles.secondaryButton,
-                  reauthPending && styles.disabled,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Text variant="buttonLabel">
-                  {reauthPending ? 'WAITING…' : 'CONTINUE WITH GOOGLE'}
-                </Text>
-              </Pressable>
+                disabled={reauthPending}
+              />
             </>
           ) : (
-            <Text variant="body" color="danger">
+            <Text variant="body" tone="danger">
               We could not tell how this account signs in. Sign out and sign in again first.
             </Text>
           )}
 
           {reauthNotice && (
-            <Text variant="body" color="accent" accessibilityLiveRegion="polite">
+            <Text variant="caption" tone="accent" accessibilityLiveRegion="polite">
               {reauthNotice}
             </Text>
           )}
 
-          <Text variant="sectionTitle" accessibilityRole="header">
+          <Text variant="heading" accessibilityRole="header">
             2. Confirm the deletion
           </Text>
 
-          <Text variant="body">
+          <Text variant="body" tone="muted">
             {username
               ? `Type ${username} exactly to confirm.`
               : `This account has no username. Type ${USERNAME_LESS_CONFIRMATION} to confirm.`}
           </Text>
 
-          <View style={styles.field}>
-            <TextInput
-              value={confirmation}
-              onChangeText={setConfirmation}
-              editable={!deleting}
-              style={[TextStyles.fieldText, styles.input]}
-              accessibilityLabel={
-                username
-                  ? 'Type your username to confirm'
-                  : `Type ${USERNAME_LESS_CONFIRMATION} to confirm`
-              }
-              autoComplete="off"
-              autoCapitalize="none"
-              autoCorrect={false}
-              returnKeyType="done"
-            />
-          </View>
+          <TextInput
+            value={confirmation}
+            onChangeText={setConfirmation}
+            editable={!deleting}
+            style={inputStyle}
+            accessibilityLabel={
+              username
+                ? 'Type your username to confirm'
+                : `Type ${USERNAME_LESS_CONFIRMATION} to confirm`
+            }
+            autoComplete="off"
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="done"
+          />
 
           {error && (
-            <Text variant="body" color="danger" accessibilityLiveRegion="assertive">
+            <Text variant="caption" tone="danger" accessibilityLiveRegion="assertive">
               {error}
             </Text>
           )}
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Permanently delete my account"
-            accessibilityHint="Deletes your profile, catches, photos and XP. This cannot be undone."
-            accessibilityState={{ disabled: !ready || deleting }}
-            disabled={!ready || deleting}
+          <Button
+            label={deleting ? 'Deleting…' : 'Delete my account'}
+            variant="danger"
+            size="lg"
             onPress={submit}
-            style={({ pressed }) => [
-              styles.deleteButton,
-              (!ready || deleting) && styles.disabled,
-              pressed && styles.pressed,
-            ]}
-          >
-            <Text variant="buttonLabel">{deleting ? 'DELETING…' : 'DELETE MY ACCOUNT'}</Text>
-          </Pressable>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Cancel and go back to settings"
-            onPress={() => router.back()}
-            style={({ pressed }) => [styles.cancel, pressed && styles.pressed]}
-          >
-            <Text variant="caption" color="accent">
-              Cancel
-            </Text>
-          </Pressable>
-        </ScrollPane>
+            disabled={!ready || deleting}
+            accessibilityHint="Deletes your profile, catches, photos and XP. This cannot be undone."
+          />
+          <Button label="Cancel" variant="ghost" onPress={() => router.back()} />
+        </ScrollView>
       </View>
-    </MenuScreen>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    marginTop: Spacing.four,
   },
   content: {
-    gap: Spacing.three,
-    paddingHorizontal: 18,
-    paddingRight: 28,
-    paddingBottom: Spacing.six,
-  },
-  copy: {
-    gap: Spacing.two,
-  },
-  field: {
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: 15,
-    borderRadius: 15,
-    backgroundColor: Brand.field,
+    gap: 16,
+    paddingTop: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 48,
   },
   input: {
-    paddingVertical: 10,
-  },
-  secondaryButton: {
-    alignSelf: 'flex-start',
-    minWidth: 180,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: 15,
-    backgroundColor: Brand.accent,
-  },
-  deleteButton: {
-    alignSelf: 'center',
-    minWidth: 220,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: 15,
-    backgroundColor: Brand.danger,
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-  cancel: {
-    alignSelf: 'center',
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  pressed: {
-    opacity: 0.7,
+    minHeight: 52,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 14,
   },
 });

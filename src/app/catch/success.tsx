@@ -1,280 +1,300 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import type { ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SymbolView } from 'expo-symbols';
+import { useEffect, useRef, useState } from 'react';
+import { AccessibilityInfo, StyleSheet, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 
-import { ScreenFrame } from '@/components/screen-frame';
 import { Text } from '@/components/text';
-import { Brand, Spacing } from '@/constants/theme';
+import { Button } from '@/components/ui/button';
+import { Card, Divider } from '@/components/ui/card';
+import { Badge } from '@/components/ui/chip';
+import { Screen } from '@/components/ui/screen';
 import { useCatchStore } from '@/features/catch';
+import { useTheme } from '@/theme';
 
 // Shown in place of a photo the session doesn't have, e.g. when the screen is opened directly.
 const FIND_PLACEHOLDER = require('@/assets/images/gallery-photo-front.png');
 const DISPOSE_PLACEHOLDER = require('@/assets/images/gallery-photo-back.png');
 
 function formatDate(date: Date) {
-  return date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+  return date.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
-/** The end of a verified catch: both blurred photos, the ledger breakdown and the new streak. */
+/** The end of a verified catch: the reward moment. */
 export default function CatchSuccessScreen() {
+  const theme = useTheme();
   const completion = useCatchStore((state) => state.completion);
   const reset = useCatchStore((state) => state.reset);
-  const insets = useSafeAreaInsets();
   const xp = completion?.result.xp;
+  const awarded = xp?.xp_awarded ?? 0;
+  const displayXp = useCountUp(awarded);
 
-  const lines: string[] = [];
+  const lines: { label: string; value: number }[] = [];
   if (xp) {
-    if (xp.base_xp) lines.push(`+${xp.base_xp} XP base`);
-    if (xp.streak_bonus) lines.push(`+${xp.streak_bonus} XP streak bonus`);
-    if (xp.first_catch_of_day) lines.push(`+${xp.first_catch_of_day} XP first catch today`);
-    if (xp.repeat_location_adjustment) {
-      lines.push(`${xp.repeat_location_adjustment} XP repeat location`);
+    if (xp.base_xp) lines.push({ label: 'Base catch', value: xp.base_xp });
+    if (xp.streak_bonus) lines.push({ label: 'Streak bonus', value: xp.streak_bonus });
+    if (xp.first_catch_of_day) {
+      lines.push({ label: 'First catch today', value: xp.first_catch_of_day });
     }
-    if (xp.daily_cap_adjustment) lines.push(`${xp.daily_cap_adjustment} XP daily cap`);
+    if (xp.repeat_location_adjustment) {
+      lines.push({ label: 'Repeat location', value: xp.repeat_location_adjustment });
+    }
+    if (xp.daily_cap_adjustment) {
+      lines.push({ label: 'Daily cap', value: xp.daily_cap_adjustment });
+    }
   }
 
   return (
-    <ScreenFrame top="step">
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.three }}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.titleBlock}>
-          <Text variant="pageTitle" style={styles.title} accessibilityRole="header">
-            Trash caught!
-          </Text>
-          <Image
-            source={require('@/assets/images/all-set-divider.svg')}
-            style={styles.divider}
-            contentFit="fill"
-          />
-        </View>
+    <Screen scroll>
+      <View style={styles.hero}>
+        <Text variant="display" accessibilityRole="header" style={styles.title}>
+          Trash caught!
+        </Text>
+        <Text variant="caption" tone="muted">
+          {formatDate(new Date())}
+        </Text>
+      </View>
 
+      <View style={styles.stars} accessibilityLabel="Three stars">
+        {[0, 1, 2].map((index) => (
+          <Star key={index} index={index} />
+        ))}
+      </View>
+
+      <View style={styles.photos}>
         <Image
-          source={require('@/assets/images/catch-stars.svg')}
-          style={styles.stars}
-          contentFit="fill"
-          accessibilityLabel="Three stars"
+          source={completion?.findPhoto ? { uri: completion.findPhoto } : FIND_PLACEHOLDER}
+          style={[
+            styles.photo,
+            { borderColor: theme.color.surface, backgroundColor: theme.color.surfaceSunken },
+            styles.photoLeft,
+          ]}
+          contentFit="cover"
+          accessibilityLabel="Blurred photo of the litter you found"
         />
+        <Image
+          source={completion?.disposePhoto ? { uri: completion.disposePhoto } : DISPOSE_PLACEHOLDER}
+          style={[
+            styles.photo,
+            { borderColor: theme.color.surface, backgroundColor: theme.color.surfaceSunken },
+            styles.photoRight,
+          ]}
+          contentFit="cover"
+          accessibilityLabel="Blurred photo of the litter going into the trash"
+        />
+      </View>
 
-        <View style={styles.hero}>
-          <View style={styles.ribbon} pointerEvents="none">
-            <Image
-              source={require('@/assets/images/catch-ribbon.png')}
-              style={styles.ribbonImage}
-              tintColor={Brand.accent}
-              contentFit="fill"
-            />
+      <Card style={styles.card}>
+        <View style={styles.xpHead}>
+          <View>
+            <Text variant="caption" tone="muted">
+              XP earned
+            </Text>
+            <Text variant="numeric" tone="accent">
+              +{displayXp}
+            </Text>
           </View>
-          <View style={[styles.photoSlot, styles.disposeSlot]}>
-            <Image
-              source={
-                completion?.disposePhoto ? { uri: completion.disposePhoto } : DISPOSE_PLACEHOLDER
-              }
-              style={[styles.photo, styles.tiltRight]}
-              contentFit="cover"
-              accessibilityLabel="Blurred photo of the litter going into the trash"
-            />
+          <View style={styles.xpMeta}>
+            {xp?.level !== undefined && <Badge label={`Level ${xp.level}`} tone="brand" />}
           </View>
-          <View style={[styles.photoSlot, styles.findSlot]}>
-            <Image
-              source={completion?.findPhoto ? { uri: completion.findPhoto } : FIND_PLACEHOLDER}
-              style={[styles.photo, styles.tiltLeft]}
-              contentFit="cover"
-              accessibilityLabel="Blurred photo of the litter you found"
-            />
+        </View>
+
+        {lines.length > 0 && (
+          <View style={styles.breakdown}>
+            {lines.map((line, index) => (
+              <View key={line.label}>
+                {index > 0 && <Divider />}
+                <View style={styles.line}>
+                  <Text variant="body" tone="muted">
+                    {line.label}
+                  </Text>
+                  <Text variant="label" tone={line.value > 0 ? 'accent' : 'default'}>
+                    {line.value > 0 ? '+' : ''}
+                    {line.value} XP
+                  </Text>
+                </View>
+              </View>
+            ))}
           </View>
-          <Text variant="fieldText" style={styles.date}>
-            {formatDate(new Date())}
+        )}
+
+        <View style={styles.footer}>
+          <Text variant="caption" tone="muted">
+            Total {xp?.total_xp ?? 0} XP · Longest streak {xp?.longest_streak ?? 0}
+          </Text>
+          <Text variant="caption" tone="muted">
+            Added to Gallery
           </Text>
         </View>
+      </Card>
 
-        <View style={styles.summary}>
-          <View style={styles.bullets}>
-            <Bullet label={`${xp?.xp_awarded ?? 0} XP gained`} />
-            {lines.map((line) => (
-              <Bullet key={line} label={line} />
-            ))}
-            <Bullet
-              label={`Streak: ${xp?.current_streak ?? 0}`}
-              trailing={
-                <Image
-                  source={require('@/assets/images/catch-streak.png')}
-                  style={styles.streakIcon}
-                  tintColor={Brand.streak}
-                  contentFit="contain"
-                />
-              }
-            />
-            {xp?.level !== undefined && <Bullet label={`Level ${xp.level}`} />}
-            <Bullet label="Added to My Catches" />
-          </View>
+      <View style={styles.actions}>
+        <Button
+          label="Done"
+          size="lg"
+          onPress={() => {
+            reset();
+            router.dismissTo('/map');
+          }}
+        />
+        <Button
+          label="View in Gallery"
+          variant="ghost"
+          onPress={() => {
+            reset();
+            router.dismissTo('/my-catches');
+          }}
+        />
+      </View>
 
-          <View style={styles.actions}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => {
-                reset();
-                router.dismissTo('/map');
-              }}
-              style={({ pressed }) => [styles.done, pressed && styles.pressed]}
-            >
-              <Text variant="buttonLabel">DONE</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => {
-                reset();
-                router.dismissTo('/my-catches');
-              }}
-              style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
-            >
-              <Text variant="buttonLabel">VIEW IN MY CATCHES</Text>
-            </Pressable>
-          </View>
-        </View>
-      </ScrollView>
-    </ScreenFrame>
+      <View style={{ height: theme.space.lg }} />
+    </Screen>
   );
 }
 
-function Bullet({ label, trailing }: { label: string; trailing?: ReactNode }) {
+/** A star that pops in with a short stagger unless the player has reduced motion enabled. */
+function Star({ index }: { index: number }) {
+  const theme = useTheme();
+  const scale = useSharedValue(0.6);
+  const opacity = useSharedValue(0);
+
+  useEffect(() => {
+    let mounted = true;
+    void AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
+      if (!mounted) return;
+      if (reduced) {
+        scale.value = 1;
+        opacity.value = 1;
+        return;
+      }
+      opacity.value = withDelay(index * 90, withTiming(1, { duration: 180 }));
+      scale.value = withDelay(index * 90, withSpring(1, { damping: 11, stiffness: 180 }));
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [index, opacity, scale]);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ scale: scale.value }],
+  }));
+
   return (
-    <View style={styles.bulletRow}>
-      <Text variant="fieldText" style={styles.bulletMark}>
-        •
-      </Text>
-      <Text variant="fieldText">{label}</Text>
-      {trailing}
-    </View>
+    <Animated.View style={style}>
+      <SymbolView
+        name={{ ios: 'star.fill', android: 'star', web: 'star' }}
+        size={40}
+        tintColor={theme.color.gold}
+      />
+    </Animated.View>
   );
+}
+
+/** Counts the awarded XP up on mount, immediately when reduced motion is enabled. */
+function useCountUp(target: number) {
+  const [value, setValue] = useState(0);
+  const frame = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    void AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
+      if (!mounted) return;
+      if (reduced || target === 0) {
+        setValue(target);
+        return;
+      }
+      const started = Date.now();
+      const tick = () => {
+        if (!mounted) return;
+        const progress = Math.min(1, (Date.now() - started) / 700);
+        setValue(Math.round(target * progress));
+        if (progress < 1) frame.current = setTimeout(tick, 32);
+      };
+      tick();
+    });
+    return () => {
+      mounted = false;
+      if (frame.current) clearTimeout(frame.current);
+    };
+  }, [target]);
+
+  return value;
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    flex: 1,
-  },
-  titleBlock: {
-    alignSelf: 'center',
-    width: 324,
-    maxWidth: '90%',
-    gap: 20,
+  hero: {
+    alignItems: 'center',
+    gap: 8,
+    paddingTop: 32,
   },
   title: {
     textAlign: 'center',
   },
-  divider: {
-    width: '100%',
-    height: 5,
-    marginVertical: -2,
-    transform: [{ rotate: '-0.18deg' }],
-  },
   stars: {
-    alignSelf: 'center',
-    marginTop: 9,
-    width: 228.07,
-    height: 71.035,
-  },
-  hero: {
-    alignSelf: 'center',
-    width: 393,
-    height: 300,
-    marginTop: -2,
-  },
-  ribbon: {
-    position: 'absolute',
-    left: 12,
-    top: 156,
-    width: 370,
-    height: 136,
-    overflow: 'hidden',
-  },
-  ribbonImage: {
-    position: 'absolute',
-    left: 10,
-    top: -27,
-    width: 349,
-    height: 196,
-  },
-  photoSlot: {
-    position: 'absolute',
-    width: 193.865,
-    height: 228.719,
-    alignItems: 'center',
+    flexDirection: 'row',
     justifyContent: 'center',
+    gap: 8,
+    marginTop: 16,
   },
-  disposeSlot: {
-    left: 172.14,
-    top: 0,
-  },
-  findSlot: {
-    left: 27,
-    top: 5.48,
+  photos: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: 20,
+    marginBottom: 20,
   },
   photo: {
-    width: 147.874,
-    height: 197.165,
+    width: '46%',
+    aspectRatio: 3 / 4,
+    borderRadius: 14,
+    borderWidth: 3,
   },
-  tiltLeft: {
-    transform: [{ rotate: '-15deg' }],
+  photoLeft: {
+    transform: [{ rotate: '-3deg' }],
   },
-  tiltRight: {
-    transform: [{ rotate: '15deg' }],
+  photoRight: {
+    transform: [{ rotate: '3deg' }],
   },
-  date: {
-    position: 'absolute',
-    top: 270,
-    left: 118,
-    width: 155,
-    textAlign: 'center',
+  card: {
+    gap: 16,
   },
-  summary: {
-    alignSelf: 'center',
-    width: 393,
-    marginTop: 35,
-    paddingLeft: 48,
-    paddingRight: 27,
-    alignItems: 'center',
-    gap: 34,
-  },
-  bullets: {
-    alignSelf: 'stretch',
-    gap: 9,
-  },
-  bulletRow: {
+  xpHead: {
     flexDirection: 'row',
-    alignItems: 'center',
-  },
-  bulletMark: {
-    width: 37.5,
-    paddingRight: 16,
-    textAlign: 'right',
-  },
-  streakIcon: {
-    width: 26,
-    height: 26,
-  },
-  actions: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
     gap: 12,
   },
-  done: {
-    minWidth: 180,
+  xpMeta: {
+    alignItems: 'flex-end',
+    gap: 6,
+  },
+  breakdown: {
+    gap: 0,
+  },
+  line: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 15,
+    justifyContent: 'space-between',
+    gap: 16,
     paddingVertical: 10,
-    borderRadius: 15,
-    backgroundColor: Brand.accent,
   },
-  secondary: {
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: 15,
+  footer: {
+    gap: 2,
   },
-  pressed: {
-    opacity: 0.7,
+  actions: {
+    gap: 8,
+    marginTop: 24,
   },
 });

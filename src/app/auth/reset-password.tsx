@@ -1,11 +1,11 @@
-import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { ActionButton, AuthCard, AuthField } from '@/components/auth-form';
 import { Text } from '@/components/text';
-import { BottomTabInset, Brand, Spacing } from '@/constants/theme';
+import { Badge } from '@/components/ui/chip';
+import { Screen } from '@/components/ui/screen';
 import { PASSWORD_UPDATE_ERROR, useSessionStore, validateNewPassword } from '@/features/auth';
 
 type ResetStage = 'form' | 'success';
@@ -70,7 +70,7 @@ export default function ResetPasswordScreen() {
   }
 
   return (
-    <View style={styles.screen}>
+    <Screen hud>
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
@@ -78,31 +78,19 @@ export default function ResetPasswordScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.titleGroup}>
-          <Text variant="displayTitle" numberOfLines={1} adjustsFontSizeToFit>
+          <Badge label="Account recovery" tone="accent" />
+          <Text variant="display" numberOfLines={1} adjustsFontSizeToFit style={styles.wordmark}>
             PlastiCatch
-          </Text>
-          <Image
-            source={require('@/assets/images/catch-divider.svg')}
-            style={styles.divider}
-            contentFit="fill"
-          />
-          <Text
-            variant="displayTagline"
-            style={styles.welcome}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-          >
-            - RESET PASSWORD -
           </Text>
         </View>
 
         <View style={styles.auth}>
           {linkExpired ? (
             <AuthCard>
-              <Text variant="sectionTitle" accessibilityRole="header">
+              <Text variant="heading" accessibilityRole="header">
                 Request a new link
               </Text>
-              <Text variant="caption">
+              <Text variant="caption" tone="muted">
                 This reset link has expired or has already been used. Open the sign-in screen and
                 tap Forgot password? to request a new one.
               </Text>
@@ -110,20 +98,20 @@ export default function ResetPasswordScreen() {
             </AuthCard>
           ) : stage === 'success' ? (
             <AuthCard>
-              <Text variant="sectionTitle" accessibilityRole="header">
+              <Text variant="heading" accessibilityRole="header">
                 Password updated
               </Text>
-              <Text variant="caption">
+              <Text variant="caption" tone="muted">
                 Your new password is saved. Use it the next time you log in.
               </Text>
               <ActionButton label="Continue" onPress={() => router.replace('/')} />
             </AuthCard>
           ) : (
             <AuthCard>
-              <Text variant="sectionTitle" accessibilityRole="header">
+              <Text variant="heading" accessibilityRole="header">
                 Choose a new password
               </Text>
-              <Text variant="caption">
+              <Text variant="caption" tone="muted">
                 Pick a password you have not used before. You will log in with it from now on.
               </Text>
               <AuthField
@@ -151,7 +139,7 @@ export default function ResetPasswordScreen() {
               />
 
               {formError ? (
-                <Text variant="caption" color="danger" accessibilityRole="alert">
+                <Text variant="caption" tone="danger" accessibilityRole="alert">
                   {formError}
                 </Text>
               ) : null}
@@ -165,44 +153,30 @@ export default function ResetPasswordScreen() {
           )}
         </View>
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: Brand.green,
-  },
   content: {
     flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: Spacing.five,
-    paddingHorizontal: Spacing.four,
-    paddingBottom: BottomTabInset + Spacing.five,
+    paddingVertical: 32,
+    paddingHorizontal: 20,
+    gap: 24,
   },
   titleGroup: {
     width: '100%',
     maxWidth: 342,
     alignItems: 'center',
-    gap: 20,
+    gap: 8,
   },
-  divider: {
-    width: 324.002,
-    height: 5,
-    maxWidth: '100%',
-    // Figma lays the 5px stroke out in a 1px slot; keep the surrounding spacing the same.
-    marginVertical: -2,
-    transform: [{ rotate: '-0.18deg' }],
-  },
-  welcome: {
+  wordmark: {
     textAlign: 'center',
   },
   auth: {
     width: '100%',
     maxWidth: 342,
-    marginTop: 40,
-    gap: Spacing.three,
   },
 });

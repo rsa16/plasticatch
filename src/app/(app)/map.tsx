@@ -1,33 +1,35 @@
 import { router } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 
-import { AvatarButton } from '@/components/avatar-button';
 import { useBottomBarHeight } from '@/components/bottom-menu';
 import { MapCanvas } from '@/components/map/map-canvas';
 import { PinSheet } from '@/components/map/pin-sheet';
-import { MenuScreen } from '@/components/menu-screen';
-import { useMenuTitleTop } from '@/components/screen-frame';
+import { PlayerChip, StreakChip } from '@/components/player-chip';
 import { Text } from '@/components/text';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Badge, Chip } from '@/components/ui/chip';
+import { Screen } from '@/components/ui/screen';
+import { Sheet } from '@/components/ui/sheet';
 import {
   EPA_RISK_ATTRIBUTION,
-  EPA_RISK_LABEL,
+  MAPBOX_TOKEN_ENV,
   MATERIAL_COLORS,
   MATERIAL_GROUPS,
   MATERIAL_LABELS,
-  MAPBOX_TOKEN_ENV,
   SOURCE_META,
 } from '@/constants/map';
-import { Brand, Spacing } from '@/constants/theme';
 import { useSessionStore } from '@/features/auth';
 import {
   DEFAULT_LAYERS,
   isSparsePinView,
+  stateScope,
   toggleSecondaryLayer,
   useMapPins,
   useOlmPins,
   useRiskAreas,
-  stateScope,
   type LayerState,
   type MapPin,
   type SecondaryLayer,
@@ -35,14 +37,11 @@ import {
 } from '@/features/map';
 import { usePlayerLocation } from '@/features/map/location';
 import { hasMapboxToken } from '@/features/map/token';
-
-/** The map starts this far below the top of the title pill. */
-const MAP_OFFSET = 20;
-/** Centre the 44 pt avatar button on the 52 pt title pill. */
-const AVATAR_OFFSET = 4;
+import { makeStyles, useTheme } from '@/theme';
 
 export default function MapScreen() {
-  const titleTop = useMenuTitleTop();
+  const theme = useTheme();
+  const styles = useStyles();
   const barHeight = useBottomBarHeight();
   const profile = useSessionStore((state) => state.profile);
   const tokenPresent = hasMapboxToken();
@@ -112,261 +111,224 @@ export default function MapScreen() {
   }
 
   return (
-    <MenuScreen
-      title="MAP"
+    <Screen
       contentPointerEvents="box-none"
       background={
-        <>
-          <View style={[styles.map, { top: titleTop + MAP_OFFSET, bottom: barHeight }]}>
-            {tokenPresent ? (
-              <MapCanvas
-                key={mapAttempt}
-                pins={pins}
-                olmPins={olmPins}
-                riskCells={riskCells}
-                playerPosition={position}
-                avatar={profile?.avatar ?? null}
-                pinsLoading={busy}
-                onViewportChange={setViewport}
-                onPinPress={selectPin}
-                onError={() => setMapError(true)}
-              />
-            ) : (
-              <MapSetupState />
-            )}
-          </View>
-          <View style={styles.topFade} pointerEvents="none" />
-        </>
-      }
-    >
-      <View style={styles.overlay} pointerEvents="box-none">
-        {loading && <MapSkeleton />}
-
-        {failed && (
-          <StatusCard
-            text={mapError ? "The map couldn't load." : "Couldn't load pins."}
-            action="RETRY"
-            onAction={retry}
-          />
-        )}
-
-        {sparse && (
-          <View style={[styles.sparse, { bottom: barHeight + 128 }]} pointerEvents="none">
-            <Text variant="body" style={styles.sparseText}>
-              No confirmed hotspots nearby — you can still log litter you find.
-            </Text>
-          </View>
-        )}
-
-        <View style={[styles.controls, { bottom: barHeight + 36 }]} pointerEvents="box-none">
-          <Pressable
-            accessibilityRole="switch"
-            accessibilityLabel="My State"
-            accessibilityHint="Limits litter pins to your home state"
-            accessibilityState={{ checked: myState, disabled: busy }}
-            disabled={busy}
-            onPress={toggleMyState}
-            style={({ pressed }) => [
-              styles.chip,
-              myState && styles.chipOn,
-              (pressed || busy) && styles.dimmed,
-            ]}
-          >
-            <Text variant="caption">{myState ? 'My State ✓' : 'My State'}</Text>
-          </Pressable>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Map layers"
-            accessibilityState={{ expanded: layersOpen }}
-            disabled={busy}
-            onPress={() => setLayersOpen((open) => !open)}
-            style={({ pressed }) => [styles.chip, (pressed || busy) && styles.dimmed]}
-          >
-            <Text variant="caption">Layers ▾</Text>
-          </Pressable>
-
-          {query.data?.truncated && (
-            <Text variant="caption" style={styles.truncated}>
-              Newest pins only
-            </Text>
+        <View style={styles.map}>
+          {tokenPresent ? (
+            <MapCanvas
+              key={mapAttempt}
+              pins={pins}
+              olmPins={olmPins}
+              riskCells={riskCells}
+              playerPosition={position}
+              avatar={profile?.avatar ?? null}
+              pinsLoading={busy}
+              onViewportChange={setViewport}
+              onPinPress={selectPin}
+              onError={() => setMapError(true)}
+            />
+          ) : (
+            <MapSetupState />
           )}
         </View>
+      }
+    >
+      <View style={styles.topRow} pointerEvents="box-none">
+        <PlayerChip />
+        <View style={styles.topRight}>
+          <View style={styles.streakPill}>
+            <StreakChip streak={profile?.currentStreak ?? 0} />
+          </View>
+        </View>
+      </View>
 
+      {loading && <MapSkeleton />}
+
+      {failed && (
+        <View style={styles.statusWrap}>
+          <Card style={styles.status}>
+            <Text variant="body">
+              {mapError ? "The map couldn't load." : "Couldn't load pins."}
+            </Text>
+            <Button label="Retry" variant="secondary" onPress={retry} />
+          </Card>
+        </View>
+      )}
+
+      {sparse && (
+        <View style={[styles.sparse, { bottom: barHeight + 88 }]} pointerEvents="none">
+          <Text variant="caption" tone="muted" style={styles.sparseText}>
+            No confirmed litter nearby. You may still take pictures.
+          </Text>
+        </View>
+      )}
+
+      <View style={[styles.controls, { bottom: barHeight + 16 }]} pointerEvents="box-none">
+        <Chip
+          label="My State"
+          selected={myState}
+          onPress={toggleMyState}
+          disabled={busy}
+          accessibilityRole="switch"
+          accessibilityLabel="My State"
+          accessibilityHint="Limits litter pins to your home state"
+        />
+        <Chip
+          label="Layers"
+          selected={layersOpen}
+          onPress={() => setLayersOpen((open) => !open)}
+          disabled={busy}
+          icon={
+            <SymbolView
+              name={{ ios: 'square.3.layers.3d', android: 'layers', web: 'layers' }}
+              size={16}
+              tintColor={theme.color.inkMuted}
+            />
+          }
+          accessibilityLabel="Map layers"
+          accessibilityHint="Opens the map layer controls"
+        />
         <Pressable
           accessibilityRole="link"
           accessibilityLabel="Data sources and about"
           onPress={() => router.push('/settings/about')}
-          style={({ pressed }) => [
-            styles.dataSources,
-            { bottom: barHeight + 8 },
-            pressed && styles.dimmed,
-          ]}
+          style={({ pressed }) => [styles.dataSources, pressed && styles.pressed]}
         >
-          <Text variant="caption" style={styles.dataSourcesText}>
+          <Text variant="caption" tone="muted">
             Data sources
           </Text>
         </Pressable>
-
-        {layersOpen && (
-          <View style={[styles.layers, { bottom: barHeight + 92 }]}>
-            <Text variant="sectionTitle" accessibilityRole="header">
-              Layers
-            </Text>
-            <ScrollView style={styles.layersScroll} contentContainerStyle={styles.layersList}>
-              <LayerRow
-                title="Debris Tracker"
-                detail="Active ground-truth pins in this viewport"
-                badge="ON"
-                attribution={SOURCE_META.debris_tracker.attribution}
-              />
-              <LayerToggle
-                title="OpenLitterMap"
-                detail="Ground truth — own toggle, ODbL-licensed"
-                enabled={layers.olm}
-                disabled={busy}
-                attribution={SOURCE_META.openlittermap.attribution}
-                note={
-                  layers.olm && olmQuery.isError
-                    ? "Couldn't load OpenLitterMap pins."
-                    : layers.olm && olmPins.length === 0
-                      ? 'No OpenLitterMap pins in this view.'
-                      : undefined
-                }
-                onToggle={() => toggleLayer('olm')}
-              />
-              <LayerToggle
-                title="EPA risk"
-                detail={EPA_RISK_LABEL}
-                enabled={layers.epa}
-                disabled={busy}
-                attribution={EPA_RISK_ATTRIBUTION}
-                note={
-                  layers.epa && riskQuery.isError
-                    ? "Couldn't load the EPA risk layer."
-                    : layers.epa && riskCells.length === 0
-                      ? 'No modeled EPA cells in this view.'
-                      : 'Toggle-only — never clickable.'
-                }
-                onToggle={() => toggleLayer('epa')}
-              />
-              <View style={styles.legend}>
-                {MATERIAL_GROUPS.map((group) => (
-                  <View key={group} style={styles.legendItem}>
-                    <View style={[styles.legendDot, { backgroundColor: MATERIAL_COLORS[group] }]} />
-                    <Text variant="caption">{MATERIAL_LABELS[group]}</Text>
-                  </View>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
-        )}
-
-        {selectedPin && (
-          <PinSheet pin={selectedPin} bottom={barHeight + 8} onClose={() => setSelected(null)} />
-        )}
       </View>
-      <AvatarButton top={titleTop + AVATAR_OFFSET} side="left" />
-    </MenuScreen>
+
+      {layersOpen && (
+        <Sheet
+          onClose={() => setLayersOpen(false)}
+          bottom={barHeight + 8}
+          accessibilityLabel="Close layer controls"
+        >
+          <Text variant="heading" accessibilityRole="header">
+            Map layers
+          </Text>
+          <ScrollView style={styles.layersScroll} contentContainerStyle={styles.layersList}>
+            <LayerRow
+              title="Debris Tracker"
+              badge="ON"
+              attribution={SOURCE_META.debris_tracker.attribution}
+            />
+            <LayerToggle
+              title="OpenLitterMap"
+              enabled={layers.olm}
+              disabled={busy}
+              attribution={SOURCE_META.openlittermap.attribution}
+              note={
+                layers.olm && olmQuery.isError
+                  ? "Couldn't load OpenLitterMap pins."
+                  : layers.olm && olmPins.length === 0
+                    ? 'No OpenLitterMap pins in this view.'
+                    : undefined
+              }
+              onToggle={() => toggleLayer('olm')}
+            />
+            <LayerToggle
+              title="EPA risk"
+              enabled={layers.epa}
+              disabled={busy}
+              attribution={EPA_RISK_ATTRIBUTION}
+              onToggle={() => toggleLayer('epa')}
+            />
+            <View style={styles.legend}>
+              {MATERIAL_GROUPS.map((group) => (
+                <View key={group} style={styles.legendItem}>
+                  <View style={[styles.legendDot, { backgroundColor: MATERIAL_COLORS[group] }]} />
+                  <Text variant="caption" tone="muted">
+                    {MATERIAL_LABELS[group]}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+        </Sheet>
+      )}
+
+      {selectedPin && (
+        <PinSheet pin={selectedPin} bottom={barHeight + 8} onClose={() => setSelected(null)} />
+      )}
+    </Screen>
   );
 }
 
 function MapSetupState() {
+  const styles = useStyles();
+
   return (
     <View style={styles.setup}>
-      <Text variant="sectionTitle" accessibilityRole="header">
-        Map setup needed
-      </Text>
-      <Text variant="body">
-        Add {MAPBOX_TOKEN_ENV} to a local .env file (see .env.example), then rebuild the development
-        client. The rest of PlastiCatch keeps working without it.
-      </Text>
+      <Card style={styles.setupCard}>
+        <Text variant="heading" accessibilityRole="header">
+          Map setup needed
+        </Text>
+        <Text variant="body" tone="muted">
+          Add {MAPBOX_TOKEN_ENV} to a local .env file (see .env.example), then rebuild the
+          development client. The rest of PlastiCatch keeps working without it.
+        </Text>
+      </Card>
     </View>
   );
 }
 
 function MapSkeleton() {
-  return (
-    <View
-      style={styles.skeleton}
-      accessibilityRole="progressbar"
-      accessibilityLabel="Loading map pins"
-    >
-      <View style={styles.skeletonRow}>
-        <View style={styles.skeletonDot} />
-        <View style={styles.skeletonBar} />
-      </View>
-      <View style={styles.skeletonRow}>
-        <View style={styles.skeletonDot} />
-        <View style={[styles.skeletonBar, styles.skeletonBarShort]} />
-      </View>
-    </View>
-  );
-}
+  const styles = useStyles();
 
-function StatusCard({
-  text,
-  action,
-  onAction,
-}: {
-  text: string;
-  action?: string;
-  onAction?: () => void;
-}) {
   return (
-    <View style={styles.status}>
-      <Text variant="body">{text}</Text>
-      {action && onAction && (
-        <Pressable
-          accessibilityRole="button"
-          onPress={onAction}
-          style={({ pressed }) => [styles.retry, pressed && styles.dimmed]}
-        >
-          <Text variant="caption" style={styles.retryText}>
-            {action}
-          </Text>
-        </Pressable>
-      )}
+    <View style={styles.skeletonWrap} pointerEvents="none">
+      <Card
+        style={styles.skeleton}
+        accessibilityRole="progressbar"
+        accessibilityLabel="Loading map pins"
+      >
+        <View style={styles.skeletonRow}>
+          <View style={styles.skeletonDot} />
+          <View style={styles.skeletonBar} />
+        </View>
+        <View style={styles.skeletonRow}>
+          <View style={styles.skeletonDot} />
+          <View style={[styles.skeletonBar, styles.skeletonBarShort]} />
+        </View>
+      </Card>
     </View>
   );
 }
 
 function LayerRow({
   title,
-  detail,
   badge,
   attribution,
 }: {
   title: string;
-  detail: string;
   badge: string;
   attribution: string;
 }) {
+  const styles = useStyles();
+
   return (
     <View
       style={styles.layerRow}
       accessible
-      accessibilityLabel={`${title}. ${detail}. ${badge}. ${attribution}`}
+      accessibilityLabel={`${title}. ${badge}. ${attribution}`}
     >
       <View style={styles.layerText}>
-        <Text variant="caption" style={styles.layerTitle}>
-          {title}
-        </Text>
-        <Text variant="body">{detail}</Text>
-        <Text variant="caption" style={styles.layerAttribution}>
+        <Text variant="label">{title}</Text>
+        <Text variant="caption" tone="muted">
           {attribution}
         </Text>
       </View>
-      <View style={[styles.badge, badge === 'ON' && styles.badgeOn]}>
-        <Text variant="caption">{badge}</Text>
-      </View>
+      <Badge label={badge} tone="accent" />
     </View>
   );
 }
 
 function LayerToggle({
   title,
-  detail,
   enabled,
   disabled,
   attribution,
@@ -374,232 +336,178 @@ function LayerToggle({
   onToggle,
 }: {
   title: string;
-  detail: string;
   enabled: boolean;
   disabled: boolean;
   attribution: string;
   note?: string;
   onToggle: () => void;
 }) {
+  const styles = useStyles();
+
   return (
     <Pressable
       accessibilityRole="switch"
       accessibilityLabel={`${title} layer`}
-      accessibilityHint={detail}
       accessibilityState={{ checked: enabled, disabled }}
       disabled={disabled}
       onPress={onToggle}
       style={({ pressed }) => [styles.layerRow, (pressed || disabled) && styles.dimmed]}
     >
       <View style={styles.layerText}>
-        <Text variant="caption" style={styles.layerTitle}>
-          {title}
-        </Text>
-        <Text variant="body">{detail}</Text>
-        <Text variant="caption" style={styles.layerAttribution}>
+        <Text variant="label">{title}</Text>
+        <Text variant="caption" tone="muted">
           {attribution}
         </Text>
         {note && (
-          <Text variant="caption" style={styles.layerNote}>
+          <Text variant="caption" tone="accent">
             {note}
           </Text>
         )}
       </View>
-      <View style={[styles.badge, enabled && styles.badgeOn]}>
-        <Text variant="caption">{enabled ? 'ON' : 'OFF'}</Text>
-      </View>
+      <Badge label={enabled ? 'ON' : 'OFF'} tone={enabled ? 'accent' : 'neutral'} />
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  // The map frame overhangs the screen: 25pt on the left, 34pt on the right.
+const useStyles = makeStyles((t) => ({
   map: {
-    position: 'absolute',
-    left: -25,
-    right: -34,
-  },
-  topFade: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 178,
-    experimental_backgroundImage:
-      'linear-gradient(to bottom, #82b39e 0%, #f7f8f7 50%, rgba(247, 248, 247, 0) 100%)',
-  },
-  overlay: {
     flex: 1,
   },
-  setup: {
-    flex: 1,
+  topRow: {
+    position: 'absolute',
+    top: t.space.sm,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.three,
-    paddingHorizontal: Spacing.five,
-    backgroundColor: Brand.field,
+    justifyContent: 'space-between',
+  },
+  topRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: t.space.sm,
+  },
+  streakPill: {
+    paddingHorizontal: t.space.md,
+    paddingVertical: 6,
+    borderRadius: t.radius.pill,
+    borderColor: t.color.line,
+    backgroundColor: t.color.surface,
+  },
+  statusWrap: {
+    position: 'absolute',
+    top: 64,
+    left: 20,
+    right: 20,
   },
   status: {
-    position: 'absolute',
-    top: Spacing.three,
-    left: Spacing.four,
-    right: Spacing.four,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.two,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    borderRadius: 15,
-    backgroundColor: 'rgba(247, 248, 247, 0.96)',
-  },
-  skeleton: {
-    position: 'absolute',
-    top: Spacing.three,
-    left: Spacing.four,
-    right: Spacing.four,
-    gap: Spacing.two,
-    padding: Spacing.three,
-    borderRadius: 15,
-    backgroundColor: 'rgba(247, 248, 247, 0.96)',
-  },
-  skeletonRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
-  skeletonDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: Brand.field,
-  },
-  skeletonBar: {
-    flex: 1,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: Brand.field,
-  },
-  skeletonBarShort: {
-    flex: 0.6,
-  },
-  retry: {
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.one,
-    borderRadius: 10,
-    backgroundColor: Brand.accent,
-  },
-  retryText: {
-    color: Brand.surface,
+    justifyContent: 'space-between',
+    gap: t.space.md,
   },
   sparse: {
     position: 'absolute',
-    left: Spacing.four,
-    right: Spacing.four,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    borderRadius: 15,
-    backgroundColor: 'rgba(247, 248, 247, 0.96)',
+    alignSelf: 'center',
+    paddingHorizontal: t.space.md,
+    paddingVertical: t.space.sm,
+    borderRadius: t.radius.md,
+    borderColor: t.color.line,
+    backgroundColor: t.color.surface,
   },
   sparseText: {
     textAlign: 'center',
   },
   controls: {
     position: 'absolute',
-    left: Spacing.four,
-    right: Spacing.four,
+    left: 20,
+    right: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two,
-  },
-  chip: {
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: Brand.accent,
-    backgroundColor: 'rgba(247, 248, 247, 0.94)',
-  },
-  chipOn: {
-    backgroundColor: Brand.accentMuted,
-  },
-  truncated: {
-    marginLeft: 'auto',
-    color: Brand.rowText,
+    gap: t.space.sm,
   },
   dataSources: {
-    position: 'absolute',
-    left: Spacing.four + 2,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.one,
-    borderRadius: 10,
-    backgroundColor: 'rgba(9, 20, 15, 0.55)',
+    marginLeft: 'auto',
+    minHeight: 36,
+    justifyContent: 'center',
+    paddingHorizontal: t.space.sm,
+    borderRadius: t.radius.sm,
   },
-  dataSourcesText: {
-    color: Brand.surface,
-    textDecorationLine: 'underline',
+  pressed: {
+    opacity: 0.7,
   },
-  layers: {
-    position: 'absolute',
-    left: Spacing.three,
-    right: Spacing.three,
-    maxHeight: 420,
-    gap: Spacing.two,
-    padding: Spacing.four,
-    borderRadius: 24,
-    backgroundColor: 'rgba(247, 248, 247, 0.98)',
+  dimmed: {
+    opacity: 0.6,
   },
   layersScroll: {
     flexGrow: 0,
   },
   layersList: {
-    gap: Spacing.two,
+    gap: t.space.sm,
   },
   layerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.three,
-    paddingVertical: Spacing.one,
+    gap: t.space.md,
+    paddingVertical: t.space.xs,
   },
   layerText: {
     flex: 1,
-    gap: Spacing.half,
-  },
-  layerTitle: {
-    fontWeight: '600',
-  },
-  layerAttribution: {
-    color: Brand.rowText,
-  },
-  layerNote: {
-    color: Brand.accent,
-  },
-  badge: {
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.half,
-    borderRadius: 10,
-    backgroundColor: Brand.field,
-  },
-  badgeOn: {
-    backgroundColor: Brand.accentMuted,
+    gap: 2,
   },
   legend: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.two,
-    marginTop: Spacing.one,
+    gap: t.space.md,
+    marginTop: t.space.xs,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.one,
+    gap: 6,
   },
   legendDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
   },
-  dimmed: {
-    opacity: 0.6,
+  setup: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    backgroundColor: t.color.surfaceSunken,
   },
-});
+  setupCard: {
+    gap: t.space.sm,
+  },
+  skeletonWrap: {
+    position: 'absolute',
+    top: 64,
+    left: 20,
+    right: 20,
+  },
+  skeleton: {
+    gap: t.space.sm,
+  },
+  skeletonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: t.space.sm,
+  },
+  skeletonDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: t.color.surfaceSunken,
+  },
+  skeletonBar: {
+    flex: 1,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: t.color.surfaceSunken,
+  },
+  skeletonBarShort: {
+    flex: 0.6,
+  },
+}));

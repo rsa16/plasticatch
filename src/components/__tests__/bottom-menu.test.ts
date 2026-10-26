@@ -5,15 +5,16 @@ describe('bottom menu tab routes', () => {
     expect([...Object.values(TAB_ROUTES)].sort()).toEqual([...APP_TABS].sort());
   });
 
-  it('has exactly the three V1 tabs', () => {
-    expect(APP_TABS).toEqual(['map', 'my-catches', 'leaderboard']);
+  it('has four tabs: Map, Gallery, Leaderboard and Profile', () => {
+    expect(APP_TABS).toEqual(['map', 'my-catches', 'leaderboard', 'settings']);
   });
 
-  it('labels the visible tabs Map, My Catches and Leaderboard', () => {
+  it('labels the visible tabs Map, Gallery, Leaderboard and Profile', () => {
     expect(TAB_LABELS).toEqual({
       map: 'Map',
-      'my-catches': 'My Catches',
+      'my-catches': 'Gallery',
       leaderboard: 'Leaderboard',
+      profile: 'Profile',
     });
   });
 
@@ -28,17 +29,23 @@ describe('bottom menu tab routes', () => {
     expect(tabItemForRoute('catch/find')).toBeUndefined();
   });
 
-  it('keeps Settings routable but out of the tab bar', () => {
-    expect(APP_TABS).not.toContain('settings');
-    expect(Object.values(TAB_ROUTES)).not.toContain('settings');
-    // Settings has no menu item, so no tab is highlighted while it is open.
-    expect(tabItemForRoute('settings')).toBeUndefined();
-  });
-
-  it('opens the private list as My Catches', () => {
+  it('opens the private catch list at the Gallery route', () => {
     expect(TAB_ROUTES['my-catches']).toBe('my-catches');
     expect(APP_TABS).toContain('my-catches');
     expect(tabItemForRoute('my-catches')).toBe('my-catches');
     expect(APP_TABS).not.toContain('gallery');
+  });
+
+  it('opens the account hub from the Profile tab', () => {
+    expect(TAB_ROUTES.profile).toBe('settings');
+    expect(tabItemForRoute('settings')).toBe('profile');
+  });
+
+  it('keeps Profile lit on every Settings screen it opens', () => {
+    expect(tabItemForRoute('settings/avatar')).toBe('profile');
+    expect(tabItemForRoute('settings/username')).toBe('profile');
+    expect(tabItemForRoute('settings/home-state')).toBe('profile');
+    expect(tabItemForRoute('settings/delete')).toBe('profile');
+    expect(tabItemForRoute('settings/about')).toBe('profile');
   });
 });

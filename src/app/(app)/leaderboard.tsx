@@ -1,14 +1,13 @@
-import { Image } from 'expo-image';
+import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { AvatarButton } from '@/components/avatar-button';
 import { useBottomMenuHeight } from '@/components/bottom-menu';
 import { LeaderboardList } from '@/components/leaderboard';
-import { MenuScreen } from '@/components/menu-screen';
-import { useMenuTitleTop } from '@/components/screen-frame';
+import { PlayerChip } from '@/components/player-chip';
 import { Text } from '@/components/text';
-import { Spacing } from '@/constants/theme';
+import { IconButton } from '@/components/ui/button';
+import { Screen } from '@/components/ui/screen';
 import {
   COHORTS,
   EMPTY_STANDINGS,
@@ -16,15 +15,14 @@ import {
   useLeaderboard,
   type Cohort,
 } from '@/features/leaderboard';
+import { useTheme } from '@/theme';
 
-/** Space between the leaderboard and the raised Catch tab. */
-const LIST_BOTTOM_GAP = 18;
-/** Centre the 44 pt avatar button on the 52 pt title pill. */
-const AVATAR_OFFSET = 4;
+/** Space between the leaderboard and the raised Catch action. */
+const LIST_BOTTOM_GAP = 16;
 
 export default function LeaderboardScreen() {
+  const theme = useTheme();
   const menuHeight = useBottomMenuHeight();
-  const titleTop = useMenuTitleTop();
   const [cohort, setCohort] = useState<Cohort>('state');
   // Ranks come from the RPC; the client only labels the cohort and splits the viewer's row.
   const { data } = useLeaderboard(cohort);
@@ -37,101 +35,61 @@ export default function LeaderboardScreen() {
     });
 
   return (
-    <View style={styles.screen}>
-      <MenuScreen title="RANKING">
-        <View style={[styles.board, { marginBottom: menuHeight + LIST_BOTTOM_GAP }]}>
-          <View style={styles.boardHeader}>
-            <Image
-              source={require('@/assets/images/ranking-arrows.svg')}
-              style={styles.arrows}
-              contentFit="fill"
+    <Screen title="Ranking" actions={<PlayerChip />}>
+      <View style={[styles.board, { marginBottom: menuHeight + LIST_BOTTOM_GAP }]}>
+        <View style={styles.switcher}>
+          <IconButton label="Previous leaderboard" onPress={() => step(-1)} surface>
+            <SymbolView
+              name={{ ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' }}
+              size={20}
+              tintColor={theme.color.ink}
             />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Previous leaderboard"
-              hitSlop={Spacing.two}
-              onPress={() => step(-1)}
-              style={[styles.arrowHit, styles.arrowHitLeft]}
-            />
-            <Text variant="sectionTitle" style={styles.boardTitle}>
+          </IconButton>
+
+          <View style={styles.heading}>
+            <Text variant="heading" accessibilityRole="header" numberOfLines={1}>
               {leaderboard.title}
             </Text>
-            <Image
-              source={require('@/assets/images/ranking-divider.svg')}
-              style={styles.divider}
-              contentFit="fill"
-            />
-            <Text variant="caption" color="accent" style={styles.metricLabel}>
+            <Text variant="caption" tone="muted">
               {leaderboard.metricLabel}
             </Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Next leaderboard"
-              hitSlop={Spacing.two}
-              onPress={() => step(1)}
-              style={[styles.arrowHit, styles.arrowHitRight]}
-            />
           </View>
 
-          <LeaderboardList
-            key={leaderboard.cohort}
-            entries={leaderboard.entries}
-            ownRank={leaderboard.ownRank}
-            ownXp={leaderboard.ownXp}
-          />
+          <IconButton label="Next leaderboard" onPress={() => step(1)} surface>
+            <SymbolView
+              name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
+              size={20}
+              tintColor={theme.color.ink}
+            />
+          </IconButton>
         </View>
-      </MenuScreen>
-      <AvatarButton top={titleTop + AVATAR_OFFSET} side="right" />
-    </View>
+
+        <LeaderboardList
+          key={leaderboard.cohort}
+          entries={leaderboard.entries}
+          ownRank={leaderboard.ownRank}
+          ownXp={leaderboard.ownXp}
+        />
+      </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
   board: {
     flex: 1,
-    marginTop: 29,
-    paddingLeft: 18,
-    paddingRight: 10,
-    gap: 29,
+    paddingTop: 16,
+    paddingHorizontal: 20,
+    gap: 16,
   },
-  boardHeader: {
-    alignSelf: 'center',
-    width: 304,
+  switcher: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
-  // One SVG holds both chevrons; it overhangs the 304pt header by 2.5pt on each side.
-  arrows: {
-    position: 'absolute',
-    top: 1.09,
-    left: -2.5,
-    width: 309,
-    height: 36.82,
-  },
-  arrowHit: {
-    position: 'absolute',
-    top: 0,
-    width: 44,
-    height: 38,
-  },
-  arrowHitLeft: {
-    left: -2.5,
-  },
-  arrowHitRight: {
-    right: -2.5,
-  },
-  boardTitle: {
-    width: 244,
-    textAlign: 'center',
-  },
-  divider: {
-    width: 210,
-    height: 5,
-    marginTop: 4,
-  },
-  metricLabel: {
-    marginTop: 2,
+  heading: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
   },
 });

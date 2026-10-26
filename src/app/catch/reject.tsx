@@ -1,17 +1,20 @@
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { SymbolView } from 'expo-symbols';
+import { StyleSheet, View } from 'react-native';
 
-import { ScreenFrame } from '@/components/screen-frame';
 import { Text } from '@/components/text';
-import { Brand, Spacing } from '@/constants/theme';
+import { Button } from '@/components/ui/button';
+import { Screen } from '@/components/ui/screen';
 import { useCatchStore } from '@/features/catch';
 import { FALLBACK_REJECTION } from '@/features/verification/rejection';
+import { useTheme } from '@/theme';
 
 /**
  * A rejected catch. The server's code maps to one plain-language reason and one retry half; the
  * retry preserves the Find photo when only the Dispose half needs replacing.
  */
 export default function CatchRejectScreen() {
+  const theme = useTheme();
   const rejection = useCatchStore((state) => state.rejection) ?? FALLBACK_REJECTION;
   const retry = useCatchStore((state) => state.retry);
   const reset = useCatchStore((state) => state.reset);
@@ -22,83 +25,80 @@ export default function CatchRejectScreen() {
   }
 
   return (
-    <ScreenFrame top="step">
-      <View style={styles.body}>
-        <Text variant="pageTitle" style={styles.title} accessibilityRole="header">
-          Catch not verified
+    <Screen scroll contentStyle={styles.content}>
+      <View style={styles.message}>
+        <View style={styles.iconRow}>
+          <View style={[styles.icon, { backgroundColor: theme.color.accentTint }]}>
+            <SymbolView
+              name={{ ios: 'exclamationmark.triangle.fill', android: 'warning', web: 'warning' }}
+              tintColor={theme.color.danger}
+              size={26}
+            />
+          </View>
+        </View>
+
+        <Text variant="display" accessibilityRole="header" style={styles.title}>
+          Couldn&apos;t verify
         </Text>
-        <Text variant="fieldText" style={styles.message} accessibilityRole="alert">
+        <Text variant="caption" tone="muted">
+          No XP was awarded and nothing was added to Gallery.
+        </Text>
+        <Text variant="body" accessibilityRole="alert" style={styles.rejection}>
           {rejection.message}
         </Text>
-        <Text variant="fieldText" style={styles.noXp}>
-          No XP was awarded and nothing was added to My Catches.
-        </Text>
-
-        <View style={styles.actions}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={tryAgain}
-            style={({ pressed }) => [styles.primary, pressed && styles.pressed]}
-          >
-            <Text variant="buttonLabel">TRY AGAIN</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              reset();
-              router.dismissTo('/map');
-            }}
-            style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
-          >
-            <Text variant="buttonLabel">CLOSE</Text>
-          </Pressable>
-        </View>
       </View>
-    </ScreenFrame>
+
+      <View style={styles.actions}>
+        <Button label="Try again" size="lg" onPress={tryAgain} />
+        <Button
+          label="Close"
+          variant="ghost"
+          onPress={() => {
+            reset();
+            router.dismissTo('/map');
+          }}
+        />
+      </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  body: {
-    flex: 1,
+  content: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.three,
-  },
-  title: {
-    textAlign: 'center',
+    gap: 24,
+    paddingVertical: 32,
   },
   message: {
-    textAlign: 'center',
-    maxWidth: 330,
+    width: '100%',
+    alignItems: 'center',
+    gap: 8,
   },
-  noXp: {
+  rejection: {
     textAlign: 'center',
-    maxWidth: 330,
+  },
+  iconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 8,
+  },
+  icon: {
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 24,
+  },
+  title: {
+    marginBottom: 4,
+    textAlign: 'center',
   },
   actions: {
-    marginTop: Spacing.three,
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
-  primary: {
-    minWidth: 220,
-    minHeight: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
-    borderRadius: 15,
-    backgroundColor: Brand.accent,
-  },
-  secondary: {
-    minWidth: 220,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
-  },
-  pressed: {
-    opacity: 0.7,
+    width: '100%',
+    maxWidth: 360,
+    gap: 8,
   },
 });
