@@ -8,6 +8,7 @@ import { AppState, Linking, Platform, Pressable, StyleSheet, View } from 'react-
 import { OnboardingHeading, OnboardingPrompt, OnboardingScreen } from '@/components/onboarding';
 import { Text } from '@/components/text';
 import { Brand, Spacing } from '@/constants/theme';
+import { goBackOr } from '@/features/onboarding/back';
 import { useReadOnlyStore } from '@/stores/read-only';
 
 export default function PermissionsScreen() {
@@ -41,7 +42,11 @@ export default function PermissionsScreen() {
 
   // Users can continue without these; features that need them should check again before use.
   return (
-    <OnboardingScreen step={4} onBack={() => router.back()} onNext={() => router.push('/terms')}>
+    <OnboardingScreen
+      step={4}
+      onBack={() => goBackOr('/home-state')}
+      onNext={() => router.push('/terms')}
+    >
       <OnboardingHeading>Permissions</OnboardingHeading>
       <OnboardingPrompt>
         Please use the popups below to allow PlastiCatch to use your Camera and your Location.

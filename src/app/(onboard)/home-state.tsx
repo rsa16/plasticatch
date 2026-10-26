@@ -9,6 +9,7 @@ import { Text } from '@/components/text';
 import { Brand } from '@/constants/theme';
 import { US_STATES, type UsState } from '@/constants/us-states';
 import { useSessionStore } from '@/features/auth';
+import { goBackOr } from '@/features/onboarding/back';
 import { canSubmitHomeState } from '@/features/onboarding/home-state';
 import { homeStateErrorMessage, saveHomeState } from '@/features/onboarding/profile-service';
 
@@ -52,7 +53,7 @@ export default function HomeStateScreen() {
   return (
     <OnboardingScreen
       step={3}
-      onBack={() => router.back()}
+      onBack={() => goBackOr('/profile')}
       onNext={handleNext}
       nextDisabled={pending || !canSubmitHomeState(selected)}
     >

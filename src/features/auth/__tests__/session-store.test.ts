@@ -126,7 +126,37 @@ describe('session store', () => {
     expect(store.getState().status).toBe('signed-in');
     expect(store.getState().session?.user.id).toBe('user-1');
     expect(store.getState().profile?.id).toBe('user-1');
+    expect(store.getState().profileLoaded).toBe(true);
     expect(readProfile).toHaveBeenCalledWith('user-1');
+  });
+
+  it('stays loading until the profile read settles', async () => {
+    let resolveProfile: ((profile: Profile | null) => void) | undefined;
+    const readProfile = jest.fn(
+      () =>
+        new Promise<Profile | null>((resolve) => {
+          resolveProfile = resolve;
+        }),
+    );
+    const client = makeClient({
+      getSession: jest.fn(async () => ({ data: { session: fakeSession('user-1') }, error: null })),
+    });
+    const { store } = makeStore({ client, readProfile });
+
+    const initialized = store.getState().initialize();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // The session exists, but the entry gate must not route until the profile is known.
+    expect(store.getState().status).toBe('loading');
+    expect(store.getState().profileLoaded).toBe(false);
+    expect(store.getState().profile).toBeNull();
+
+    resolveProfile?.(fakeProfile('user-1'));
+    await initialized;
+
+    expect(store.getState().status).toBe('signed-in');
+    expect(store.getState().profileLoaded).toBe(true);
+    expect(store.getState().profile?.id).toBe('user-1');
   });
 
   it('follows later auth state changes', async () => {

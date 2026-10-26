@@ -13,8 +13,11 @@ import { needsOnboarding, onboardingStartRoute, useSessionStore } from '@/featur
 export default function Index() {
   const status = useSessionStore((state) => state.status);
   const profile = useSessionStore((state) => state.profile);
+  const profileLoaded = useSessionStore((state) => state.profileLoaded);
 
-  if (status === 'loading') return null;
+  // Wait for the profile read, not just the session. Routing while `profile` is still null
+  // would send a returning player back to onboarding's first step on every cold start.
+  if (status === 'loading' || (status === 'signed-in' && !profileLoaded)) return null;
 
   if (status === 'signed-in') {
     return <Redirect href={needsOnboarding(profile) ? onboardingStartRoute(profile) : '/map'} />;
