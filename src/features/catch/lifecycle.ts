@@ -33,8 +33,8 @@ export const EMPTY_CATCH_STATE: CatchState = { step: 'find', xp: 0 };
 export const STEP_XP = 100;
 
 /**
- * Chance that a photo passes verification. A placeholder until real trash/plastic detection
- * exists: every photo is judged by a coin flip, so half of all attempts fail.
+ * Chance that a photo passes the mock verifier, used when `EXPO_PUBLIC_CATCH_VERIFIER` isn't
+ * `claude`: every photo is judged by a coin flip, so half of all attempts fail.
  */
 export const CATCH_SUCCESS_RATE = 0.5;
 

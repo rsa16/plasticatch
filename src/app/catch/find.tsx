@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 
 import { CatchCamera } from '@/components/catch-camera';
-import { useCatchStore } from '@/features/catch';
+import { useCatchStore, verifyCatchStep } from '@/features/catch';
 
 /** Dismiss the Catch flow and return to the app shell's default screen. */
 function backToMap() {
@@ -19,6 +19,7 @@ export default function FindScreen() {
       instruction="STEP 1: Point the camera at a piece of litter."
       xp={xp}
       failureMessage="Catch failed. Please make sure the litter is clearly in view."
+      verify={(photo) => verifyCatchStep('find', [photo])}
       onVerified={(photo) => {
         found(photo);
         router.push('/catch/dispose');

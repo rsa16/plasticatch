@@ -10,17 +10,34 @@ deployed state rather than from a replayed migration chain (see `migrations/READ
 
 ## Edge Functions
 
-Each function is committed verbatim from the deployed source. Do not hand-edit a deployed function
-without a matching deploy.
+Each of the three original functions (`verify-catch`, `gallery-feed`, `delete-account`) is committed
+verbatim from the deployed source. Do not hand-edit a deployed function without a matching deploy.
+`verify-photo` is the exception: it is authored in this repo and is **not deployed yet** (see below).
 
 | Function | Entry point | Auth | Purpose |
 | -------- | ----------- | ---- | ------- |
 | `verify-catch` | `functions/verify-catch/index.ts` | caller JWT + service role | Deterministic verification of a find/dispose pair and XP award |
 | `gallery-feed` | `functions/gallery-feed/index.ts` | caller JWT + service role | Owner-only paginated gallery with short-lived signed photo URLs |
 | `delete-account` | `functions/delete-account/index.ts` | caller JWT + service role | Photo cleanup then Auth user deletion, with confirmation and re-auth |
+| `verify-photo` | `functions/verify-photo/index.ts` | caller JWT + service role | Claude photo check for one Find/Dispose capture; holds the Anthropic key, rate-limited per player |
 
 `seed-debris-tracker-once` and `debris-tracker-probe` are one-off data-import helpers and are not
 part of the app runtime.
+
+### `verify-photo`
+
+The app never calls Anthropic. It invokes `verify-photo` with its Supabase session; the function
+calls the model with the project secret and returns only `{ pass, item, reason }`. Calls are logged
+to `photo_check_calls`, which also enforces 200 checks per player per rolling 24 hours.
+
+- Secret: `ANTHROPIC_API_KEY`, set with
+  `npx supabase secrets set ANTHROPIC_API_KEY=... --project-ref rivfogygicrhkpfkwmlu`.
+  It is never read from `.env` and never reaches the app bundle.
+- Secret: `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are injected by the platform.
+- **Prototype scope:** the function receives photos as captured, before ticket 25's privacy
+  pipeline (pHash before blur, face blur, original discard). Do not ship a build that uses it
+  with real players until that pipeline lands.
+
 
 ## Storage
 
