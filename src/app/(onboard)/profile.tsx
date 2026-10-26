@@ -9,6 +9,7 @@ import {
   OnboardingScreen,
 } from '@/components/onboarding';
 import { useSessionStore } from '@/features/auth';
+import { goBackOr } from '@/features/onboarding/back';
 import { useOnboardingDraftStore, usernameProblem } from '@/features/onboarding/draft';
 import {
   checkUsernameAvailable,
@@ -62,7 +63,7 @@ export default function ProfileScreen() {
   return (
     <OnboardingScreen
       step={2}
-      onBack={() => router.back()}
+      onBack={() => goBackOr('/date-of-birth')}
       onNext={handleNext}
       nextDisabled={pending || usernameProblem(username) !== null}
     >

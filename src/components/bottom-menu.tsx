@@ -248,11 +248,15 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   catchTab: {
+    // Centred on the screen, not on the unequal left/right button groups.
+    position: 'absolute',
+    left: '50%',
     width: 125,
+    marginLeft: -62.5,
     // Rises above the bar and runs past the bottom edge of the screen.
-    marginTop: -CATCH_RISE,
-    marginBottom: -6,
-    alignSelf: 'stretch',
+    top: -CATCH_RISE,
+    bottom: -6,
+    zIndex: 1,
     alignItems: 'center',
     paddingTop: 28,
     borderRadius: 15,

@@ -33,6 +33,8 @@ export type SessionStore = {
   status: AuthStatus;
   session: Session | null;
   profile: Profile | null;
+  /** Whether the profile read for the current session has settled. */
+  profileLoaded: boolean;
   error: string | null;
   /** Resolve the persisted session once, then follow auth changes. */
   initialize: () => Promise<void>;
@@ -98,26 +100,49 @@ export function createSessionStore({
 
     async function applySession(session: Session | null): Promise<void> {
       if (!session) {
-        set({ status: 'signed-out', session: null, profile: null });
+        set({ status: 'signed-out', session: null, profile: null, profileLoaded: true });
         return;
       }
 
-      set({ status: 'signed-in', session, error: null });
+      // A cold start must not report `signed-in` before the profile read settles: the entry
+      // gate would see `profile: null` and resume onboarding for an account that already has a
+      // username. Keep the current signed-in state on a token refresh, but mark the profile
+      // stale until the read resolves.
+      const alreadySignedIn = get().status === 'signed-in';
+      set({
+        session,
+        error: null,
+        profileLoaded: false,
+        ...(alreadySignedIn ? {} : { status: 'loading' as const }),
+      });
 
       try {
         const profile = await readProfile(session.user.id);
         // A later auth event may already have moved on; only keep this profile if the
         // session it belongs to is still the current one.
         if (get().session?.user.id === session.user.id) {
-          set({ profile });
+          set({ status: 'signed-in', profile, profileLoaded: true });
         }
       } catch (error) {
-        set({ error: messageOf(error, 'Could not load your profile.') });
+        if (get().session?.user.id === session.user.id) {
+          set({
+            status: 'signed-in',
+            profile: null,
+            profileLoaded: true,
+            error: messageOf(error, 'Could not load your profile.'),
+          });
+        }
       }
     }
 
     function clearLocalSession(): void {
-      set({ status: 'signed-out', session: null, profile: null, error: null });
+      set({
+        status: 'signed-out',
+        session: null,
+        profile: null,
+        profileLoaded: true,
+        error: null,
+      });
       onSignedOut?.();
     }
 
@@ -163,6 +188,7 @@ export function createSessionStore({
       status: 'loading',
       session: null,
       profile: null,
+      profileLoaded: false,
       error: null,
       recoverySession: false,
 
@@ -479,9 +505,12 @@ export function createSessionStore({
         if (!session) return;
 
         try {
-          set({ profile: await readProfile(session.user.id) });
+          set({ profile: await readProfile(session.user.id), profileLoaded: true });
         } catch (error) {
-          set({ error: messageOf(error, 'Could not load your profile.') });
+          set({
+            profileLoaded: true,
+            error: messageOf(error, 'Could not load your profile.'),
+          });
         }
       },
 

@@ -182,6 +182,10 @@ const styles = StyleSheet.create({
   },
   itemText: {
     opacity: 0.6,
+    // Android's default font padding pushes the glyphs below the line box's centre, which
+    // makes the selected row look a few pixels low against the highlight band.
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   itemTextSelected: {
     opacity: 1,
