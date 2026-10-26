@@ -47,6 +47,11 @@ type ScreenFrameProps = {
   backdropOverBackground?: boolean;
   /** Extra styles for the padded column that holds the header, title, children and footer. */
   contentStyle?: StyleProp<ViewStyle>;
+  /**
+   * Let touches fall through the content column to the `background` slot, e.g. so an interactive
+   * map behind the chrome still pans. Controls inside the content still receive their own taps.
+   */
+  contentPointerEvents?: 'auto' | 'box-none';
 };
 
 /**
@@ -64,6 +69,7 @@ export function ScreenFrame({
   keyboardAvoiding = false,
   backdropOverBackground = false,
   contentStyle,
+  contentPointerEvents = 'auto',
 }: ScreenFrameProps) {
   const insets = useSafeAreaInsets();
   const paddingTop = top === 'step' ? insets.top + Spacing.two : menuTitleTop(insets.top);
@@ -103,11 +109,14 @@ export function ScreenFrame({
           // when hidden), so any footer gap lives on the footer itself.
           style={frameStyle}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          pointerEvents={contentPointerEvents}
         >
           {content}
         </KeyboardAvoidingView>
       ) : (
-        <View style={frameStyle}>{content}</View>
+        <View style={frameStyle} pointerEvents={contentPointerEvents}>
+          {content}
+        </View>
       )}
     </View>
   );

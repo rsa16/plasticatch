@@ -1,24 +1,14 @@
-import { Image, type ImageSource } from 'expo-image';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet } from 'react-native';
 
-import { avatarHeadSource } from '@/components/avatar-source';
+import { storedAvatarHead } from '@/components/avatar-art';
 import { Spacing } from '@/constants/theme';
 import { useSessionStore } from '@/features/auth';
 
 /** The 44 pt tap target, even though the head itself is the size of a leaderboard avatar. */
 const BUTTON_SIZE = 44;
 const HEAD_SIZE = 32;
-
-/** The head shown when the profile has no avatar, or its parts have no artwork yet. */
-const DEFAULT_AVATAR_SOURCE: ImageSource = require('@/assets/images/leaderboard-avatar.png');
-
-/**
- * Artwork keyed by a stored avatar part preset. V1 does not ship avatar part art yet — ticket 36
- * adds the picker and its assets — so this map is empty and every stored avatar falls back to
- * the default head. Keeping the lookup here means the button never renders a missing asset.
- */
-const AVATAR_ARTWORK: Readonly<Record<string, ImageSource>> = {};
 
 type AvatarButtonProps = {
   /** Distance from the top of the screen, so the button lines up with the title pill. */
@@ -45,11 +35,7 @@ export function AvatarButton({ top, side }: AvatarButtonProps) {
         pressed && styles.pressed,
       ]}
     >
-      <Image
-        source={avatarHeadSource(avatar, AVATAR_ARTWORK, DEFAULT_AVATAR_SOURCE)}
-        style={styles.head}
-        contentFit="cover"
-      />
+      <Image source={storedAvatarHead(avatar)} style={styles.head} contentFit="cover" />
     </Pressable>
   );
 }

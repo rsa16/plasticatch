@@ -41,6 +41,8 @@ export default function AppLayout() {
       ))}
       {/* Settings opens from the avatar button. It is not in APP_TABS, so the menu never shows it. */}
       <Tabs.Screen name="settings" />
+      {/* Reached from the map's persistent Data sources link; hidden from the custom tab bar. */}
+      <Tabs.Screen name="settings/about" />
     </Tabs>
   );
 }
