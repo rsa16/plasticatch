@@ -33,9 +33,9 @@ function statistic(value: number | null | undefined): string {
 /**
  * The account hub.
  *
- * Every row either opens a real route or is omitted. The avatar picker (ticket 36) and Delete
- * account (ticket 37) routes do not exist yet, so they are absent rather than dead controls.
- * Support and Privacy appear only when their destinations are provisioned.
+ * Every row either opens a real route or is omitted. Delete account (ticket 37) does not exist
+ * yet, so it is absent rather than a dead control. Support and Privacy appear only when their
+ * destinations are provisioned.
  */
 export default function SettingsScreen() {
   const profile = useSessionStore((state) => state.profile);
@@ -80,6 +80,13 @@ export default function SettingsScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <Section title="Profile">
+            <Row
+              label="Avatar"
+              value="Preset head"
+              actionLabel="Change"
+              accessibilityHint="Opens the avatar picker"
+              onPress={() => router.push('/settings/avatar')}
+            />
             <Row
               label="Username"
               value={profile?.username ?? 'Not set'}
