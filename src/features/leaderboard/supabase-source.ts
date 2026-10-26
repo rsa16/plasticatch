@@ -21,7 +21,11 @@ export function standingsFromRows(rows: readonly LeaderboardRow[]): BoardStandin
       avatar: avatarFromJson(row.avatar),
     }));
 
-  return { entries, ownRank: viewer ? Number(viewer.rank) : null };
+  return {
+    entries,
+    ownRank: viewer ? Number(viewer.rank) : null,
+    ...(viewer ? { ownXp: Number(viewer.score) } : {}),
+  };
 }
 
 /**
