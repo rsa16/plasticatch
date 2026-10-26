@@ -39,11 +39,23 @@ export type CatchStepState = {
 /** Copy shown when the camera itself fails, not when verification rejects the photo. */
 export const CAMERA_FAILURE_MESSAGE = 'Couldn’t take a photo. Please try again.';
 
+/** Copy shown when the photo could not be checked at all, e.g. no signal. Not a failed catch. */
+export const VERIFY_FAILURE_MESSAGE = 'Couldn’t check your photo. Please try again.';
+
+/**
+ * A verifier's answer. `true`/`false` is a bare pass or fail; an object can also carry a short
+ * reason, which replaces the step's fixed failure copy when the photo is rejected.
+ */
+export type CatchCheck = boolean | { pass: boolean; reason?: string };
+
 export type CatchStepOptions = {
   adapter: CatchCameraAdapter;
-  /** Decides whether a captured photo counts. Injected so tests never roll `Math.random`. */
-  verify: (photo: string) => boolean | Promise<boolean>;
-  /** Copy shown when verification rejects the photo. */
+  /**
+   * Decides whether a captured photo counts. Injected so tests never call the network or roll
+   * `Math.random`. Throwing means the photo couldn't be checked, which is not a failed catch.
+   */
+  verify: (photo: string) => CatchCheck | Promise<CatchCheck>;
+  /** Copy shown when verification rejects the photo without giving a reason. */
   failureMessage: string;
   /** Called at most once per successful capture, and never after cancellation. */
   onCaptured: (photo: string) => void;
@@ -146,23 +158,37 @@ export function createCatchStep({
       const current = ++attempt;
       emit({ ...state, status: 'capturing', failure: null });
 
+      let photo: string;
       try {
-        const photo = await adapter.takePhoto();
-        if (closed || current !== attempt) return;
-
-        emit({ ...state, status: 'verifying' });
-        const verified = await verify(photo);
-        if (closed || current !== attempt) return;
-
-        if (verified) {
-          emit({ ...state, status: 'captured' });
-          onCaptured(photo);
-        } else {
-          emit({ ...state, status: 'failed', failure: failureMessage });
-        }
+        photo = await adapter.takePhoto();
       } catch {
         if (closed || current !== attempt) return;
         emit({ ...state, status: 'failed', failure: CAMERA_FAILURE_MESSAGE });
+        return;
+      }
+      if (closed || current !== attempt) return;
+
+      emit({ ...state, status: 'verifying' });
+      let check: CatchCheck;
+      try {
+        check = await verify(photo);
+      } catch {
+        if (closed || current !== attempt) return;
+        emit({ ...state, status: 'failed', failure: VERIFY_FAILURE_MESSAGE });
+        return;
+      }
+      if (closed || current !== attempt) return;
+
+      const { pass, reason } = typeof check === 'boolean' ? { pass: check, reason: '' } : check;
+      if (pass) {
+        emit({ ...state, status: 'captured' });
+        onCaptured(photo);
+      } else {
+        emit({
+          ...state,
+          status: 'failed',
+          failure: reason ? `Catch failed: ${reason}` : failureMessage,
+        });
       }
     },
 

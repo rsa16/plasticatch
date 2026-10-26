@@ -14,7 +14,7 @@ import { Linking, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/text';
-import { createCatchStep, createExpoCameraAdapter, verifyCatchPhoto } from '@/features/catch';
+import { createCatchStep, createExpoCameraAdapter, type CatchCheck } from '@/features/catch';
 import { Brand, Spacing } from '@/constants/theme';
 
 /** Height of the instruction bar below the status-bar inset. */
@@ -36,8 +36,10 @@ type CatchCameraProps = {
   instruction: string;
   /** XP earned so far in this catch. */
   xp: number;
-  /** Shown in the popup when a photo fails verification. */
+  /** Shown in the popup when a photo fails verification without a reason. */
   failureMessage: string;
+  /** Judges a captured photo's URI. Throwing means it couldn't be checked. */
+  verify: (photo: string) => Promise<CatchCheck>;
   /** Called with the photo's URI once it passes verification. */
   onVerified: (photo: string) => void;
   /** Leaves the Catch flow. */
@@ -46,32 +48,37 @@ type CatchCameraProps = {
 
 /**
  * The mutable bridge between React and the framework-free step: latest permission, permission
- * prompt, verified callback, and the one mounted camera preview. Keeping it in a stable object lets
+ * prompt, verifier, verified callback, and the one mounted camera preview. Keeping it in a stable object lets
  * the step be created once while the values it reads stay current across renders.
  */
 class CameraGateway {
   private permission: ReturnType<typeof useCameraPermissions>[0];
   private promptPermission: ReturnType<typeof useCameraPermissions>[1];
+  private verifyPhoto: (photo: string) => Promise<CatchCheck>;
   private onVerified: (photo: string) => void;
   private camera: CameraView | null = null;
 
   constructor(
     permission: ReturnType<typeof useCameraPermissions>[0],
     requestPermission: ReturnType<typeof useCameraPermissions>[1],
+    verify: (photo: string) => Promise<CatchCheck>,
     onVerified: (photo: string) => void,
   ) {
     this.permission = permission;
     this.promptPermission = requestPermission;
+    this.verifyPhoto = verify;
     this.onVerified = onVerified;
   }
 
   update(
     permission: ReturnType<typeof useCameraPermissions>[0],
     requestPermission: ReturnType<typeof useCameraPermissions>[1],
+    verify: (photo: string) => Promise<CatchCheck>,
     onVerified: (photo: string) => void,
   ) {
     this.permission = permission;
     this.promptPermission = requestPermission;
+    this.verifyPhoto = verify;
     this.onVerified = onVerified;
   }
 
@@ -90,6 +97,8 @@ class CameraGateway {
     await this.promptPermission();
   };
 
+  verify = (photo: string) => this.verifyPhoto(photo);
+
   onCaptured = (photo: string) => {
     this.onVerified(photo);
   };
@@ -100,6 +109,7 @@ export function CatchCamera({
   instruction,
   xp,
   failureMessage,
+  verify,
   onVerified,
   onClose,
 }: CatchCameraProps) {
@@ -111,11 +121,13 @@ export function CatchCamera({
 
   // The step is created once per mounted step, so one mount owns one capture lifecycle. The
   // gateway carries the latest permission and verified callback without rebuilding the controller.
-  const [gateway] = useState(() => new CameraGateway(permission, requestPermission, onVerified));
+  const [gateway] = useState(
+    () => new CameraGateway(permission, requestPermission, verify, onVerified),
+  );
 
   useEffect(() => {
-    gateway.update(permission, requestPermission, onVerified);
-  }, [gateway, permission, requestPermission, onVerified]);
+    gateway.update(permission, requestPermission, verify, onVerified);
+  }, [gateway, permission, requestPermission, verify, onVerified]);
 
   const setCamera = useCallback(
     (camera: CameraView | null) => gateway.setCamera(camera),
@@ -135,7 +147,7 @@ export function CatchCamera({
   const [step] = useState(() =>
     createCatchStep({
       adapter,
-      verify: () => verifyCatchPhoto(),
+      verify: gateway.verify,
       failureMessage,
       onCaptured: gateway.onCaptured,
     }),
@@ -227,6 +239,19 @@ export function CatchCamera({
           </Text>
         </View>
       </View>
+
+      {state.status === 'verifying' && (
+        <View
+          style={[styles.popupArea, { top: topBarHeight, bottom: controlsHeight }]}
+          pointerEvents="none"
+        >
+          <View style={styles.popup} accessibilityLiveRegion="polite">
+            <Text variant="buttonLabel" style={styles.popupText}>
+              Checking your photo…
+            </Text>
+          </View>
+        </View>
+      )}
 
       {state.failure && (
         <View
