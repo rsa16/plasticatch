@@ -1,56 +1,149 @@
-# Welcome to your Expo app 👋
+# PlastiCatch
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+[![CI](https://github.com/rsa16/plasticatch/actions/workflows/ci.yml/badge.svg)](https://github.com/rsa16/plasticatch/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/rsa16/plasticatch)](https://github.com/rsa16/plasticatch/releases/latest)
+[![License: MIT](https://img.shields.io/github/license/rsa16/plasticatch)](LICENSE)
+![Platforms](https://img.shields.io/badge/platform-Android%20%C2%B7%20iOS%20%C2%B7%20web-4c7c59)
 
-## Get started
+**PlastiCatch turns picking up litter into a Pokemon Go-style mobile game.** A player photographs a piece of
+litter where they find it, carries it to a bin, and photographs it going in. Every catch is verified
+before it earns XP, extends a streak, or moves a leaderboard.
 
-1. Install dependencies
+[**Download the Android build**](https://github.com/rsa16/plasticatch/releases/latest)
+## Features
 
-   ```bash
-   npm install
-   ```
+- **Verification:** Requires a certain distance, time interval, plus a model-assisted photo check. Attempts are recorded if we ever need to audit.
+- **Privacy:** Faces are automatically detected and blurred before upload. You don't need to worry about the model seeing you.
 
-2. Start the app
+- **Progression:** XP, levels, daily streaks, and a My Catches gallery.
+- **Leaderboards:** Both state and global leaderboards, ranked by XP.
 
-   ```bash
-   npx expo start
-   ```
+## Architecture
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```text
+Expo app (src/)
+  app/            Expo Router routes: map, gallery, leaderboard, catch, onboarding, settings
+  features/       per-domain logic: capture, verification, catch, auth, avatar, leaderboard, map
+  components/     shared UI, map overlays, design-system primitives
+  stores/         Zustand session and catch state
+        │
+        ├── Supabase Storage   photos (private buckets, signed URLs)
+        └── Supabase Edge Functions
+              verify-catch   verification gates → calls verify-photo → XP
+              verify-photo   LLM photo check that it is trash
+              gallery-feed   paged gallery with signed URLs
+              delete-account account deletion
+                    │
+              Postgres + PostGIS  profiles, catches, attempts, xp_events, leaderboards
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
 
-### Other setup steps
+### Tech stack
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+| Area | Choice |
+| --- | --- |
+| Mobile | Expo SDK 58, React Native 0.88, Expo Router, TypeScript |
+| Data | TanStack Query, Zustand, AsyncStorage |
+| Camera | `react-native-vision-camera` with ML Kit face detection, Skia blur, `expo-camera` permissions |
+| Map | `@rnmapbox/maps`, OpenLitterMap pins, EPA risk heatmap |
+| Backend | Supabase: Postgres/PostGIS, Auth, Storage, Edge Functions (Deno) |
+| Verification | Gates through certain requirements  in `verify-catch`; Verifies trash through LLM  in `verify-photo` |
+| Tooling | Jest + `jest-expo`, ESLint, Prettier, Husky, GitHub Actions |
 
-## Learn more
+## Project structure
 
-To learn more about developing your project with Expo, look at the following resources:
+```text
+src/
+├── app/                 Expo Router routes (navigators in _layout.tsx)
+├── components/          shared UI, map components, design-system primitives
+├── features/            domain modules with colocated __tests__
+├── constants/           avatar catalogue, map layers, legal copy, US states
+├── lib/                 Supabase client and shared helpers
+├── stores/              Zustand stores
+└── theme/               design tokens and dual themes
+plugins/                 Expo config plugins (native build rules)
+supabase/
+├── functions/           Edge Functions
+└── migrations/          forward-only SQL migrations
+docs/                    ADRs, design language, agent and verification notes
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+`android/` and `ios/` are generated by `expo prebuild` and are not committed. Native build rules live
+in `plugins/`:
 
-## Join the community
+- `with-mlkit-face-detection` keeps ML Kit's component registrars when R8 minifies release builds.
+- `with-android-splits` emits per-ABI release APKs plus a universal APK.
 
-Join our community of developers creating universal apps.
+## Getting started
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### Prerequisites
+
+- Node 24 (`.nvmrc`); `package.json` requires `>= 22.13`.
+- npm with the committed `package-lock.json`.
+- For native builds: Android Studio (or a JDK and the Android SDK) or Xcode, and a Supabase project.
+- A [Mapbox](https://account.mapbox.com/) access token for the Map tab.
+
+### Install and run
+
+```bash
+npm ci
+cp .env.example .env
+npm start       # Expo dev server
+npm run android # native Android build and install
+npm run ios     # native iOS build and install
+npm run web     # web target
+```
+
+### Environment
+
+All client configuration is public and prefixed `EXPO_PUBLIC_`; Expo inlines it into the JavaScript
+bundle, so never put a secret there.
+
+| Variable | Purpose |
+| --- | --- |
+| `EXPO_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Publishable anon key |
+| `EXPO_PUBLIC_MAPBOX_TOKEN` | Public Mapbox token |
+| `EXPO_PUBLIC_SUPPORT_EMAIL` | Support address shown in Settings |
+| `EXPO_PUBLIC_PRIVACY_URL` | Absolute `https://` privacy policy URL |
+
+Server-side secrets (`ANTHROPIC_API_KEY`, service role key) are Supabase Edge Function secrets, set
+with `npx supabase secrets set`. They are never read from `.env`.
+
+### Backend
+
+```bash
+npx supabase link --project-ref <project-ref>
+npx supabase functions deploy verify-catch verify-photo gallery-feed delete-account
+```
+
+Migrations in `supabase/migrations` are dated and forward-only. The live schema predates this
+directory, so `supabase db reset` does not reproduce production — see
+[`supabase/migrations/README.md`](supabase/migrations/README.md) before touching the database.
+
+## Quality gates
+
+```bash
+npm run check    # format check + lint + typecheck + tests (what CI runs)
+npm run format   # rewrite formatting
+npm run lint     # ESLint (eslint-config-expo)
+npm run typecheck
+npm test         # Jest; single file: npm test -- src/constants/__tests__/leaderboards.test.ts
+npm run audit    # high/critical npm audit gate, allowlist in audit-allowlist.json
+```
+
+Husky formats and lints staged files at commit time and runs the full check before push. CI runs
+**Check** (`npm run check`) and **Audit** (`npm run audit`) on every pull request and push to `main`,
+plus a weekly scheduled run. `main` requires both checks to pass.
+
+## Releases
+
+Android builds are published as GitHub releases with per-ABI APKs and a universal APK; details and
+checksums are in the [latest release](https://github.com/rsa16/plasticatch/releases/latest).
+
+iOS builds require an Apple Developer account and are not distributed yet.
+
+
+## License
+
+MIT - see [`LICENSE`](LICENSE).
