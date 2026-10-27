@@ -60,7 +60,8 @@
           "isAndroidForegroundServiceEnabled": false
         }
       ],
-      "@rnmapbox/maps"
+      "@rnmapbox/maps",
+      "./plugins/with-mlkit-face-detection"
     ],
     "experiments": {
       "typedRoutes": true,
