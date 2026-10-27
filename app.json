@@ -61,7 +61,8 @@
         }
       ],
       "@rnmapbox/maps",
-      "./plugins/with-mlkit-face-detection"
+      "./plugins/with-mlkit-face-detection",
+      "./plugins/with-android-splits"
     ],
     "experiments": {
       "typedRoutes": true,
